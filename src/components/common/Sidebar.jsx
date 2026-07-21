@@ -8,7 +8,6 @@ import {
   Clock,
   FileText,
   MessageSquare,
-  Bell,
   User,
   Users,
   Package,
@@ -34,7 +33,6 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
     { id: 'follow-ups', label: 'Follow-ups', icon: Clock },
     { id: 'tenders', label: 'Tenders', icon: FileText },
     { id: 'director-comments', label: 'Director Comments', icon: MessageSquare, badge: unreadNotifsCount },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'profile', label: 'Profile', icon: User }
   ];
 
@@ -106,7 +104,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
           {menuItems.map(item => {
             const IconComponent = item.icon;
             const isActive = activeTab === item.id ||
-              (item.id === 'visits' && ['visits', 'today-schedule', 'my-plans', 'add-visit-plan', 'weekly-planning', 'update-visit'].includes(activeTab)) ||
+              (item.id === 'visits' && ['visits', 'today-schedule', 'my-plans', 'add-visit-plan', 'weekly-planning'].includes(activeTab)) ||
               (item.id === 'customers' && ['customers', 'my-customers', 'add-customer', 'customers-hub'].includes(activeTab)) ||
               (item.id === 'reports' && ['reports', 'daily-report', 'reports-hub'].includes(activeTab));
 

@@ -8,15 +8,15 @@ export const ActivityLogs = () => {
   const [moduleFilter, setModuleFilter] = useState('All');
 
   const filteredLogs = activityLogs.filter(log => {
-    const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          log.action.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (log.userLabel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (log.action || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesModule = moduleFilter === 'All' || log.module === moduleFilter;
     return matchesSearch && matchesModule;
   });
 
   const exportCSV = () => {
     const headers = ['ID', 'User', 'Module', 'Action', 'Timestamp'];
-    const rows = filteredLogs.map(l => [l.id, `"${l.user}"`, `"${l.module}"`, `"${l.action}"`, `"${l.timestamp}"`]);
+    const rows = filteredLogs.map(l => [l.id, `"${l.userLabel}"`, `"${l.module}"`, `"${l.action}"`, `"${l.timestamp}"`]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -83,7 +83,7 @@ export const ActivityLogs = () => {
               {filteredLogs.map(log => (
                 <tr key={log.id}>
                   <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{log.timestamp}</td>
-                  <td><strong>{log.user}</strong></td>
+                  <td><strong>{log.userLabel}</strong></td>
                   <td><span className="badge badge-planned">{log.module}</span></td>
                   <td>{log.action}</td>
                 </tr>

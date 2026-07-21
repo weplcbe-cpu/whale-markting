@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Key, Shield, UserX, UserCheck, History, X, Search, Trash2 } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2 } from 'lucide-react';
 
 export const UserManagement = () => {
   const { users, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
@@ -10,7 +10,6 @@ export const UserManagement = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [loginHistoryUser, setLoginHistoryUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
 
   // Form State
@@ -27,9 +26,9 @@ export const UserManagement = () => {
   });
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          u.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          u.username.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (u.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (u.employeeId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (u.username || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'All' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -42,7 +41,7 @@ export const UserManagement = () => {
       email: '',
       role: 'Marketing Team',
       username: '',
-      password: 'password123',
+      password: '',
       department: 'Marketing',
       designation: 'Marketing Executive'
     });
@@ -59,7 +58,7 @@ export const UserManagement = () => {
       email: user.email,
       role: user.role,
       username: user.username,
-      password: user.password,
+      password: '',
       department: user.department || 'Marketing',
       designation: user.designation || 'Executive'
     });
@@ -69,7 +68,10 @@ export const UserManagement = () => {
   const handleSave = (e) => {
     e.preventDefault();
     if (editingUser) {
-      updateUser(editingUser.id, formData);
+      // `profiles` has no `password` column — passwords live in Supabase Auth
+      // and are never edited from this screen, so strip it from the payload.
+      const { password, ...profileFields } = formData;
+      updateUser(editingUser.id, profileFields);
     } else {
       addUser(formData);
     }
@@ -171,14 +173,6 @@ export const UserManagement = () => {
                       </button>
 
                       <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setLoginHistoryUser(u)}
-                        title="View Login History"
-                      >
-                        <History size={14} />
-                      </button>
-
-                      <button
                         className="btn btn-danger btn-sm"
                         onClick={() => setDeletingUser(u)}
                         title="Delete User"
@@ -277,16 +271,20 @@ export const UserManagement = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Password *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
+                {!editingUser && (
+                  <div className="form-group">
+                    <label className="form-label">Password *</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    />
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Designation</label>
@@ -304,39 +302,6 @@ export const UserManagement = () => {
                 <button type="submit" className="btn btn-primary">Save User Record</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Login History Modal */}
-      {loginHistoryUser && (
-        <div className="modal-overlay" onClick={() => setLoginHistoryUser(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3>Login History - {loginHistoryUser.employeeName}</h3>
-              <button onClick={() => setLoginHistoryUser(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="history-timeline">
-                <div className="timeline-item">
-                  <div className="timeline-date">Today, 09:15 AM</div>
-                  <div className="timeline-content">Logged in via Web Application (IP: 192.168.1.45)</div>
-                </div>
-                <div className="timeline-item">
-                  <div className="timeline-date">Yesterday, 10:02 AM</div>
-                  <div className="timeline-content">Logged in via Web Application (IP: 192.168.1.45)</div>
-                </div>
-                <div className="timeline-item">
-                  <div className="timeline-date">18 July 2026, 08:50 AM</div>
-                  <div className="timeline-content">Logged in via Mobile Web (IP: 106.210.45.12)</div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setLoginHistoryUser(null)}>Close</button>
-            </div>
           </div>
         </div>
       )}

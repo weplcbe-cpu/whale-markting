@@ -33,4 +33,9 @@ export const routes = [
   { role: 'Marketing Team', id: 'tenders', component: () => import('./components/marketing/TenderManagement') },
   { role: 'Marketing Team', id: 'director-comments', component: () => import('./components/marketing/DirectorCommentsFeed') },
   { role: 'Marketing Team', id: 'profile', component: () => import('./components/marketing/ProfilePage') },
+
+  // Director's sidebar links to "My Profile" but has no dedicated profile
+  // page — reuse the same generic profile/change-password component (it
+  // only reads currentUser fields, nothing Marketing-specific).
+  { role: 'Director', id: 'profile', component: () => import('./components/marketing/ProfilePage') },
 ];

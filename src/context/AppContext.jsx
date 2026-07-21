@@ -68,7 +68,7 @@ export const AppProvider = ({ children }) => {
     const timestamp = new Date().toLocaleString();
     supabase.from('activity_logs').insert({ user_label: label, module, action, timestamp })
       .then(({ error }) => { if (error) console.error('logActivity failed', error); });
-    setActivityLogs(prev => [{ id: `local-${Date.now()}`, user: label, module, action, timestamp }, ...prev]);
+    setActivityLogs(prev => [{ id: `local-${Date.now()}`, userLabel: label, module, action, timestamp }, ...prev]);
   }, [currentUser]);
 
   // ---------------------------------------------------------------------

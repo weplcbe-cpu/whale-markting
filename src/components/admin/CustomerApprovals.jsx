@@ -9,9 +9,9 @@ export const CustomerApprovals = () => {
   const [selectedCust, setSelectedCust] = useState(null);
 
   const filteredCustomers = customers.filter(c => {
-    const matchesSearch = c.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (c.organizationName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (c.district || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (c.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

@@ -29,7 +29,6 @@ const pageTitleMap = {
   'follow-ups': 'Follow‑ups',
   tenders: 'Tenders',
   'director-comments': 'Director Comments',
-  notifications: 'Notifications',
   profile: 'Profile',
   // Visits hub sub‑tabs
   today: "Today's Visits",

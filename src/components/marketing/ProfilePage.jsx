@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabaseClient';
 import { User, Key, Save } from 'lucide-react';
 
 export const ProfilePage = () => {
-  const { currentUser, updateUser, showToast } = useApp();
-  const [password, setPassword] = useState(currentUser?.password || 'password123');
+  const { currentUser, showToast } = useApp();
+  const [password, setPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (currentUser) {
-      updateUser(currentUser.id, { password });
-      showToast('Password updated successfully', 'success');
+    if (!currentUser || isSaving) return;
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      return;
     }
+    setIsSaving(true);
+    // Passwords are managed by Supabase Auth (auth.users), never stored on
+    // the `profiles` table, so this updates the real Auth user directly.
+    const { error } = await supabase.auth.updateUser({ password });
+    setIsSaving(false);
+    if (error) {
+      showToast(error.message || 'Failed to update password', 'error');
+      return;
+    }
+    setPassword('');
+    showToast('Password updated successfully', 'success');
   };
 
   return (
@@ -39,17 +53,20 @@ export const ProfilePage = () => {
           <div className="form-group">
             <label className="form-label">New Password</label>
             <input
-              type="text"
+              type="password"
               className="form-input"
               required
+              minLength={6}
+              autoComplete="new-password"
+              placeholder="Enter a new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-primary">
-              <Save size={16} /> Update Password
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              <Save size={16} /> {isSaving ? 'Updating...' : 'Update Password'}
             </button>
           </div>
         </form>

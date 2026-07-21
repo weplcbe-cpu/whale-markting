@@ -151,7 +151,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
               >
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>{log.action}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{log.user}</span>
+                  <span>{log.userLabel}</span>
                   <span>{log.timestamp}</span>
                 </div>
               </div>
