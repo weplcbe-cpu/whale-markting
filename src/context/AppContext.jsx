@@ -253,13 +253,36 @@ export const AppProvider = ({ children }) => {
       body: userData,
       headers: { Authorization: `Bearer ${session?.access_token}` }
     });
-    if (error || data?.error) {
-      showToast(data?.error || error.message || 'Failed to create user', 'error');
-      return;
+
+    if (error) {
+      // supabase-js only puts the parsed JSON body on `data` for 2xx
+      // responses — for non-2xx responses (validation errors, 403, etc.)
+      // the real `{ success:false, error, code }` body is only reachable
+      // via `error.context`, otherwise callers only ever see the generic
+      // "Failed to send a request to the Edge Function" message.
+      let message = error.message || 'Failed to create user';
+      try {
+        if (error.context && typeof error.context.json === 'function') {
+          const body = await error.context.json();
+          if (body?.error) message = body.error;
+        }
+      } catch {
+        // Response body wasn't JSON (e.g. function not deployed/404, or a
+        // network failure) — fall back to the generic message above.
+      }
+      showToast(message, 'error');
+      return { success: false, error: message };
     }
+
+    if (data?.success === false) {
+      showToast(data.error || 'Failed to create user', 'error');
+      return { success: false, error: data.error };
+    }
+
     logActivity(`Added new user: ${userData.employeeName} (${userData.role})`, 'User Management');
     showToast(`User ${userData.employeeName} created successfully`, 'success');
     await loadAllData();
+    return { success: true };
   };
 
   const updateUser = async (id, updatedFields) => {

@@ -11,6 +11,8 @@ export const UserManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -34,6 +36,7 @@ export const UserManagement = () => {
   });
 
   const handleOpenAdd = () => {
+    setFormError('');
     setFormData({
       employeeName: '',
       employeeId: `EMP00${users.length + 1}`,
@@ -50,6 +53,7 @@ export const UserManagement = () => {
   };
 
   const handleOpenEdit = (user) => {
+    setFormError('');
     setEditingUser(user);
     setFormData({
       employeeName: user.employeeName,
@@ -65,17 +69,37 @@ export const UserManagement = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setFormError('');
+
     if (editingUser) {
       // `profiles` has no `password` column — passwords live in Supabase Auth
       // and are never edited from this screen, so strip it from the payload.
       const { password, ...profileFields } = formData;
-      updateUser(editingUser.id, profileFields);
-    } else {
-      addUser(formData);
+      setIsSubmitting(true);
+      await updateUser(editingUser.id, profileFields);
+      setIsSubmitting(false);
+      setIsAddModalOpen(false);
+      return;
     }
-    setIsAddModalOpen(false);
+
+    if (!formData.password || formData.password.length < 6) {
+      setFormError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await addUser(formData);
+    setIsSubmitting(false);
+    if (result?.success) {
+      setIsAddModalOpen(false);
+    } else {
+      // Keep the modal open and show the exact error so the Admin can fix
+      // the offending field (duplicate email/employee ID, weak password, etc.)
+      setFormError(result?.error || 'Failed to create user');
+    }
   };
 
   return (
@@ -190,12 +214,13 @@ export const UserManagement = () => {
 
       {/* Add / Edit User Modal */}
       {isAddModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+        <div className="modal-overlay" onClick={() => !isSubmitting && setIsAddModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingUser ? 'Edit Employee User' : 'Add New Employee User'}</h3>
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => !isSubmitting && setIsAddModalOpen(false)}
+                disabled={isSubmitting}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
                 <X size={18} />
@@ -204,6 +229,22 @@ export const UserManagement = () => {
 
             <form onSubmit={handleSave}>
               <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {formError && (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid var(--accent-red, #ef4444)',
+                      color: 'var(--accent-red, #ef4444)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {formError}
+                  </div>
+                )}
+
                 <div className="form-group">
                   <label className="form-label">Employee Name *</label>
                   <input
@@ -298,8 +339,10 @@ export const UserManagement = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save User Record</button>
+                <button type="button" className="btn btn-secondary" disabled={isSubmitting} onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save User Record'}
+                </button>
               </div>
             </form>
           </div>
