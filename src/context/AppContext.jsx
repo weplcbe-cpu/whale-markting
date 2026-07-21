@@ -4,10 +4,21 @@ import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 
 const AppContext = createContext();
 
+// Canonical role values used throughout routing/permissions. Login must
+// never be blocked by a harmless case difference (e.g. 'admin' vs 'Admin')
+// coming from the database, so every profile's role is normalized here.
+const VALID_ROLES = ['Admin', 'Director', 'Marketing Team'];
+function normalizeRole(role) {
+  if (!role) return null;
+  const match = VALID_ROLES.find(r => r.toLowerCase() === String(role).trim().toLowerCase());
+  return match || role;
+}
+
 export const AppProvider = ({ children }) => {
   // Auth / profile state
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   // Business data (populated from Supabase once a session is available)
   const [users, setUsers] = useState([]);
@@ -64,30 +75,57 @@ export const AppProvider = ({ children }) => {
   // Auth: fetch the profile (role/employee metadata) for a Supabase session
   // ---------------------------------------------------------------------
   const loadProfile = useCallback(async (authUserId) => {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', authUserId).single();
-    if (error || !data) return null;
-    return rowToCamel(data);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', authUserId).single();
+      if (error) {
+        // PGRST116 = "no rows found" — the profile simply doesn't exist yet,
+        // which is an expected state, not an unexpected failure.
+        if (error.code !== 'PGRST116') {
+          console.error('Profile query failed:', error);
+        }
+        return null;
+      }
+      if (!data) return null;
+      const profile = rowToCamel(data);
+      profile.role = normalizeRole(profile.role);
+      return profile;
+    } catch (err) {
+      console.error('Unexpected error while loading profile:', err);
+      return null;
+    }
   }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const profile = await loadProfile(session.user.id);
-        if (isMounted) setCurrentUser(profile);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const profile = await loadProfile(session.user.id);
+          if (isMounted) setCurrentUser(profile);
+        }
+      } catch (err) {
+        console.error('Auth initialization failed:', err);
+        if (isMounted) setAuthError(err.message || 'Failed to restore your session. Please try logging in again.');
+      } finally {
+        if (isMounted) setAuthLoading(false);
       }
-      if (isMounted) setAuthLoading(false);
     };
     init();
 
     const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const profile = await loadProfile(session.user.id);
-        if (isMounted) setCurrentUser(profile);
-      } else {
-        if (isMounted) setCurrentUser(null);
+      try {
+        if (session?.user) {
+          const profile = await loadProfile(session.user.id);
+          if (isMounted) setCurrentUser(profile);
+        } else {
+          if (isMounted) setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error('Auth state change handling failed:', err);
+      } finally {
+        if (isMounted) setAuthLoading(false);
       }
     });
 
@@ -155,24 +193,30 @@ export const AppProvider = ({ children }) => {
   // Auth actions
   // ---------------------------------------------------------------------
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error || !data?.user) {
-      return { success: false, error: error?.message || 'Invalid email or password' };
-    }
+    try {
+      setAuthError(null);
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error || !data?.user) {
+        return { success: false, error: error?.message || 'Invalid email or password' };
+      }
 
-    const profile = await loadProfile(data.user.id);
-    if (!profile) {
-      await supabase.auth.signOut();
-      return { success: false, error: 'No profile found for this account. Contact Admin.' };
-    }
-    if (profile.status === 'Inactive') {
-      await supabase.auth.signOut();
-      return { success: false, error: 'Your account is inactive. Contact Admin.' };
-    }
+      const profile = await loadProfile(data.user.id);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { success: false, error: 'No profile found for this account. Contact Admin.' };
+      }
+      if (profile.status === 'Inactive') {
+        await supabase.auth.signOut();
+        return { success: false, error: 'Your account is inactive. Contact Admin.' };
+      }
 
-    setCurrentUser(profile);
-    showToast(`Welcome back, ${profile.employeeName}!`, 'success');
-    return { success: true, role: profile.role };
+      setCurrentUser(profile);
+      showToast(`Welcome back, ${profile.employeeName}!`, 'success');
+      return { success: true, role: profile.role };
+    } catch (err) {
+      console.error('Login failed:', err);
+      return { success: false, error: err.message || 'Login failed. Please try again.' };
+    }
   };
 
   const logout = async () => {
@@ -181,6 +225,7 @@ export const AppProvider = ({ children }) => {
     }
     await supabase.auth.signOut();
     setCurrentUser(null);
+    setAuthError(null);
     showToast('Logged out successfully', 'info');
   };
 
@@ -510,8 +555,9 @@ export const AppProvider = ({ children }) => {
 
   const value = {
     currentUser,
-    currentRole: currentUser ? currentUser.role : null,
+    currentRole: currentUser ? normalizeRole(currentUser.role) : null,
     authLoading,
+    authError,
     users,
     products,
     orgTypes,

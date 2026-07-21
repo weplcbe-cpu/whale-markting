@@ -131,7 +131,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
         <div className="sidebar-footer">
           <div className="user-badge-sidebar">
             <div className="avatar-circle">
-              {currentUser ? currentUser.employeeName.charAt(0) : 'U'}
+              {currentUser?.employeeName?.charAt(0) || 'U'}
             </div>
             <div className="user-info-text">
               <div className="user-name">{currentUser?.employeeName || 'User'}</div>
