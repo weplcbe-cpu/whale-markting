@@ -5,11 +5,16 @@
 -- on your production project. It is idempotent (safe to re-run).
 --
 -- After running this file:
---   1. Create the actual login users in Authentication > Users (email + password)
---      OR let them sign up, then insert a matching row into `profiles` with the
---      same `id` (auth.users.id) and the correct `role`.
---   2. Update the `profiles` seed rows below (or insert your own) with the
---      real auth user UUIDs before relying on role-based dashboards.
+--   1. Create your login users in Authentication > Users (email + password).
+--      A matching `profiles` row is created AUTOMATICALLY by the
+--      `on_auth_user_created` trigger below (default role: 'Marketing Team').
+--   2. To bootstrap the first Admin/Director accounts, create their Auth
+--      users with the emails referenced in the "Bootstrap" block near the
+--      end of this file (admin@kaiserwhale.com / director@kaiserwhale.com),
+--      then re-run this file (or just that block) — it upserts the correct
+--      role by matching on email, no manual UUID copy/paste required.
+--   3. Promote/demote any other user's role from the User Management screen
+--      (Admin only) or with: update public.profiles set role = '...' where email = '...';
 -- ============================================================================
 
 create extension if not exists "pgcrypto";
@@ -71,6 +76,43 @@ create table if not exists public.profiles (
   designation text,
   created_at timestamptz not null default now()
 );
+
+-- ----------------------------------------------------------------------------
+-- Auto-provisioning: every Supabase Auth user MUST end up with a matching
+-- `profiles` row (id = auth.users.id), otherwise login fails with
+-- "No profile found for this account". This trigger runs as the table owner
+-- (bypasses RLS) so it always succeeds, and defaults new users to the
+-- lowest-privilege role ('Marketing Team') — nobody can self-escalate to
+-- Admin/Director this way; that still requires an existing Admin to
+-- provision the account (see admin-create-user Edge Function) or the
+-- one-off bootstrap statement further below.
+-- ----------------------------------------------------------------------------
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, employee_id, employee_name, username, role, email, status)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'employee_id', 'EMP-' || substr(new.id::text, 1, 8)),
+    coalesce(new.raw_user_meta_data ->> 'employee_name', split_part(new.email, '@', 1)),
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'role', 'Marketing Team'),
+    new.email,
+    'Active'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_auth_user();
 
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
@@ -437,11 +479,46 @@ drop policy if exists "activity_logs_insert" on public.activity_logs;
 create policy "activity_logs_insert" on public.activity_logs for insert to authenticated with check (true);
 
 -- ============================================================================
--- OPTIONAL: seed profiles for existing Auth users.
--- Replace the UUIDs below with the real `id` values from Authentication > Users
--- after creating each account, then run just this block.
+-- Backfill: create profiles for any Auth users that were created BEFORE the
+-- on_auth_user_created trigger existed (e.g. accounts added manually via the
+-- Supabase Dashboard). Safe to re-run — only inserts rows that are missing.
+-- Defaults every backfilled user to 'Marketing Team' except the two
+-- bootstrap accounts below, which are matched by email (not a hardcoded
+-- UUID) and promoted to the correct role.
 -- ============================================================================
--- insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
--- values
---   ('00000000-0000-0000-0000-000000000000', 'EMP000', 'System Administrator', 'admin', 'Admin', '9876543210', 'admin@kaiserwhale.com', 'Active', 'Management', 'General Manager'),
---   ('00000000-0000-0000-0000-000000000001', 'DIR001', 'Director Rajesh', 'director', 'Director', '9876543211', 'director@kaiserwhale.com', 'Active', 'Executive', 'Managing Director');
+insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+select
+  u.id,
+  'EMP-' || substr(u.id::text, 1, 8),
+  split_part(u.email, '@', 1),
+  u.email,
+  'Marketing Team',
+  null,
+  u.email,
+  'Active',
+  null,
+  null
+from auth.users u
+left join public.profiles p on p.id = u.id
+where p.id is null
+on conflict (id) do nothing;
+
+-- Bootstrap: promote the first Admin/Director accounts by email, once their
+-- Auth users exist (created via Supabase Dashboard > Authentication > Users).
+-- Re-run any time after creating the Auth user for these emails — it's an
+-- idempotent upsert keyed on the real auth.users.id, no manual UUID needed.
+insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+select u.id, 'EMP000', 'System Administrator', 'admin', 'Admin', '9876543210', u.email, 'Active', 'Management', 'General Manager'
+from auth.users u where u.email = 'admin@kaiserwhale.com'
+on conflict (id) do update set
+  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
+  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  status = excluded.status, department = excluded.department, designation = excluded.designation;
+
+insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+select u.id, 'DIR001', 'Director Rajesh', 'director', 'Director', '9876543211', u.email, 'Active', 'Executive', 'Managing Director'
+from auth.users u where u.email = 'director@kaiserwhale.com'
+on conflict (id) do update set
+  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
+  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  status = excluded.status, department = excluded.department, designation = excluded.designation;
