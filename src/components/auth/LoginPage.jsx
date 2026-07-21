@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, AlertCircle, MapPin, Radar, TrendingUp } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useApp();
@@ -9,6 +9,7 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
 
@@ -16,8 +17,12 @@ export const LoginPage = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!email.trim() || !password.trim()) {
-      setErrorMessage('Please enter both Email and Password');
+    const nextFieldErrors = { email: '', password: '' };
+    if (!email.trim()) nextFieldErrors.email = 'Email is required';
+    if (!password.trim()) nextFieldErrors.password = 'Password is required';
+    setFieldErrors(nextFieldErrors);
+
+    if (nextFieldErrors.email || nextFieldErrors.password) {
       return;
     }
 
@@ -30,104 +35,140 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="login-wrapper">
-      <div className="login-card">
-        <div className="login-logo-panel">
-          <img
-            src="/kaiser-whale-logo.png"
-            alt="Kaiser Whale"
-            className="login-logo-img"
-          />
+    <div className="kw-login-page">
+      {/* Left brand panel */}
+      <div className="kw-login-left">
+        <div className="kw-login-left-glow kw-login-left-glow-1" />
+        <div className="kw-login-left-glow kw-login-left-glow-2" />
+        <div className="kw-login-left-grid" />
+
+        <div className="kw-login-left-content">
+          <div className="kw-login-logo-badge">
+            {/* Replace this src to swap the Kaiser Whale logo image */}
+            <img src="/kaiser-whale-logo.png" alt="Kaiser Whale" className="kw-login-logo-img" />
+          </div>
+
+          <h1 className="kw-login-left-heading">Marketing Visit Management</h1>
+          <p className="kw-login-left-system-text">Official Field Sales &amp; Tour Planning System</p>
+          <p className="kw-login-left-tagline">Plan smarter. Visit better. Grow faster.</p>
+
+          <ul className="kw-login-features">
+            <li className="kw-login-feature-item">
+              <span className="kw-login-feature-icon"><MapPin size={18} /></span>
+              <span>Field Visit Planning</span>
+            </li>
+            <li className="kw-login-feature-item">
+              <span className="kw-login-feature-icon"><Radar size={18} /></span>
+              <span>Live Team Tracking</span>
+            </li>
+            <li className="kw-login-feature-item">
+              <span className="kw-login-feature-icon"><TrendingUp size={18} /></span>
+              <span>Sales Performance Insights</span>
+            </li>
+          </ul>
         </div>
-        <h2 className="login-title">Marketing Visit Management</h2>
-        <p className="login-subtitle">Official Field Sales & Tour Planning System</p>
+      </div>
 
-        {errorMessage && (
-          <div
-            style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.4)',
-              color: '#fb7185',
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.85rem',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <AlertCircle size={16} />
-            <span>{errorMessage}</span>
+      {/* Right form panel */}
+      <div className="kw-login-right">
+        <div className="kw-login-card">
+          <div className="kw-login-card-logo">
+            <img src="/kaiser-whale-logo.png" alt="Kaiser Whale" />
           </div>
-        )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Email Address</label>
-            <div className="input-with-icon">
-              <input
-                type="email"
-                className="form-input"
-                placeholder="Enter your registered email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-              />
+          <h2 className="kw-login-card-title">Welcome Back</h2>
+          <p className="kw-login-card-subtitle">Sign in to continue to your dashboard</p>
+
+          {errorMessage && (
+            <div className="kw-login-alert" role="alert">
+              <AlertCircle size={16} />
+              <span>{errorMessage}</span>
             </div>
-          </div>
+          )}
 
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Password</label>
-            <div className="input-with-icon">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="form-input"
-                placeholder="Enter Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="input-icon-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                title={showPassword ? 'Hide Password' : 'Show Password'}
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="kw-form-group">
+              <label className="kw-form-label" htmlFor="kw-login-email">Email Address</label>
+              <div className={`kw-input-wrap ${fieldErrors.email ? 'has-error' : ''}`}>
+                <span className="kw-input-icon"><Mail size={18} /></span>
+                <input
+                  id="kw-login-email"
+                  type="email"
+                  className="kw-input"
+                  placeholder="Enter your registered email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="username"
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby="kw-login-email-error"
+                />
+              </div>
+              {fieldErrors.email && (
+                <span className="kw-field-error" id="kw-login-email-error">{fieldErrors.email}</span>
+              )}
+            </div>
+
+            <div className="kw-form-group">
+              <label className="kw-form-label" htmlFor="kw-login-password">Password</label>
+              <div className={`kw-input-wrap ${fieldErrors.password ? 'has-error' : ''}`}>
+                <span className="kw-input-icon"><Lock size={18} /></span>
+                <input
+                  id="kw-login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="kw-input"
+                  placeholder="Enter Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby="kw-login-password-error"
+                />
+                <button
+                  type="button"
+                  className="kw-input-eye-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                  aria-label={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <span className="kw-field-error" id="kw-login-password-error">{fieldErrors.password}</span>
+              )}
+            </div>
+
+            <div className="kw-login-options-row">
+              <label className="kw-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+
+              <a
+                href="#forgot"
+                className="kw-forgot-link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setForgotModalOpen(true);
+                }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+                Forgot Password?
+              </a>
             </div>
-          </div>
 
-          <div className="login-options-row">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <span>Remember me</span>
-            </label>
+            <button type="submit" className="kw-login-submit-btn" disabled={isSubmitting}>
+              <Lock size={18} /> {isSubmitting ? 'SIGNING IN...' : 'LOGIN'}
+            </button>
+          </form>
 
-            <a
-              href="#forgot"
-              className="forgot-link"
-              onClick={(e) => {
-                e.preventDefault();
-                setForgotModalOpen(true);
-              }}
-            >
-              Forgot Password?
-            </a>
-          </div>
-
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={isSubmitting}>
-            <Lock size={16} /> {isSubmitting ? 'SIGNING IN...' : 'LOGIN'}
-          </button>
-        </form>
-
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '24px' }}>
-          © 2026 Kaiser Whale Equipment Ltd. All rights reserved.
-        </p>
+          <p className="kw-login-footer">
+            © 2026 Kaiser Whale Equipment Ltd. All rights reserved.
+          </p>
+        </div>
       </div>
 
       {/* Forgot Password Modal */}
