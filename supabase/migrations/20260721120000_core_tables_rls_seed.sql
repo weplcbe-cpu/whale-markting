@@ -1,4 +1,15 @@
 -- ============================================================================
+-- Migration: 20260721120000_core_tables_rls_seed
+-- Creates every table the frontend queries (public.profiles + 13 app
+-- tables), enables RLS with role-scoped policies, and seeds master data.
+-- 100% non-destructive: every statement is CREATE TABLE IF NOT EXISTS /
+-- ON CONFLICT DO NOTHING / CREATE OR REPLACE — safe to run on a database
+-- that already has some or all of these objects. Never drops tables or data.
+-- This file is kept in sync with ../schema.sql (the canonical source of
+-- truth for the full schema); run either one.
+-- ============================================================================
+
+-- ============================================================================
 -- Kaiser Whale Marketing Visit Management System — Production Supabase Schema
 -- ============================================================================
 -- Run this entire file once in the Supabase SQL Editor (Project > SQL Editor)

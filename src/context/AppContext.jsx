@@ -98,22 +98,12 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const init = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const profile = await loadProfile(session.user.id);
-          if (isMounted) setCurrentUser(profile);
-        }
-      } catch (err) {
-        console.error('Auth initialization failed:', err);
-        if (isMounted) setAuthError(err.message || 'Failed to restore your session. Please try logging in again.');
-      } finally {
-        if (isMounted) setAuthLoading(false);
-      }
-    };
-    init();
-
+    // Supabase v2 fires onAuthStateChange immediately with the current
+    // session (event 'INITIAL_SESSION') when the listener is attached, so a
+    // separate getSession() + loadProfile() call on mount is redundant and
+    // was causing the profile (and therefore all dashboard data) to be
+    // fetched twice on every page load. A single subscription now handles
+    // both the initial session restore and all subsequent auth changes.
     const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
         if (session?.user) {
@@ -124,6 +114,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Auth state change handling failed:', err);
+        if (isMounted) setAuthError(err.message || 'Failed to restore your session. Please try logging in again.');
       } finally {
         if (isMounted) setAuthLoading(false);
       }
@@ -138,43 +129,60 @@ export const AppProvider = ({ children }) => {
   // ---------------------------------------------------------------------
   // Data loading: once a user is authenticated, load all app data (RLS
   // automatically scopes each table to what that user/role is allowed to see).
+  // Every query is independent (Promise.allSettled) so one failing/missing
+  // table never blocks the rest of the dashboard from loading.
   // ---------------------------------------------------------------------
   const loadAllData = useCallback(async () => {
-    const [
-      usersRes, productsRes, orgTypesRes, purposesRes, customersRes,
-      visitPlansRes, visitReportsRes, dailyReportsRes, followUpsRes,
-      tendersRes, directorCommentsRes, notificationsRes, activityLogsRes, companyInfoRes
-    ] = await Promise.all([
-      supabase.from('profiles').select('*'),
-      supabase.from('products').select('*').order('display_order'),
-      supabase.from('org_types').select('*').order('name'),
-      supabase.from('purposes').select('*').order('name'),
-      supabase.from('customers').select('*').order('created_date', { ascending: false }),
-      supabase.from('visit_plans').select('*').order('visit_date', { ascending: false }),
-      supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }),
-      supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }),
-      supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false }),
-      supabase.from('tenders').select('*'),
-      supabase.from('director_comments').select('*').order('created_at', { ascending: false }),
-      supabase.from('notifications').select('*').order('created_at', { ascending: false }),
-      supabase.from('activity_logs').select('*').order('created_at', { ascending: false }),
-      supabase.from('company_info').select('*').eq('id', 1).single()
-    ]);
+    const queries = [
+      ['users', supabase.from('profiles').select('*')],
+      ['products', supabase.from('products').select('*').order('display_order')],
+      ['orgTypes', supabase.from('org_types').select('*').order('name')],
+      ['purposes', supabase.from('purposes').select('*').order('name')],
+      ['customers', supabase.from('customers').select('*').order('created_date', { ascending: false })],
+      ['visitPlans', supabase.from('visit_plans').select('*').order('visit_date', { ascending: false })],
+      ['visitReports', supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false })],
+      ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
+      ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
+      ['tenders', supabase.from('tenders').select('*')],
+      ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
+      ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
+      ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
+      ['companyInfo', supabase.from('company_info').select('*').eq('id', 1).single()]
+    ];
 
-    setUsers(rowsToCamel(usersRes.data));
-    setProducts(rowsToCamel(productsRes.data));
-    setOrgTypes((orgTypesRes.data || []).map(r => r.name));
-    setPurposes((purposesRes.data || []).map(r => r.name));
-    setCustomers(rowsToCamel(customersRes.data));
-    setVisitPlans(rowsToCamel(visitPlansRes.data));
-    setVisitReports(rowsToCamel(visitReportsRes.data));
-    setDailyReports(rowsToCamel(dailyReportsRes.data));
-    setFollowUps(rowsToCamel(followUpsRes.data));
-    setTenders(rowsToCamel(tendersRes.data));
-    setDirectorComments(rowsToCamel(directorCommentsRes.data));
-    setNotifications(rowsToCamel(notificationsRes.data));
-    setActivityLogs(rowsToCamel(activityLogsRes.data));
-    setCompanyInfo(companyInfoRes.data ? rowToCamel(companyInfoRes.data) : null);
+    const settled = await Promise.allSettled(queries.map(([, query]) => query));
+
+    const results = {};
+    settled.forEach((outcome, i) => {
+      const [key] = queries[i];
+      if (outcome.status === 'fulfilled') {
+        const { data, error } = outcome.value;
+        if (error) {
+          console.error(`Failed to load "${key}":`, error);
+          results[key] = null;
+        } else {
+          results[key] = data;
+        }
+      } else {
+        console.error(`Failed to load "${key}":`, outcome.reason);
+        results[key] = null;
+      }
+    });
+
+    setUsers(rowsToCamel(results.users));
+    setProducts(rowsToCamel(results.products));
+    setOrgTypes((results.orgTypes || []).map(r => r.name));
+    setPurposes((results.purposes || []).map(r => r.name));
+    setCustomers(rowsToCamel(results.customers));
+    setVisitPlans(rowsToCamel(results.visitPlans));
+    setVisitReports(rowsToCamel(results.visitReports));
+    setDailyReports(rowsToCamel(results.dailyReports));
+    setFollowUps(rowsToCamel(results.followUps));
+    setTenders(rowsToCamel(results.tenders));
+    setDirectorComments(rowsToCamel(results.directorComments));
+    setNotifications(rowsToCamel(results.notifications));
+    setActivityLogs(rowsToCamel(results.activityLogs));
+    setCompanyInfo(results.companyInfo ? rowToCamel(results.companyInfo) : null);
   }, []);
 
   useEffect(() => {
@@ -187,7 +195,12 @@ export const AppProvider = ({ children }) => {
       setFollowUps([]); setTenders([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
-  }, [currentUser, loadAllData]);
+    // Depend on the user's id (not the whole object) — a token refresh
+    // produces a brand new `currentUser` object reference for the same
+    // person, which would otherwise re-trigger a full data reload for no
+    // reason (duplicate network requests with no data change).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, loadAllData]);
 
   // ---------------------------------------------------------------------
   // Auth actions
