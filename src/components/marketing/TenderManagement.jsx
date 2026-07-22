@@ -1,147 +1,32 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FileText, Plus, X } from 'lucide-react';
+import { Badge, Button, DataTable, DateField, EmptyState, FormField, Modal, PageHeader, Stepper, TextArea } from '../ui';
 
+const DRAFT_KEY = 'marketing-tender-draft';
 export const TenderManagement = () => {
-  const { currentUser, tenders, addTender } = useApp();
+  const { currentUser, tenders, addTender, showToast } = useApp();
+  const initialData = useMemo(() => ({ tenderName: '', tenderNumber: '', department: '', closingDate: '', tenderValue: '', requiredProducts: ['Whale Super Sucker'], notes: '' }), []);
+  const [formData, setFormData] = useState(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const empId = currentUser?.employeeId || 'EMP001';
-  const myTenders = tenders.filter(t => !t.assignedEmployeeId || t.assignedEmployeeId === empId);
-
-  const [formData, setFormData] = useState({
-    tenderName: '',
-    tenderNumber: '',
-    department: '',
-    closingDate: '2026-08-20',
-    tenderValue: '₹ 1,50,00,000',
-    requiredProducts: ['Whale Super Sucker'],
-    notes: ''
-  });
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (!formData.tenderName.trim()) return;
-    addTender(formData);
-    setIsModalOpen(false);
-  };
-
-  return (
-    <div>
-      <div className="toolbar-bar">
-        <div>
-          <h3 style={{ color: 'var(--text-main)', fontSize: '1.1rem' }}>Tender Opportunities Monitoring</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Log new tender enquiries & track progression</p>
-        </div>
-
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={16} /> Add Tender Enquiry
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="card-header-clean">
-          <h3 className="card-title-clean"><FileText size={18} color="var(--accent-cyan)" /> Tender Records</h3>
-        </div>
-
-        <div className="table-responsive">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Tender Name / Ref</th>
-                <th>Department</th>
-                <th>Closing Date</th>
-                <th>Tender Value</th>
-                <th>Products Required</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {myTenders.map(t => (
-                <tr key={t.id}>
-                  <td>
-                    <strong>{t.tenderName}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.tenderNumber}</div>
-                  </td>
-                  <td>{t.department}</td>
-                  <td>{t.closingDate}</td>
-                  <td><strong style={{ color: 'var(--accent-emerald)' }}>{t.tenderValue}</strong></td>
-                  <td>{Array.isArray(t.requiredProducts) ? t.requiredProducts.join(', ') : t.requiredProducts}</td>
-                  <td><span className="badge badge-planned">{t.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
-            <div className="modal-header">
-              <h3>Log New Tender Opportunity</h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSave}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Tender Name *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    required
-                    placeholder="e.g. Procurement of 4 Recycler Machines"
-                    value={formData.tenderName}
-                    onChange={(e) => setFormData({ ...formData, tenderName: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Tender Number / Reference</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. MDU/SMART/2026/089"
-                    value={formData.tenderNumber}
-                    onChange={(e) => setFormData({ ...formData, tenderNumber: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Department / Issuing Authority</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Madurai Corporation"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Tender Closing Date *</label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    required
-                    value={formData.closingDate}
-                    onChange={(e) => setFormData({ ...formData, closingDate: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Tender</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const [step, setStep] = useState(0);
+  const myTenders = tenders.filter((item) => !item.assignedEmployeeId || item.assignedEmployeeId === (currentUser?.employeeId || 'EMP001'));
+  const update = (field, value) => setFormData((current) => ({ ...current, [field]: value }));
+  const saveDraft = () => { localStorage.setItem(DRAFT_KEY, JSON.stringify(formData)); showToast?.('Tender draft saved', 'success'); };
+  const submit = async () => { if (!formData.tenderName.trim()) return; await addTender(formData); localStorage.removeItem(DRAFT_KEY); setIsModalOpen(false); };
+  const columns = [{ key: 'name', label: 'Tender Name / Ref', render: (row) => <><strong>{row.tenderName}</strong><small>{row.tenderNumber}</small></> },
+    { key: 'department', label: 'Department' }, { key: 'closingDate', label: 'Closing Date' }, { key: 'tenderValue', label: 'Tender Value' },
+    { key: 'products', label: 'Products Required', render: (row) => Array.isArray(row.requiredProducts) ? row.requiredProducts.join(', ') : row.requiredProducts },
+    { key: 'status', label: 'Status', render: (row) => <Badge tone="info">{row.status}</Badge> }];
+  return <div className="ds-page"><PageHeader title="Tender Opportunities" description="Log new tender enquiries and track their progression."
+    actions={<Button onClick={() => setIsModalOpen(true)}><Plus size={16} /> Add Tender Enquiry</Button>} />
+    <DataTable columns={columns} rows={myTenders} empty={<EmptyState title="No tender opportunities" description="Add an enquiry to begin tracking its closing date and requirements." action={<Button onClick={() => setIsModalOpen(true)}>Add Tender Enquiry</Button>} />} />
+    <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} dirty={JSON.stringify(formData) !== JSON.stringify(initialData)} title="Log Tender Opportunity" subtitle="Capture the tender details and review them before saving."
+      footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button variant="ghost" onClick={saveDraft}>Save Draft</Button>{step > 0 && <Button variant="secondary" onClick={() => setStep(0)}>Back</Button>}{step === 0 ? <Button onClick={() => setStep(1)} disabled={!formData.tenderName || !formData.closingDate}>Continue</Button> : <Button onClick={submit}>Save Tender</Button>}</>}>
+      <Stepper steps={['Tender details', 'Requirements & review']} current={step} />
+      {step === 0 ? <div className="ds-form-grid"><FormField className="ds-field--full" label="Tender Name" required value={formData.tenderName} onChange={(e) => update('tenderName', e.target.value)} /><FormField label="Tender Number / Reference" value={formData.tenderNumber} onChange={(e) => update('tenderNumber', e.target.value)} /><DateField label="Closing Date" required value={formData.closingDate} onChange={(e) => update('closingDate', e.target.value)} /><FormField className="ds-field--full" label="Department / Issuing Authority" value={formData.department} onChange={(e) => update('department', e.target.value)} /></div>
+        : <div className="ds-form-grid"><FormField label="Tender Value" value={formData.tenderValue} onChange={(e) => update('tenderValue', e.target.value)} /><FormField label="Products Required" value={formData.requiredProducts.join(', ')} onChange={(e) => update('requiredProducts', e.target.value.split(',').map((value) => value.trim()).filter(Boolean))} hint="Separate multiple products with commas" /><TextArea className="ds-field--full" label="Notes" rows={3} value={formData.notes} onChange={(e) => update('notes', e.target.value)} /><div className="ds-review ds-field--full"><h3>Review tender</h3><dl><dt>Name</dt><dd>{formData.tenderName}</dd><dt>Reference</dt><dd>{formData.tenderNumber || '—'}</dd><dt>Authority</dt><dd>{formData.department || '—'}</dd><dt>Closing date</dt><dd>{formData.closingDate}</dd><dt>Value</dt><dd>{formData.tenderValue || '—'}</dd></dl></div></div>}
+    </Modal>
+  </div>;
 };
-
 export default TenderManagement;

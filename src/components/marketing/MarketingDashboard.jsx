@@ -1,9 +1,13 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useNavigate } from 'react-router-dom';
+import { getMarketingRouteById } from '../../routes';
 import { Calendar, Building2, Clock, CheckCircle2, UserPlus, PlusCircle, MessageSquare, ArrowRight, TrendingUp } from 'lucide-react';
 
-export const MarketingDashboard = ({ setActiveTab }) => {
+export const MarketingDashboard = () => {
   const { currentUser, visitPlans, customers, followUps, directorComments } = useApp();
+  const navigate = useNavigate();
+  const goTo = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
 
   const empId = currentUser?.employeeId || 'EMP001';
   const empName = currentUser?.employeeName || 'Fathima Begum';
@@ -34,15 +38,15 @@ export const MarketingDashboard = ({ setActiveTab }) => {
 
         {/* Quick Action Buttons */}
         <div className="hero-actions">
-          <button className="btn btn-action" onClick={() => setActiveTab('add-customer')}>
+          <button className="btn btn-action" onClick={() => goTo('customers', '?action=add-customer')}>
             <UserPlus size={18} /> + Add Customer
           </button>
 
-          <button className="btn btn-secondary" onClick={() => setActiveTab('add-visit-plan')}>
+          <button className="btn btn-secondary" onClick={() => goTo('visits', '?action=add-visit-plan')}>
             <PlusCircle size={18} /> + Add Visit Plan
           </button>
 
-          <button className="btn btn-secondary" onClick={() => setActiveTab('daily-report')}>
+          <button className="btn btn-secondary" onClick={() => goTo('reports')}>
             <Clock size={18} /> Submit Daily Report
           </button>
         </div>
@@ -50,7 +54,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
 
       {/* KPI Cards Grid */}
       <div className="stat-grid">
-        <div className="stat-card" onClick={() => setActiveTab('today-schedule')}>
+        <div className="stat-card" onClick={() => goTo('visits', '?view=today')}>
           <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myTodayVisits.length}</div>
@@ -61,7 +65,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('my-plans')}>
+        <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper blue"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myWeeklyPlans.length}</div>
@@ -72,7 +76,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('follow-ups')}>
+        <div className="stat-card" onClick={() => goTo('follow-ups')}>
           <div className="stat-icon-wrapper orange"><Clock size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myPendingFollowups.length}</div>
@@ -83,7 +87,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('my-plans')}>
+        <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myCompletedVisits}</div>
@@ -94,7 +98,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('my-customers')}>
+        <div className="stat-card" onClick={() => goTo('customers')}>
           <div className="stat-icon-wrapper purple"><Building2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myCustomers}</div>
@@ -112,7 +116,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
         <div className="card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><Calendar size={20} color="var(--primary-blue)" /> Today's Field Visit Schedule</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('today-schedule')}>
+            <button className="btn btn-secondary btn-sm" onClick={() => goTo('visits', '?view=today')}>
               View All <ArrowRight size={14} />
             </button>
           </div>
@@ -144,7 +148,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
                     Purpose: <strong>{v.visitPurpose}</strong> &nbsp;|&nbsp; Product: <strong>{Array.isArray(v.products) ? v.products.join(', ') : v.products}</strong>
                   </p>
 
-                  <button className="btn btn-action btn-sm" onClick={() => setActiveTab('today-schedule')}>
+                  <button className="btn btn-action btn-sm" onClick={() => goTo('visits', '?view=today')}>
                     Update Visit Status
                   </button>
                 </div>
@@ -157,7 +161,7 @@ export const MarketingDashboard = ({ setActiveTab }) => {
         <div className="card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><MessageSquare size={20} color="var(--action-orange)" /> Director Feedback</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('director-comments')}>View</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => goTo('director-comments')}>View</button>
           </div>
 
           {myDirectorComments.length === 0 ? (

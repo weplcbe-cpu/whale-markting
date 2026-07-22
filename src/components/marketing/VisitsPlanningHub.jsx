@@ -1,13 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TodaySchedule } from './TodaySchedule';
 import { MyPlans } from './MyPlans';
 import { WeeklyPlanningSheet } from './WeeklyPlanningSheet';
+import { NextMonthPlan } from './NextMonthPlan';
 import { AddVisitPlan } from './AddVisitPlan';
-import { Calendar, Clock, FileSpreadsheet, PlusCircle, X } from 'lucide-react';
+import { Calendar, Clock, FileSpreadsheet, PlusCircle } from 'lucide-react';
 
-export const VisitsPlanningHub = ({ initialSubTab = 'today' }) => {
-  const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
-  const [showAddPlanModal, setShowAddPlanModal] = useState(false);
+export const VisitsPlanningHub = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const activeSubTab = ['today', 'plans', 'weekly', 'next-month'].includes(requestedView) ? requestedView : 'today';
+  const setActiveSubTab = (view) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('view', view);
+    setSearchParams(nextParams);
+  };
+  const showAddPlanModal = searchParams.get('action') === 'add-visit-plan';
+  const setShowAddPlanModal = (show) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (show) nextParams.set('action', 'add-visit-plan');
+    else nextParams.delete('action');
+    setSearchParams(nextParams);
+  };
 
   return (
     <div>
@@ -34,10 +49,14 @@ export const VisitsPlanningHub = ({ initialSubTab = 'today' }) => {
           >
             <FileSpreadsheet size={16} /> Weekly Planning Sheet
           </button>
+
+          <button className={`btn ${activeSubTab === 'next-month' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveSubTab('next-month')}>
+            <Calendar size={16} /> Next Month Plan
+          </button>
         </div>
 
         {/* Hide top Add button when on Weekly Planning Sheet to avoid duplicate buttons */}
-        {activeSubTab !== 'weekly' && (
+        {!['weekly', 'next-month'].includes(activeSubTab) && (
           <button
             className="btn btn-action"
             onClick={() => setShowAddPlanModal(true)}
@@ -51,28 +70,9 @@ export const VisitsPlanningHub = ({ initialSubTab = 'today' }) => {
       {activeSubTab === 'today' && <TodaySchedule />}
       {activeSubTab === 'plans' && <MyPlans />}
       {activeSubTab === 'weekly' && <WeeklyPlanningSheet />}
+      {activeSubTab === 'next-month' && <NextMonthPlan />}
 
-      {/* Slide-over / Modal for Quick Add Visit Plan */}
-      {showAddPlanModal && (
-        <div className="modal-overlay" onClick={() => setShowAddPlanModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
-            <div className="modal-header">
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PlusCircle size={20} color="var(--action-orange)" /> Create New Visit Plan
-              </h3>
-              <button
-                onClick={() => setShowAddPlanModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <AddVisitPlan setActiveTab={() => setShowAddPlanModal(false)} />
-            </div>
-          </div>
-        </div>
-      )}
+      <AddVisitPlan open={showAddPlanModal} onClose={() => setShowAddPlanModal(false)} />
     </div>
   );
 };

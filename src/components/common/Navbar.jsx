@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { directorRoutes, marketingRoutes } from '../../routes';
 import {
   Bell,
-  User,
-  Calendar as CalendarIcon,
   LogOut,
   X,
   Search,
@@ -38,40 +38,40 @@ const pageTitleMap = {
   'daily-report': 'Daily Report'
 };
 
-export const Navbar = ({ activeTab, setActiveTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, showToast } = useApp();
+export const Navbar = ({ activeTab, toggleSidebar }) => {
+  const { currentUser, currentRole, logout, notifications, showToast, users, customers, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
-  const [theme, setTheme] = useState('light'); // default light theme
 
   // Filter notifications relevant to this user
   const userNotifs = notifications.filter(
     n => !n.userId || n.userId === currentUser?.employeeId
   );
   const unreadCount = userNotifs.filter(n => !n.isRead).length;
+  const notificationPath = (notification) => { const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase(); if (text.includes('tender')) return '/director/tenders'; if (text.includes('report')) return '/director/visit-reports'; if (text.includes('customer')) return '/director/customers'; if (text.includes('comment')) return '/director/comments'; if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans'; return '/director'; };
+  const searchResults = globalSearch.trim().length < 2 ? [] : [
+    ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
+    ...customers.filter(item => `${item.organizationName || ''} ${item.district || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `customer-${item.id}`, label: item.organizationName, group: 'Customers', path: '/director/customers' })),
+    ...visitPlans.filter(item => `${item.customerName || ''} ${item.area || item.district || ''} ${item.visitPurpose || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `plan-${item.id}`, label: `${item.customerName || item.area} · ${item.visitDate}`, group: 'Visit Plans', path: '/director/tour-plans' })),
+    ...tenders.filter(item => `${item.tenderName || ''} ${item.tenderNumber || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `tender-${item.id}`, label: item.tenderName, group: 'Tenders', path: '/director/tenders' })),
+    ...[...visitReports, ...dailyReports].filter(item => `${item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.employeeName} report`, group: 'Reports', path: '/director/visit-reports' }))
+  ];
 
   // Theme toggle – adds/removes `dark` class on <html>
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    const root = document.documentElement;
-    if (newTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  };
-
-  // Initialise theme from system preference (run once)
-  useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (prefersDark) toggleTheme();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Build breadcrumb based on activeTab (portal name is shown as the primary heading instead)
   const generateBreadcrumb = () => {
+    if (currentRole === 'Marketing Team') {
+      const route = marketingRoutes.find(item => item.path === location.pathname);
+      return [route?.label || 'Dashboard'];
+    }
+    if (currentRole === 'Director') {
+      const route = directorRoutes.find(item => item.path === location.pathname || (item.path.includes('/:') && location.pathname.startsWith(`${item.path.split('/:')[0]}/`)));
+      return [route?.label || 'Dashboard'];
+    }
+
     const crumbs = ['Home'];
     if (activeTab && activeTab !== 'dashboard') {
       crumbs.push(pageTitleMap[activeTab] || activeTab);
@@ -124,13 +124,14 @@ export const Navbar = ({ activeTab, setActiveTab, toggleSidebar }) => {
             value={globalSearch}
             onChange={e => setGlobalSearch(e.target.value)}
           />
+          {currentRole === 'Director' && globalSearch.trim().length >= 2 && <div className="global-search-results">{searchResults.length ? searchResults.map(result => <button type="button" key={result.id} onClick={() => { navigate(result.path); setGlobalSearch(''); }}><small>{result.group}</small><strong>{result.label}</strong></button>) : <p>No matching records</p>}</div>}
         </div>
 
         {/* Settings */}
         <button
           className="icon-btn"
           title="Settings"
-          onClick={() => showToast('Settings panel coming soon', 'info')}
+          onClick={() => currentRole === 'Director' ? navigate('/director/profile') : showToast('Open your profile to manage account settings.', 'info')}
         >
           <Settings2 size={20} strokeWidth={2.5} />
         </button>
@@ -200,8 +201,10 @@ export const Navbar = ({ activeTab, setActiveTab, toggleSidebar }) => {
                   }}
                 >
                   {userNotifs.map(n => (
-                    <div
+                    <button
                       key={n.id}
+                      type="button"
+                      onClick={() => { markNotificationRead(n.id); if (currentRole === 'Director') navigate(notificationPath(n)); setShowNotifDropdown(false); }}
                       style={{
                         padding: '10px',
                         background: 'rgba(117, 139, 253, 0.08)',
@@ -215,7 +218,7 @@ export const Navbar = ({ activeTab, setActiveTab, toggleSidebar }) => {
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {n.message}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -253,11 +256,11 @@ export const Navbar = ({ activeTab, setActiveTab, toggleSidebar }) => {
                 fontWeight: 600
               }}
             >
-              {currentUser?.employeeName?.charAt(0) || 'U'}
+              {(currentUser?.fullName || currentUser?.employeeName || currentUser?.username)?.charAt(0) || 'U'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
-                {currentUser?.employeeName || 'User'}
+                {currentUser?.fullName || currentUser?.employeeName || currentUser?.username || 'User'}
               </span>
               <span
                 className="role-badge"

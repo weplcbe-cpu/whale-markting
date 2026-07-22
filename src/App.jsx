@@ -5,7 +5,8 @@ import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
-import { routes } from './routes';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { directorRoutes, marketingRoutes, routes } from './routes';
 
 // Cache lazy-loaded components per route so `lazy()` is only ever created once
 // per route instead of on every render (calling lazy() inside render is a
@@ -18,6 +19,13 @@ function getLazyComponent(route) {
   }
   return lazyComponentCache.get(route);
 }
+
+const matchesConfiguredPath = (routePath, pathname) => {
+  const basePath = routePath.split('/:')[0];
+  return routePath.includes('/:')
+    ? pathname.startsWith(`${basePath}/`)
+    : routePath === pathname;
+};
 
 // Catches render-time errors anywhere below it (e.g. a lazy-loaded dashboard
 // throwing while rendering) and shows a visible error screen instead of
@@ -51,7 +59,8 @@ class ErrorBoundary extends React.Component {
 }
 
 export function AppContent() {
-  const { currentUser, currentRole, authLoading, authError } = useApp();
+  const { currentUser, currentRole, authLoading, authError, dataError, dataLoading, refreshAllData, logout } = useApp();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -73,9 +82,12 @@ export function AppContent() {
   if (authError) {
     return (
       <div className="app-loading-screen app-error-screen">
-        <p>Unable to load your session.</p>
+        <p>Unable to load the application. Retry or sign out.</p>
         <p className="app-error-detail">{authError}</p>
-        <button type="button" onClick={() => window.location.reload()}>Retry</button>
+        <div className="app-error-actions">
+          <button type="button" onClick={() => window.location.reload()}>Retry</button>
+          <button type="button" onClick={logout}>Sign out</button>
+        </div>
       </div>
     );
   }
@@ -83,6 +95,42 @@ export function AppContent() {
   if (!currentUser) {
     return <LoginPage />;
   }
+
+  const isMarketingUser = currentRole === 'Marketing Team';
+  const isDirectorUser = currentRole === 'Director';
+  const marketingRoute = marketingRoutes.find(route => route.path === location.pathname);
+  const directorRoute = directorRoutes.find(route => matchesConfiguredPath(route.path, location.pathname));
+  const currentTab = isMarketingUser ? (marketingRoute?.id || '') : isDirectorUser ? (directorRoute?.id || '') : activeTab;
+
+  const renderMarketingRoutes = () => (
+    <Routes>
+      {marketingRoutes.map(route => {
+        const Component = getLazyComponent(route);
+        return (
+          <Route
+            key={route.path}
+            path={route.path}
+            element={(
+              <Suspense fallback={<div className="app-loading-screen">Loading...</div>}>
+                <Component />
+              </Suspense>
+            )}
+          />
+        );
+      })}
+      <Route path="*" element={<Navigate to="/marketing" replace />} />
+    </Routes>
+  );
+
+  const renderDirectorRoutes = () => (
+    <Routes>
+      {directorRoutes.map(route => {
+        const Component = getLazyComponent(route);
+        return <Route key={route.path} path={route.path} element={<Suspense fallback={<div className="app-loading-screen">Loading...</div>}><Component /></Suspense>} />;
+      })}
+      <Route path="*" element={<Navigate to="/director" replace />} />
+    </Routes>
+  );
 
   // Consolidated route definitions are imported from routes.js
   const renderContent = () => {
@@ -120,7 +168,7 @@ export function AppContent() {
       <div className="main-layout">
         {/* Role Specific Streamlined Sidebar */}
         <Sidebar
-          activeTab={activeTab}
+          activeTab={currentTab}
           setActiveTab={setActiveTab}
           isMobileOpen={isMobileSidebarOpen}
           toggleSidebar={toggleSidebar}
@@ -129,15 +177,17 @@ export function AppContent() {
         <div className="content-area">
           {/* Top Navbar */}
           <Navbar
-            activeTab={activeTab}
+            activeTab={currentTab}
             setActiveTab={setActiveTab}
             toggleSidebar={toggleSidebar}
           />
 
           {/* Main Dynamic View */}
           <main className="main-view-wrapper">
-            <ErrorBoundary key={activeTab}>
-              {renderContent()}
+            {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
+            {dataLoading && <div className="director-live-status" role="status">Refreshing portal data…</div>}
+            <ErrorBoundary key={(isMarketingUser || isDirectorUser) ? location.pathname : activeTab}>
+              {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : renderContent()}
             </ErrorBoundary>
           </main>
         </div>
@@ -145,7 +195,7 @@ export function AppContent() {
 
       {/* Mobile Native 1-Thumb Bottom Navigation */}
       <MobileBottomNav
-        activeTab={activeTab}
+        activeTab={currentTab}
         setActiveTab={setActiveTab}
         toggleSidebar={toggleSidebar}
       />

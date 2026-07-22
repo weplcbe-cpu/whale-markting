@@ -1,164 +1,34 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Clock, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Clock, Plus, CheckCircle2, Phone, X } from 'lucide-react';
+import { Badge, Button, DataTable, DateField, EmptyState, Modal, PageHeader, SelectField, TextArea } from '../ui';
 
 export const FollowUpManagement = () => {
   const { currentUser, customers, followUps, addFollowUp } = useApp();
   const [filterView, setFilterView] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const initialData = useMemo(() => ({ customerId: customers[0]?.id || '', customerName: customers[0]?.organizationName || '',
+    followUpDate: new Date().toISOString().slice(0, 10), type: 'Phone Call', purpose: '', priority: 'High', notes: '' }), [customers]);
+  const [formData, setFormData] = useState(initialData);
   const empId = currentUser?.employeeId || 'EMP001';
-  const myFollowups = followUps.filter(f => f.employeeId === empId);
-
-  const [formData, setFormData] = useState({
-    customerId: customers[0]?.id || '',
-    customerName: customers[0]?.organizationName || '',
-    followUpDate: '2026-07-24',
-    type: 'Phone Call',
-    purpose: '',
-    priority: 'High',
-    notes: ''
-  });
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    addFollowUp(formData);
-    setIsModalOpen(false);
-  };
-
-  return (
-    <div>
-      <div className="toolbar-bar">
-        <div className="toolbar-filters">
-          <button
-            className={`btn btn-sm ${filterView === 'All' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilterView('All')}
-          >
-            All Follow-ups ({myFollowups.length})
-          </button>
-          <button
-            className={`btn btn-sm ${filterView === 'Pending' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilterView('Pending')}
-          >
-            Pending
-          </button>
-        </div>
-
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={16} /> Add Follow-up
-        </button>
-      </div>
-
-      <div className="card">
-        <div className="card-header-clean">
-          <h3 className="card-title-clean"><Clock size={18} color="var(--accent-cyan)" /> My Scheduled Follow-ups</h3>
-        </div>
-
-        <div className="table-responsive">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Due Date</th>
-                <th>Type</th>
-                <th>Purpose / Objective</th>
-                <th>Priority</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {myFollowups.map(f => (
-                <tr key={f.id}>
-                  <td><strong>{f.customerName}</strong></td>
-                  <td>{f.followUpDate}</td>
-                  <td><span className="badge badge-planned">{f.type}</span></td>
-                  <td>{f.purpose}</td>
-                  <td><span className={`badge badge-${f.priority.toLowerCase()}`}>{f.priority}</span></td>
-                  <td><span className={`badge ${f.status === 'Completed' ? 'badge-completed' : 'badge-started'}`}>{f.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3>Schedule New Follow-up</h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSave}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Customer *</label>
-                  <select
-                    className="form-select"
-                    value={formData.customerId}
-                    onChange={(e) => {
-                      const c = customers.find(cust => cust.id === e.target.value);
-                      if (c) setFormData({ ...formData, customerId: c.id, customerName: c.organizationName });
-                    }}
-                  >
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.organizationName}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Follow-up Date *</label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    required
-                    value={formData.followUpDate}
-                    onChange={(e) => setFormData({ ...formData, followUpDate: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Follow-up Type</label>
-                  <select
-                    className="form-select"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  >
-                    <option value="Phone Call">Phone Call</option>
-                    <option value="Physical Visit">Physical Visit</option>
-                    <option value="Email">Email</option>
-                    <option value="Quotation">Quotation</option>
-                    <option value="Product Demo">Product Demo</option>
-                    <option value="Tender">Tender</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Purpose / Notes *</label>
-                  <textarea
-                    className="form-textarea"
-                    required
-                    rows={2}
-                    placeholder="Details of what needs to be followed up..."
-                    value={formData.purpose}
-                    onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Schedule Follow-up</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const myFollowups = followUps.filter((item) => item.employeeId === empId && (filterView === 'All' || item.status === filterView));
+  const update = (field, value) => setFormData((current) => ({ ...current, [field]: value }));
+  const save = async (event) => { event.preventDefault(); await addFollowUp(formData); setIsModalOpen(false); };
+  const columns = [
+    { key: 'customerName', label: 'Customer', render: (row) => <strong>{row.customerName}</strong> }, { key: 'followUpDate', label: 'Due Date' },
+    { key: 'type', label: 'Type', render: (row) => <Badge>{row.type}</Badge> }, { key: 'purpose', label: 'Purpose / Objective' },
+    { key: 'priority', label: 'Priority', render: (row) => <Badge tone={row.priority === 'High' ? 'danger' : 'neutral'}>{row.priority}</Badge> },
+    { key: 'status', label: 'Status', render: (row) => <Badge tone={row.status === 'Completed' ? 'success' : 'warning'}>{row.status}</Badge> }
+  ];
+  return <div className="ds-page"><PageHeader title="Follow-ups" description="Keep every customer commitment visible and on schedule."
+    actions={<Button onClick={() => setIsModalOpen(true)}><Plus size={16} /> Add Follow-up</Button>} />
+    <div className="ds-segmented" aria-label="Filter follow-ups">{['All', 'Pending'].map((filter) => <button key={filter} className={filterView === filter ? 'active' : ''} onClick={() => setFilterView(filter)}>{filter}{filter === 'All' ? ` (${myFollowups.length})` : ''}</button>)}</div>
+    <DataTable caption="My scheduled follow-ups" columns={columns} rows={myFollowups} empty={<EmptyState icon={Clock} title="No follow-ups scheduled" description="Add a follow-up to keep the next customer action on track." action={<Button onClick={() => setIsModalOpen(true)}>Add Follow-up</Button>} />} />
+    <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} dirty={JSON.stringify(formData) !== JSON.stringify(initialData)} title="Schedule New Follow-up" subtitle="Add the next action for a customer."
+      footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button type="submit" form="follow-up-form">Schedule Follow-up</Button></>}>
+      <form id="follow-up-form" onSubmit={save} className="ds-form-grid"><SelectField className="ds-field--full" label="Customer" required value={formData.customerId} onChange={(e) => { const customer = customers.find((item) => String(item.id) === e.target.value); if (customer) setFormData((current) => ({ ...current, customerId: customer.id, customerName: customer.organizationName })); }}><option value="">Select customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.organizationName}</option>)}</SelectField><DateField label="Follow-up Date" required value={formData.followUpDate} onChange={(e) => update('followUpDate', e.target.value)} /><SelectField label="Follow-up Type" value={formData.type} onChange={(e) => update('type', e.target.value)}>{['Phone Call', 'Physical Visit', 'Email', 'Quotation', 'Product Demo', 'Tender'].map((type) => <option key={type}>{type}</option>)}</SelectField><TextArea className="ds-field--full" label="Purpose / Notes" required rows={3} value={formData.purpose} onChange={(e) => update('purpose', e.target.value)} /><details className="ds-more ds-field--full"><summary>More options</summary><div className="ds-form-grid"><SelectField label="Priority" value={formData.priority} onChange={(e) => update('priority', e.target.value)}><option>High</option><option>Medium</option><option>Low</option></SelectField><TextArea label="Internal notes" value={formData.notes} onChange={(e) => update('notes', e.target.value)} /></div></details></form>
+    </Modal>
+  </div>;
 };
 
 export default FollowUpManagement;

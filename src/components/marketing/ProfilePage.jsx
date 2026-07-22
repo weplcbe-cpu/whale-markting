@@ -1,78 +1,18 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
-import { User, Key, Save } from 'lucide-react';
+import { Button, FormField, PageHeader, SectionCard } from '../ui';
 
+const provided = (value) => value || 'Not provided';
 export const ProfilePage = () => {
   const { currentUser, showToast } = useApp();
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!currentUser || isSaving) return;
-    if (password.length < 6) {
-      showToast('Password must be at least 6 characters', 'error');
-      return;
-    }
-    setIsSaving(true);
-    // Passwords are managed by Supabase Auth (auth.users), never stored on
-    // the `profiles` table, so this updates the real Auth user directly.
-    const { error } = await supabase.auth.updateUser({ password });
-    setIsSaving(false);
-    if (error) {
-      showToast(error.message || 'Failed to update password', 'error');
-      return;
-    }
-    setPassword('');
-    showToast('Password updated successfully', 'success');
-  };
-
-  return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <div className="card">
-        <div className="card-header-clean">
-          <h3 className="card-title-clean"><User size={18} color="var(--accent-cyan)" /> My Employee Profile</h3>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem', marginBottom: '24px' }}>
-          <div><strong>Name:</strong> {currentUser?.employeeName}</div>
-          <div><strong>Employee ID:</strong> <code>{currentUser?.employeeId}</code></div>
-          <div><strong>Role:</strong> <span className="badge badge-planned">{currentUser?.role}</span></div>
-          <div><strong>Mobile:</strong> {currentUser?.mobile}</div>
-          <div><strong>Email:</strong> {currentUser?.email}</div>
-          <div><strong>Department:</strong> {currentUser?.department || 'Marketing'}</div>
-          <div><strong>Designation:</strong> {currentUser?.designation}</div>
-        </div>
-
-        <form onSubmit={handleSave} style={{ paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
-          <h4 style={{ color: 'var(--text-main)', fontSize: '1rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Key size={16} color="var(--accent-amber)" /> Change Password
-          </h4>
-
-          <div className="form-group">
-            <label className="form-label">New Password</label>
-            <input
-              type="password"
-              className="form-input"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              placeholder="Enter a new password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              <Save size={16} /> {isSaving ? 'Updating...' : 'Update Password'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const handleSave = async (event) => { event.preventDefault(); if (!currentUser || isSaving) return; if (form.next.length < 8) { showToast('New password must contain at least 8 characters', 'error'); return; } if (form.next !== form.confirm) { showToast('New passwords do not match', 'error'); return; } setIsSaving(true); const { error: verifyError } = await supabase.auth.signInWithPassword({ email: currentUser.email, password: form.current }); if (verifyError) { setIsSaving(false); showToast('Current password is incorrect', 'error'); return; } const { error } = await supabase.auth.updateUser({ password: form.next }); setIsSaving(false); if (error) { showToast(error.message || 'Failed to update password', 'error'); return; } setForm({ current: '', next: '', confirm: '' }); showToast('Password updated successfully', 'success'); };
+  const fields = { 'Full Name': currentUser?.fullName || currentUser?.employeeName || currentUser?.username, 'Employee ID': currentUser?.employeeId, 'Mobile Number': currentUser?.mobileNumber || currentUser?.mobile, Email: currentUser?.email, Role: currentUser?.role, Department: currentUser?.department, Designation: currentUser?.designation, Status: currentUser?.status };
+  return <div className="ds-page profile-page"><PageHeader title="My Profile" description="Your employee details and account security." /><SectionCard title="Employee Profile"><div className="director-detail-grid">{Object.entries(fields).map(([label, value]) => <div key={label}><small>{label}</small><strong>{provided(value)}</strong></div>)}</div></SectionCard><SectionCard title="Change Password" description="Use at least 8 characters. Your current password is required for verification."><form className="ds-form-grid" onSubmit={handleSave}><FormField label="Current Password" type={showPasswords ? 'text' : 'password'} required autoComplete="current-password" value={form.current} onChange={(event) => update('current', event.target.value)} /><FormField label="New Password" type={showPasswords ? 'text' : 'password'} required minLength={8} autoComplete="new-password" value={form.next} onChange={(event) => update('next', event.target.value)} hint="Minimum 8 characters" /><FormField label="Confirm Password" type={showPasswords ? 'text' : 'password'} required minLength={8} autoComplete="new-password" value={form.confirm} onChange={(event) => update('confirm', event.target.value)} /><div className="ds-sticky-actions"><Button type="button" variant="secondary" onClick={() => setShowPasswords((current) => !current)}>{showPasswords ? <EyeOff size={16} /> : <Eye size={16} />} {showPasswords ? 'Hide' : 'Show'} Passwords</Button><Button type="submit" loading={isSaving}><Save size={16} /> Update Password</Button></div></form></SectionCard></div>;
 };
-
 export default ProfilePage;

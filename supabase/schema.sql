@@ -7,7 +7,7 @@
 -- After running this file:
 --   1. Create your login users in Authentication > Users (email + password).
 --      A matching `profiles` row is created AUTOMATICALLY by the
---      `on_auth_user_created` trigger below (default role: 'Marketing Team').
+--      `on_auth_user_created` trigger below (default role: 'Marketing').
 --   2. To bootstrap the first Admin/Director accounts, create their Auth
 --      users with the emails referenced in the "Bootstrap" block near the
 --      end of this file (admin@kaiserwhale.com / director@kaiserwhale.com),
@@ -66,11 +66,11 @@ $$;
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   employee_id text unique not null,
-  employee_name text not null,
+  full_name text not null,
   username text unique,
-  role text not null check (role in ('Admin', 'Director', 'Marketing Team')),
-  mobile text,
-  email text,
+  role text not null check (role in ('Admin', 'Director', 'Marketing')),
+  mobile_number text,
+  email text unique,
   status text not null default 'Active' check (status in ('Active', 'Inactive')),
   department text,
   designation text,
@@ -83,7 +83,7 @@ create table if not exists public.profiles (
 -- `profiles` row (id = auth.users.id), otherwise login fails with
 -- "No profile found for this account". This trigger runs as the table owner
 -- (bypasses RLS) so it always succeeds, and defaults new users to the
--- lowest-privilege role ('Marketing Team') — nobody can self-escalate to
+-- lowest-privilege role ('Marketing') — nobody can self-escalate to
 -- Admin/Director this way; that still requires an existing Admin to
 -- provision the account (see admin-create-user Edge Function) or the
 -- one-off bootstrap statement further below.
@@ -95,15 +95,25 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, employee_id, employee_name, username, role, email, status)
+  if new.raw_user_meta_data ->> 'profile_creation_source' = 'edge_function' then
+    return new;
+  end if;
+
+  insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, designation)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'employee_id', 'EMP-' || substr(new.id::text, 1, 8)),
-    coalesce(new.raw_user_meta_data ->> 'employee_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'username', new.email),
+    case lower(coalesce(new.raw_user_meta_data ->> 'role', 'Marketing'))
+      when 'admin' then 'Admin'
+      when 'director' then 'Director'
+      else 'Marketing'
+    end,
+    new.raw_user_meta_data ->> 'mobile_number',
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'role', 'Marketing Team'),
-    new.email,
-    'Active'
+    'Active',
+    new.raw_user_meta_data ->> 'designation'
   )
   on conflict (id) do nothing;
   return new;
@@ -161,14 +171,14 @@ create table if not exists public.customers (
 create table if not exists public.visit_plans (
   id uuid primary key default gen_random_uuid(),
   employee_id text not null,
-  employee_name text,
+  full_name text,
   visit_date date not null,
   expected_time text,
   customer_id uuid references public.customers (id) on delete set null,
   customer_name text,
   organization_type text,
   contact_person text,
-  mobile text,
+  mobile_number text,
   state text,
   district text,
   city text,
@@ -184,6 +194,15 @@ create table if not exists public.visit_plans (
   start_time text,
   cancel_reason text,
   reschedule_history jsonb not null default '[]',
+  batch_id uuid,
+  plan_type text check (plan_type is null or plan_type in ('Weekly', 'Monthly')),
+  period_from date,
+  period_to date,
+  submitted_at timestamptz,
+  reviewed_at timestamptz,
+  reviewed_by text,
+  review_comment text,
+  review_history jsonb not null default '[]',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -534,17 +553,17 @@ create policy "activity_logs_insert" on public.activity_logs for insert to authe
 -- Backfill: create profiles for any Auth users that were created BEFORE the
 -- on_auth_user_created trigger existed (e.g. accounts added manually via the
 -- Supabase Dashboard). Safe to re-run — only inserts rows that are missing.
--- Defaults every backfilled user to 'Marketing Team' except the two
+-- Defaults every backfilled user to 'Marketing' except the two
 -- bootstrap accounts below, which are matched by email (not a hardcoded
 -- UUID) and promoted to the correct role.
 -- ============================================================================
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select
   u.id,
   'EMP-' || substr(u.id::text, 1, 8),
   split_part(u.email, '@', 1),
   u.email,
-  'Marketing Team',
+  'Marketing',
   null,
   u.email,
   'Active',
@@ -559,18 +578,18 @@ on conflict (id) do nothing;
 -- Auth users exist (created via Supabase Dashboard > Authentication > Users).
 -- Re-run any time after creating the Auth user for these emails — it's an
 -- idempotent upsert keyed on the real auth.users.id, no manual UUID needed.
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select u.id, 'EMP000', 'System Administrator', 'admin', 'Admin', '9876543210', u.email, 'Active', 'Management', 'General Manager'
 from auth.users u where u.email = 'admin@kaiserwhale.com'
 on conflict (id) do update set
-  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
-  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  employee_id = excluded.employee_id, full_name = excluded.full_name,
+  username = excluded.username, role = excluded.role, mobile_number = excluded.mobile_number,
   status = excluded.status, department = excluded.department, designation = excluded.designation;
 
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select u.id, 'DIR001', 'Director Rajesh', 'director', 'Director', '9876543211', u.email, 'Active', 'Executive', 'Managing Director'
 from auth.users u where u.email = 'director@kaiserwhale.com'
 on conflict (id) do update set
-  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
-  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  employee_id = excluded.employee_id, full_name = excluded.full_name,
+  username = excluded.username, role = excluded.role, mobile_number = excluded.mobile_number,
   status = excluded.status, department = excluded.department, designation = excluded.designation;

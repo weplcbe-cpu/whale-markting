@@ -27,8 +27,14 @@ export const LoginPage = () => {
     }
 
     setIsSubmitting(true);
-    const res = await login(email, password);
-    setIsSubmitting(false);
+    let res;
+    try {
+      res = await login(email, password);
+    } catch (error) {
+      res = { success: false, error: error?.message || 'Login failed. Please try again.' };
+    } finally {
+      setIsSubmitting(false);
+    }
     if (!res.success) {
       setErrorMessage(res.error);
     }

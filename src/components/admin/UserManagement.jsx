@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2 } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle } from 'lucide-react';
+
+const UNKNOWN_ADD_USER_ERROR = 'Unable to create user. Please check the Edge Function logs and try again.';
+
+const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
+  if (!(error instanceof Error) || typeof error.message !== 'string') return fallback;
+  const message = error.message.trim();
+  return message && message !== '{}' ? message : fallback;
+};
 
 export const UserManagement = () => {
   const { users, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
@@ -13,6 +22,9 @@ export const UserManagement = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const initialFormDataRef = useRef(null);
+  const submitLockRef = useRef(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -35,9 +47,68 @@ export const UserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
+  const isFormDirty = isAddModalOpen && initialFormDataRef.current !== null &&
+    JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape' || isSubmitting) return;
+      event.preventDefault();
+      if (showDiscardConfirm) {
+        setShowDiscardConfirm(false);
+      } else if (isFormDirty) {
+        setShowDiscardConfirm(true);
+      } else {
+        setIsAddModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAddModalOpen, isFormDirty, isSubmitting, showDiscardConfirm]);
+
+  useEffect(() => {
+    if (!isAddModalOpen || !isFormDirty) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isAddModalOpen, isFormDirty]);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isAddModalOpen]);
+
+  const closeModal = () => {
+    setShowDiscardConfirm(false);
+    setIsAddModalOpen(false);
+    setFormError('');
+  };
+
+  const requestClose = () => {
+    if (isSubmitting) return;
+    if (isFormDirty) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    closeModal();
+  };
+
   const handleOpenAdd = () => {
     setFormError('');
-    setFormData({
+    const nextFormData = {
       employeeName: '',
       employeeId: `EMP00${users.length + 1}`,
       mobile: '',
@@ -47,7 +118,9 @@ export const UserManagement = () => {
       password: '',
       department: 'Marketing',
       designation: 'Marketing Executive'
-    });
+    };
+    setFormData(nextFormData);
+    initialFormDataRef.current = nextFormData;
     setEditingUser(null);
     setIsAddModalOpen(true);
   };
@@ -55,7 +128,7 @@ export const UserManagement = () => {
   const handleOpenEdit = (user) => {
     setFormError('');
     setEditingUser(user);
-    setFormData({
+    const nextFormData = {
       employeeName: user.employeeName,
       employeeId: user.employeeId,
       mobile: user.mobile,
@@ -65,23 +138,32 @@ export const UserManagement = () => {
       password: '',
       department: user.department || 'Marketing',
       designation: user.designation || 'Executive'
-    });
+    };
+    setFormData(nextFormData);
+    initialFormDataRef.current = nextFormData;
     setIsAddModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (submitLockRef.current) return;
     setFormError('');
 
     if (editingUser) {
       // `profiles` has no `password` column — passwords live in Supabase Auth
       // and are never edited from this screen, so strip it from the payload.
-      const { password, ...profileFields } = formData;
+      const { password: _password, ...profileFields } = formData;
+      submitLockRef.current = true;
       setIsSubmitting(true);
-      await updateUser(editingUser.id, profileFields);
-      setIsSubmitting(false);
-      setIsAddModalOpen(false);
+      try {
+        await updateUser(editingUser.id, profileFields);
+        closeModal();
+      } catch (error) {
+        setFormError(getCaughtErrorMessage(error, 'Failed to update user'));
+      } finally {
+        submitLockRef.current = false;
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -90,15 +172,19 @@ export const UserManagement = () => {
       return;
     }
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
-    const result = await addUser(formData);
-    setIsSubmitting(false);
-    if (result?.success) {
-      setIsAddModalOpen(false);
-    } else {
-      // Keep the modal open and show the exact error so the Admin can fix
-      // the offending field (duplicate email/employee ID, weak password, etc.)
-      setFormError(result?.error || 'Failed to create user');
+    try {
+      const result = await addUser(formData);
+      if (result?.success) {
+        closeModal();
+      }
+    } catch (error) {
+      console.error('Add user error:', error);
+      setFormError(getCaughtErrorMessage(error));
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -213,35 +299,32 @@ export const UserManagement = () => {
       </div>
 
       {/* Add / Edit User Modal */}
-      {isAddModalOpen && (
-        <div className="modal-overlay" onClick={() => !isSubmitting && setIsAddModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingUser ? 'Edit Employee User' : 'Add New Employee User'}</h3>
+      {isAddModalOpen && createPortal(
+        <div className="user-modal-overlay" role="presentation">
+          <section className="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
+            <header className="user-modal__header">
+              <div>
+                <h2 id="user-modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                <p id="user-modal-subtitle">{editingUser ? 'Update employee profile details' : 'Create login access and employee profile'}</p>
+              </div>
               <button
-                onClick={() => !isSubmitting && setIsAddModalOpen(false)}
+                type="button"
+                className="user-modal__close"
+                onClick={requestClose}
                 disabled={isSubmitting}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                aria-label="Close modal"
+                title="Close"
               >
-                <X size={18} />
+                <X size={22} />
               </button>
-            </div>
+            </header>
 
-            <form onSubmit={handleSave}>
-              <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <form className="user-modal__form" onSubmit={handleSave}>
+              <div className="user-modal__body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {formError && (
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid var(--accent-red, #ef4444)',
-                      color: 'var(--accent-red, #ef4444)',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    {formError}
+                  <div className="form-error" role="alert">
+                    <AlertCircle size={18} aria-hidden="true" />
+                    <span>{formError}</span>
                   </div>
                 )}
 
@@ -338,15 +421,33 @@ export const UserManagement = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" disabled={isSubmitting} onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+              <footer className="user-modal__footer">
+                <button type="button" className="btn btn-secondary" disabled={isSubmitting} onClick={requestClose}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Saving...' : 'Save User Record'}
                 </button>
-              </div>
+              </footer>
             </form>
-          </div>
-        </div>
+          </section>
+
+          {showDiscardConfirm && (
+            <div className="discard-confirm-overlay" role="presentation">
+              <div className="modal-content discard-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="discard-dialog-title" aria-describedby="discard-dialog-message">
+                <div className="modal-header">
+                  <h3 id="discard-dialog-title">Discard changes?</h3>
+                </div>
+                <div className="modal-body">
+                  <p id="discard-dialog-message">You have unsaved changes. Do you want to discard them?</p>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowDiscardConfirm(false)}>Keep Editing</button>
+                  <button type="button" className="btn btn-danger" onClick={closeModal}>Discard Changes</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>,
+        document.body
       )}
 
       {/* Delete User Confirmation Modal */}

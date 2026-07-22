@@ -1,349 +1,133 @@
-import React, { useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Check, Copy, Edit3, Plus, Search, Send, Trash2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FileSpreadsheet, Plus, Trash2, Save, Send, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { Badge, Button, ConfirmationDialog, DateField, FormField, Modal, PageHeader, SelectField, TextArea } from '../ui';
+import { normalizePlanStatus } from '../../utils/planStatus';
+
+const DRAFT_KEY = 'marketing-weekly-plan-draft';
+const requiredProductPurposes = new Set(['Product Demo', 'Product Presentation', 'Quotation Submission', 'Quotation Discussion', 'New Requirement', 'Recycler Hiring', 'Tender Meeting', 'Tender Submission']);
+const optionalProductPurposes = ['Service Visit', 'Customer Meeting', 'Follow-up Visit', 'Payment Follow-up', 'Document Collection', 'Site Inspection', 'Other'];
+const exampleRows = [
+  ['2026-08-03', 'Tirunelveli', 'Product Demo', ['Whale Super Sucker'], 'Super Sucker'],
+  ['2026-08-04', 'Thoothukudi', 'New Requirement', ['Whale Super Sucker', 'Whale Recycler'], 'New Super Sucker, New Requirements, Recycler Hiring'],
+  ['2026-08-05', 'Dindigul', 'Service Visit', [], 'Service, New Requirements'],
+  ['2026-08-06', 'Madurai', 'Recycler Hiring', ['Whale Super Sucker', 'Whale Recycler'], 'Super Sucker, Recycler Hiring'],
+  ['2026-08-07', 'Sivakasi', 'New Requirement', [], 'Water Tanker'],
+  ['2026-08-08', 'Sivagangai', 'Service Visit', [], 'Service'],
+  ['2026-08-10', 'Nagercoil', 'New Requirement', [], 'New Requirements']
+].map(([visitDate, area, visitPurpose, products, requirement], index) => ({ id: `weekly-example-${index + 1}`, visitDate, expectedTime: '10:00 AM', area, state: 'Tamil Nadu', district: area, city: area, customerId: '', customerName: '', visitPurpose, products, requirement, customProductOrRequirement: requiredProductPurposes.has(visitPurpose) && !products.length ? requirement : '', priority: 'Medium', status: 'Draft', notes: '' }));
+
+const blankRow = () => ({ id: `weekly-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, visitDate: '', expectedTime: '10:00 AM', area: '', state: 'Tamil Nadu', district: '', city: '', customerId: '', customerName: '', visitPurpose: '', products: [], requirement: '', customProductOrRequirement: '', priority: 'Medium', status: 'Draft', notes: '' });
+const normalizeRow = (row) => ({ ...blankRow(), ...row, products: Array.isArray(row.products) ? row.products : row.productName ? [row.productName] : [] });
+const getErrors = (row) => ({ visitDate: !row.visitDate ? 'Visit date is required.' : '', area: !row.area?.trim() ? 'Area or city is required.' : '', visitPurpose: !row.visitPurpose ? 'Visit purpose is required.' : '', products: requiredProductPurposes.has(row.visitPurpose) && !row.products.length && !row.customProductOrRequirement?.trim() ? 'Select at least one product or add another requirement.' : '', requirement: !row.requirement?.trim() ? 'Requirement or project is required.' : '' });
+const hasErrors = (row) => Object.values(getErrors(row)).some(Boolean);
+const displayDate = (date) => date ? date.split('-').reverse().join('-') : 'Date not set';
+
+const ProductMultiSelect = ({ products, value, onChange, optional, customValue, onCustomChange, error }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [placement, setPlacement] = useState('bottom');
+  const [showOther, setShowOther] = useState(Boolean(customValue));
+  const rootRef = useRef(null);
+  const selectedProducts = value;
+  const options = products.filter((product) => product.name.toLowerCase().includes(query.toLowerCase()));
+  const toggle = (productName) => onChange(selectedProducts.includes(productName) ? selectedProducts.filter((name) => name !== productName) : [...selectedProducts, productName]);
+  const remove = (name) => onChange(selectedProducts.filter((item) => item !== name));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false); };
+    const closeOnEscape = (event) => { if (event.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => { document.removeEventListener('mousedown', closeOnOutsideClick); document.removeEventListener('keydown', closeOnEscape); };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return undefined;
+    const updatePlacement = () => {
+      const rect = rootRef.current.getBoundingClientRect();
+      const reserved = window.innerWidth <= 575 ? 90 : 24;
+      const spaceBelow = window.innerHeight - rect.bottom - reserved;
+      const spaceAbove = rect.top;
+      setPlacement(spaceBelow < 320 && spaceAbove > spaceBelow ? 'top' : 'bottom');
+    };
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+    return () => window.removeEventListener('resize', updatePlacement);
+  }, [open]);
+
+  useEffect(() => { setActive((current) => Math.min(current, Math.max(options.length - 1, 0))); }, [options.length]);
+
+  return <div className="ds-field ds-week-product-field" ref={rootRef}>
+    <label htmlFor="weekly-product-search">Products{!optional && <span className="ds-required"> *</span>}</label>
+    <div className={`ds-multi-select ${error ? 'has-error' : ''}`}>
+      {selectedProducts.map((name) => <span className="ds-multi-chip" key={name}>{name}<button type="button" onClick={() => remove(name)} aria-label={`Remove ${name}`}><X size={14} /></button></span>)}
+      <div className="ds-multi-search"><Search size={17} aria-hidden="true" /><input id="weekly-product-search" value={query} placeholder="Search products" role="combobox" aria-expanded={open} aria-controls="weekly-product-options" aria-autocomplete="list" onFocus={() => setOpen(true)} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(0); }} onKeyDown={(event) => {
+        if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); setActive((current) => Math.min(current + 1, options.length - 1)); }
+        if (event.key === 'ArrowUp') { event.preventDefault(); setActive((current) => Math.max(current - 1, 0)); }
+        if (event.key === 'Enter' && open && options[active]) { event.preventDefault(); toggle(options[active].name); }
+        if (event.key === 'Escape') setOpen(false);
+      }} /></div>
+    </div>
+    {open && <><div className="ds-multi-overlay" onClick={() => setOpen(false)} aria-hidden="true" /><div className={`ds-multi-panel ${placement === 'top' ? 'placement-top' : ''}`}>
+      <div className="ds-multi-panel__header"><span>Search products</span>{selectedProducts.length > 0 && <span className="ds-multi-count">{selectedProducts.length} product{selectedProducts.length === 1 ? '' : 's'} selected</span>}</div>
+      <div className="ds-multi-list" id="weekly-product-options" role="listbox" aria-multiselectable="true">
+        {options.map((product, index) => { const isSelected = selectedProducts.includes(product.name); return <button type="button" role="option" aria-selected={isSelected} key={product.id} className={`ds-multi-option ${isSelected ? 'selected' : ''} ${index === active ? 'active' : ''}`} onMouseEnter={() => setActive(index)} onClick={() => toggle(product.name)}>{isSelected && <Check size={15} aria-hidden="true" />}<span>{product.name}</span></button>; })}
+        {options.length === 0 && <p className="ds-multi-empty">No products found</p>}
+      </div>
+      <div className="ds-multi-panel__footer"><Button type="button" variant="secondary" onClick={() => onChange([])} disabled={!selectedProducts.length}>Clear All</Button><Button type="button" onClick={() => setOpen(false)}>Done</Button></div>
+    </div></>}
+    <button className="ds-add-other" type="button" onClick={() => setShowOther((current) => !current)}>+ Add Other Product / Requirement</button>
+    {showOther && <FormField label="Other Product / Requirement" value={customValue} onChange={(event) => onCustomChange(event.target.value)} hint="This remains part of this visit and will not be added to Product Master." />}
+    {optional && <small>Product selection is optional for this visit purpose.</small>}
+    {error && <span className="ds-field__error">{error}</span>}
+  </div>;
+};
 
 export const WeeklyPlanningSheet = () => {
-  const { currentUser, customers, products, purposes, addVisitPlan, showToast } = useApp();
-
-  const [employeeName] = useState(currentUser?.employeeName || 'Fathima Begum');
-  const [weekFrom, setWeekFrom] = useState('2026-08-03');
-  const [weekTo, setWeekTo] = useState('2026-08-10');
-  const [overallStatus, setOverallStatus] = useState('Draft'); // Draft, Submitted for Approval, Approved
-
-  const [rows, setRows] = useState([
-    {
-      id: 'row-1',
-      visitDate: '2026-08-03',
-      expectedTime: '10:30 AM',
-      area: 'Tirunelveli',
-      state: 'Tamil Nadu',
-      district: 'Tirunelveli',
-      city: 'Tirunelveli',
-      customerId: customers[0]?.id || 'c1',
-      customerName: 'Corporation Office',
-      visitPurpose: 'Product Discussion',
-      productName: 'Whale Super Sucker',
-      requirement: 'Super Sucker Hiring Project',
-      priority: 'High',
-      status: 'Draft'
-    },
-    {
-      id: 'row-2',
-      visitDate: '2026-08-04',
-      expectedTime: '11:00 AM',
-      area: 'Thoothukudi',
-      state: 'Tamil Nadu',
-      district: 'Thoothukudi',
-      city: 'Thoothukudi',
-      customerId: customers[1]?.id || 'c2',
-      customerName: 'Municipality',
-      visitPurpose: 'New Requirement',
-      productName: 'Whale Recycler',
-      requirement: 'Super Sucker, Recycler Hiring',
-      priority: 'Medium',
-      status: 'Draft'
-    },
-    {
-      id: 'row-3',
-      visitDate: '2026-08-05',
-      expectedTime: '02:30 PM',
-      area: 'Dindigul',
-      state: 'Tamil Nadu',
-      district: 'Dindigul',
-      city: 'Dindigul',
-      customerId: '',
-      customerName: 'Customer Site',
-      visitPurpose: 'Service Visit',
-      productName: 'All SUV Whale',
-      requirement: 'Service / New Requirement',
-      priority: 'Low',
-      status: 'Draft'
+  const { currentUser, customers, products, purposes, addTourPlanBatch, showToast } = useApp();
+  const saved = useMemo(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { return null; } }, []);
+  const [weekFrom, setWeekFrom] = useState(saved?.weekFrom || '2026-08-03');
+  const [weekTo, setWeekTo] = useState(saved?.weekTo || '2026-08-10');
+  const [status, setStatus] = useState('Draft');
+  const [rows, setRows] = useState(() => (saved?.rows?.length ? saved.rows : exampleRows).map(normalizeRow));
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const purposeOptions = [...new Set([...purposes, ...requiredProductPurposes, ...optionalProductPurposes])];
+  const invalidRows = rows.filter(hasErrors);
+  const update = (id, field, value) => setRows((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
+  const addRow = () => { const row = blankRow(); setRows((current) => [...current, row]); setEditing(row.id); };
+  const duplicate = (row) => { const copy = { ...row, id: blankRow().id, status: 'Draft' }; setRows((current) => [...current, copy]); setEditing(copy.id); };
+  const remove = () => { setRows((current) => current.filter((row) => row.id !== deleting)); setDeleting(null); showToast('Visit entry removed', 'info'); };
+  const saveDraft = () => { localStorage.setItem(DRAFT_KEY, JSON.stringify({ weekFrom, weekTo, rows })); setStatus('Draft'); showToast('Weekly plan saved as draft', 'info'); };
+  const review = () => { setShowErrors(true); setReviewing(true); };
+  const submit = async () => {
+    setShowErrors(true);
+    if (invalidRows.length) return;
+    const payload = rows.map((row) => { const custom = row.customProductOrRequirement?.trim(); const requirement = custom && !row.requirement.toLowerCase().includes(custom.toLowerCase()) ? `${row.requirement} — ${custom}` : row.requirement; return { ...row, products: row.products, district: row.district || row.area, city: row.city || row.area, requirement, status: 'Pending Approval' }; });
+    try {
+      await addTourPlanBatch({ rows: payload, planType: 'Weekly', periodFrom: weekFrom, periodTo: weekTo });
+      setRows((current) => current.map((row) => ({ ...row, status: normalizePlanStatus('Submitted') })));
+      setStatus('Submitted for Director Approval');
+      setReviewing(false);
+      showToast(`Weekly plan with ${rows.length} visits submitted for approval`, 'success');
+    } catch {
+      // Preserve the review and all entered values when persistence fails.
     }
-  ]);
-
-  const handleAddRow = () => {
-    setRows([
-      ...rows,
-      {
-        id: `row-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        visitDate: '2026-08-06',
-        expectedTime: '10:00 AM',
-        area: 'Madurai',
-        state: 'Tamil Nadu',
-        district: 'Madurai',
-        city: 'Madurai',
-        customerId: '',
-        customerName: 'Madurai Smart City Corp',
-        visitPurpose: 'Product Demo',
-        productName: 'Whale Jetting Machine',
-        requirement: 'Jetting Unit Purchase Proposal',
-        priority: 'High',
-        status: 'Draft'
-      }
-    ]);
-    showToast('New visit entry added to sheet', 'info');
   };
 
-  const handleRemoveRow = (id) => {
-    if (rows.length === 1) {
-      showToast('Weekly plan must contain at least one visit entry', 'warning');
-      return;
-    }
-    setRows(rows.filter(r => r.id !== id));
-    showToast('Visit entry removed', 'info');
-  };
-
-  const handleRowChange = (id, field, value) => {
-    setRows(rows.map(r => r.id === id ? { ...r, [field]: value } : r));
-  };
-
-  const handleSaveDraft = () => {
-    setOverallStatus('Draft');
-    showToast('Weekly plan saved as Draft successfully. You can continue editing later.', 'info');
-  };
-
-  const handleSubmitForApproval = (e) => {
-    e.preventDefault();
-    setOverallStatus('Submitted for Approval');
-
-    // Create visit plans in system
-    rows.forEach(r => {
-      addVisitPlan({
-        visitDate: r.visitDate,
-        expectedTime: r.expectedTime,
-        area: r.area,
-        state: r.state,
-        district: r.district || r.area,
-        city: r.city || r.area,
-        customerId: r.customerId || 'cust-1',
-        customerName: r.customerName,
-        visitPurpose: r.visitPurpose,
-        products: [r.productName],
-        priority: r.priority,
-        requirement: r.requirement || `${r.visitPurpose} for ${r.productName}`,
-        status: 'Planned'
-      });
-    });
-
-    setRows(prev => prev.map(r => ({ ...r, status: 'Planned' })));
-    showToast(`Weekly Tour Plan (${weekFrom} to ${weekTo}) with ${rows.length} visits submitted to Director & Admin for approval!`, 'success');
-  };
-
-  return (
-    <div>
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <div className="card-header-clean">
-          <div>
-            <h3 className="card-title-clean">
-              <FileSpreadsheet size={22} color="var(--primary-blue)" /> Weekly Visit Planning Sheet
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Create, manage, and submit tour schedule for upcoming week to Director & Admin
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700 }}>Plan Status:</span>
-            <span className={`badge ${overallStatus === 'Approved' ? 'badge-completed' : overallStatus === 'Submitted for Approval' ? 'badge-started' : 'badge-planned'}`}>
-              {overallStatus}
-            </span>
-          </div>
-        </div>
-
-        {/* Weekly Plan Header (12-Column Responsive Grid) */}
-        <div className="form-grid-12" style={{ marginBottom: '24px', background: 'rgba(39, 24, 126, 0.03)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-          <div className="col-4">
-            <div className="form-group">
-              <label className="form-label">Employee Name</label>
-              <input
-                type="text"
-                className="form-input"
-                disabled
-                value={employeeName}
-                style={{ background: '#ffffff', fontWeight: 800, color: 'var(--primary-dark)' }}
-              />
-            </div>
-          </div>
-
-          <div className="col-4">
-            <div className="form-group">
-              <label className="form-label">Week From *</label>
-              <input
-                type="date"
-                className="form-input"
-                value={weekFrom}
-                onChange={(e) => setWeekFrom(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="col-4">
-            <div className="form-group">
-              <label className="form-label">Week To *</label>
-              <input
-                type="date"
-                className="form-input"
-                value={weekTo}
-                onChange={(e) => setWeekTo(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmitForApproval}>
-          <div className="table-responsive" style={{ marginBottom: '24px' }}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '135px' }}>Visit Date</th>
-                  <th style={{ width: '110px' }}>Time</th>
-                  <th style={{ width: '130px' }}>Area / City</th>
-                  <th style={{ width: '200px' }}>Customer / Organization</th>
-                  <th style={{ width: '160px' }}>Visit Purpose</th>
-                  <th style={{ width: '170px' }}>Products</th>
-                  <th style={{ width: '180px' }}>Requirement / Project</th>
-                  <th style={{ width: '110px' }}>Priority</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(row => (
-                  <tr key={row.id}>
-                    <td>
-                      <input
-                        type="date"
-                        className="form-input"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 8px', fontSize: '0.84rem' }}
-                        value={row.visitDate}
-                        onChange={(e) => handleRowChange(row.id, 'visitDate', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 8px', fontSize: '0.84rem' }}
-                        placeholder="10:30 AM"
-                        value={row.expectedTime}
-                        onChange={(e) => handleRowChange(row.id, 'expectedTime', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 10px', fontSize: '0.86rem' }}
-                        placeholder="Area"
-                        value={row.area}
-                        onChange={(e) => handleRowChange(row.id, 'area', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 10px', fontSize: '0.86rem' }}
-                        placeholder="Customer / Org"
-                        value={row.customerName}
-                        onChange={(e) => handleRowChange(row.id, 'customerName', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 8px', fontSize: '0.84rem' }}
-                        value={row.visitPurpose}
-                        onChange={(e) => handleRowChange(row.id, 'visitPurpose', e.target.value)}
-                      >
-                        {purposes.map((p, i) => (
-                          <option key={i} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 8px', fontSize: '0.84rem' }}
-                        value={row.productName}
-                        onChange={(e) => handleRowChange(row.id, 'productName', e.target.value)}
-                      >
-                        {products.map(p => (
-                          <option key={p.id} value={p.name}>{p.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        className="form-input"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 10px', fontSize: '0.84rem' }}
-                        placeholder="Requirement details"
-                        value={row.requirement}
-                        onChange={(e) => handleRowChange(row.id, 'requirement', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <select
-                        className="form-select"
-                        style={{ height: '42px', minHeight: '42px', padding: '0 6px', fontSize: '0.84rem' }}
-                        value={row.priority}
-                        onChange={(e) => handleRowChange(row.id, 'priority', e.target.value)}
-                      >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${row.status.toLowerCase()}`}>{row.status}</span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        style={{ width: '34px', height: '34px', padding: 0, borderRadius: '50%' }}
-                        onClick={() => handleRemoveRow(row.id)}
-                        title="Delete Entry"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Action Toolbar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleAddRow}
-            >
-              <Plus size={16} /> + Add Visit Entry
-            </button>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleSaveDraft}
-              >
-                <Save size={16} /> Save as Draft
-              </button>
-
-              <button
-                type="submit"
-                className="btn btn-action btn-lg"
-              >
-                <Send size={18} /> Submit for Director Approval
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  return <div className="ds-page ds-weekly-plan"><PageHeader title="Weekly Visit Planning" description="Create and review the upcoming week’s field visit schedule." actions={<Badge tone={status === 'Draft' ? 'neutral' : 'success'}>{status}</Badge>} />
+    <section className="ds-week-header"><div><small>Employee Name</small><strong>{currentUser?.employeeName || currentUser?.fullName || 'Marketing Employee'}</strong></div><DateField label="Week From" value={weekFrom} onChange={(event) => setWeekFrom(event.target.value)} /><DateField label="Week To" value={weekTo} onChange={(event) => setWeekTo(event.target.value)} /><div><small>Plan Status</small><Badge tone={status === 'Draft' ? 'neutral' : 'success'}>{status}</Badge></div></section>
+    <div className="ds-visit-list">{rows.map((row, index) => { const errors = getErrors(row); return <article className={`ds-visit-row ${showErrors && hasErrors(row) ? 'has-errors' : ''}`} key={row.id}><div className="ds-week-card-summary"><span className="ds-monthly-row__number">{index + 1}</span><div><small>Date & Time</small><strong>{displayDate(row.visitDate)} · {row.expectedTime}</strong></div><div><small>Area / Customer</small><strong>{row.area || 'Area not set'}</strong><span>{row.customerName || 'Customer not selected'}</span></div><div><small>Purpose</small><strong>{row.visitPurpose || 'Purpose not set'}</strong><span>{row.requirement || 'Requirement not set'}</span></div><div className="ds-week-products"><small>Products</small><div>{row.products.length ? row.products.map((name) => <Badge key={name}>{name}</Badge>) : <span>Optional / none</span>}</div></div><div><small>Priority / Status</small><Badge tone={row.priority === 'High' ? 'danger' : 'neutral'}>{row.priority}</Badge> <Badge>{row.status}</Badge></div><div className="ds-visit-row__actions"><Button variant="secondary" aria-label={`Edit visit ${index + 1}`} onClick={() => setEditing(editing === row.id ? null : row.id)}><Edit3 size={16} /></Button><Button variant="secondary" aria-label={`Duplicate visit ${index + 1}`} onClick={() => duplicate(row)}><Copy size={16} /></Button><Button variant="danger" aria-label={`Delete visit ${index + 1}`} onClick={() => setDeleting(row.id)}><Trash2 size={16} /></Button></div></div>
+      {editing === row.id && <div className="ds-week-editor"><div className="ds-form-grid"><DateField label="Visit Date" required value={row.visitDate} error={showErrors ? errors.visitDate : ''} onChange={(event) => update(row.id, 'visitDate', event.target.value)} /><FormField label="Expected Time" value={row.expectedTime} onChange={(event) => update(row.id, 'expectedTime', event.target.value)} /><FormField label="Area / City" required value={row.area} error={showErrors ? errors.area : ''} onChange={(event) => update(row.id, 'area', event.target.value)} /><SelectField label="Customer / Organization" value={row.customerId} onChange={(event) => { const customer = customers.find((item) => String(item.id) === event.target.value); update(row.id, 'customerId', customer?.id || ''); update(row.id, 'customerName', customer?.organizationName || ''); }}><option value="">Customer not selected</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.organizationName}</option>)}</SelectField><SelectField className="ds-field--full" label="Visit Purpose" required value={row.visitPurpose} error={showErrors ? errors.visitPurpose : ''} onChange={(event) => update(row.id, 'visitPurpose', event.target.value)}><option value="">Select visit purpose</option>{purposeOptions.map((purpose) => <option key={purpose}>{purpose}</option>)}</SelectField><ProductMultiSelect products={products} value={row.products} onChange={(value) => update(row.id, 'products', value)} optional={!requiredProductPurposes.has(row.visitPurpose)} customValue={row.customProductOrRequirement} onCustomChange={(value) => update(row.id, 'customProductOrRequirement', value)} error={showErrors ? errors.products : ''} /><TextArea className="ds-field--full" label="Requirement / Project" required rows={3} value={row.requirement} error={showErrors ? errors.requirement : ''} onChange={(event) => update(row.id, 'requirement', event.target.value)} hint="Examples: Service, New Requirements, Recycler Hiring, Water Tanker" /><SelectField label="Priority" value={row.priority} onChange={(event) => update(row.id, 'priority', event.target.value)}><option>High</option><option>Medium</option><option>Low</option></SelectField><TextArea label="Notes" rows={3} value={row.notes} onChange={(event) => update(row.id, 'notes', event.target.value)} /></div></div>}</article>; })}</div>
+    <div className="ds-sticky-actions"><Button variant="secondary" onClick={addRow}><Plus size={16} /> Add Visit Entry</Button><Button variant="secondary" onClick={saveDraft}>Save Draft</Button><Button onClick={review}>Review Plan</Button></div>
+    <Modal open={reviewing} onClose={() => setReviewing(false)} title="Review Weekly Plan" subtitle={`${weekFrom} to ${weekTo}`} footer={<><Button variant="secondary" onClick={() => setReviewing(false)}>Back to Edit</Button><Button onClick={submit} disabled={invalidRows.length > 0}><Send size={16} /> Submit for Director Approval</Button></>}><div className="ds-week-review">{invalidRows.length > 0 && <div className="ds-error" role="alert">{invalidRows.length} visit {invalidRows.length === 1 ? 'has' : 'have'} missing required information. Return to edit the highlighted cards.</div>}<div className="ds-week-review__head"><strong>Date</strong><strong>Area</strong><strong>Purpose</strong><strong>Products</strong><strong>Requirement</strong><strong>Priority</strong></div>{rows.map((row) => <div className={hasErrors(row) ? 'has-errors' : ''} key={row.id}><span>{displayDate(row.visitDate)}</span><span>{row.area || 'Missing'}</span><span>{row.visitPurpose || 'Missing'}</span><span>{row.products.join(', ') || 'Optional / none'}</span><span>{row.requirement || 'Missing'}</span><Badge tone={row.priority === 'High' ? 'danger' : 'neutral'}>{row.priority}</Badge></div>)}</div></Modal>
+    <ConfirmationDialog open={Boolean(deleting)} title="Delete visit?" message="This visit will be removed from the weekly plan." confirmLabel="Delete Visit" danger onClose={() => setDeleting(null)} onConfirm={remove} />
+  </div>;
 };
+
+export default WeeklyPlanningSheet;

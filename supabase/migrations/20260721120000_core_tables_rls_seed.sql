@@ -77,10 +77,10 @@ $$;
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   employee_id text unique not null,
-  employee_name text not null,
+  full_name text not null,
   username text unique,
   role text not null check (role in ('Admin', 'Director', 'Marketing Team')),
-  mobile text,
+  mobile_number text,
   email text,
   status text not null default 'Active' check (status in ('Active', 'Inactive')),
   department text,
@@ -106,11 +106,11 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, employee_id, employee_name, username, role, email, status)
+  insert into public.profiles (id, employee_id, full_name, username, role, email, status)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'employee_id', 'EMP-' || substr(new.id::text, 1, 8)),
-    coalesce(new.raw_user_meta_data ->> 'employee_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
     new.email,
     coalesce(new.raw_user_meta_data ->> 'role', 'Marketing Team'),
     new.email,
@@ -152,7 +152,7 @@ create table if not exists public.customers (
   organization_name text not null,
   organization_type text,
   contact_person text,
-  mobile text,
+  mobile_number text,
   state text,
   district text,
   city text,
@@ -172,14 +172,14 @@ create table if not exists public.customers (
 create table if not exists public.visit_plans (
   id uuid primary key default gen_random_uuid(),
   employee_id text not null,
-  employee_name text,
+  full_name text,
   visit_date date not null,
   expected_time text,
   customer_id uuid references public.customers (id) on delete set null,
   customer_name text,
   organization_type text,
   contact_person text,
-  mobile text,
+  mobile_number text,
   state text,
   district text,
   city text,
@@ -203,7 +203,7 @@ create table if not exists public.visit_reports (
   id uuid primary key default gen_random_uuid(),
   visit_plan_id uuid references public.visit_plans (id) on delete set null,
   employee_id text not null,
-  employee_name text,
+  full_name text,
   visit_date date,
   customer_name text,
   meeting_completed boolean default true,
@@ -228,7 +228,7 @@ create table if not exists public.visit_reports (
 create table if not exists public.daily_reports (
   id uuid primary key default gen_random_uuid(),
   employee_id text not null,
-  employee_name text,
+  full_name text,
   date date not null,
   planned_visits int default 0,
   completed_visits int default 0,
@@ -248,7 +248,7 @@ create table if not exists public.daily_reports (
 create table if not exists public.follow_ups (
   id uuid primary key default gen_random_uuid(),
   employee_id text not null,
-  employee_name text,
+  full_name text,
   customer_id uuid references public.customers (id) on delete set null,
   customer_name text,
   follow_up_date date,
@@ -549,7 +549,7 @@ create policy "activity_logs_insert" on public.activity_logs for insert to authe
 -- bootstrap accounts below, which are matched by email (not a hardcoded
 -- UUID) and promoted to the correct role.
 -- ============================================================================
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select
   u.id,
   'EMP-' || substr(u.id::text, 1, 8),
@@ -570,18 +570,18 @@ on conflict (id) do nothing;
 -- Auth users exist (created via Supabase Dashboard > Authentication > Users).
 -- Re-run any time after creating the Auth user for these emails — it's an
 -- idempotent upsert keyed on the real auth.users.id, no manual UUID needed.
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select u.id, 'EMP000', 'System Administrator', 'admin', 'Admin', '9876543210', u.email, 'Active', 'Management', 'General Manager'
 from auth.users u where u.email = 'admin@kaiserwhale.com'
 on conflict (id) do update set
-  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
-  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  employee_id = excluded.employee_id, full_name = excluded.full_name,
+  username = excluded.username, role = excluded.role, mobile_number = excluded.mobile_number,
   status = excluded.status, department = excluded.department, designation = excluded.designation;
 
-insert into public.profiles (id, employee_id, employee_name, username, role, mobile, email, status, department, designation)
+insert into public.profiles (id, employee_id, full_name, username, role, mobile_number, email, status, department, designation)
 select u.id, 'DIR001', 'Director Rajesh', 'director', 'Director', '9876543211', u.email, 'Active', 'Executive', 'Managing Director'
 from auth.users u where u.email = 'director@kaiserwhale.com'
 on conflict (id) do update set
-  employee_id = excluded.employee_id, employee_name = excluded.employee_name,
-  username = excluded.username, role = excluded.role, mobile = excluded.mobile,
+  employee_id = excluded.employee_id, full_name = excluded.full_name,
+  username = excluded.username, role = excluded.role, mobile_number = excluded.mobile_number,
   status = excluded.status, department = excluded.department, designation = excluded.designation;

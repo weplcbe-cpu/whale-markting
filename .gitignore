@@ -11,10 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+supabase/.temp/
 
 # Environment variables (contains secrets, never commit)
 .env
 .env.local
+.env.production
 .env.*.local
 
 # Editor directories and files

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { FileText, MessageSquare, Eye, CheckCircle2, Clock, Image, File, X } from 'lucide-react';
+import { FileText, MessageSquare, Eye, Clock, X } from 'lucide-react';
 
 export const DirectorVisitReports = () => {
   const { visitReports, dailyReports, addDirectorComment } = useApp();
@@ -63,6 +63,7 @@ export const DirectorVisitReports = () => {
                 </tr>
               </thead>
               <tbody>
+                {visitReports.length === 0 && <tr><td colSpan="8"><div className="ds-empty"><h3>No visit reports have been submitted yet.</h3><p>Completed field visit reports will appear here automatically.</p></div></td></tr>}
                 {visitReports.map(rep => (
                   <tr key={rep.id}>
                     <td><strong>{rep.employeeName}</strong></td>
@@ -110,6 +111,7 @@ export const DirectorVisitReports = () => {
                 </tr>
               </thead>
               <tbody>
+                {dailyReports.length === 0 && <tr><td colSpan="8"><div className="ds-empty"><h3>No daily reports have been submitted yet.</h3><p>Marketing daily summaries will appear here automatically.</p></div></td></tr>}
                 {dailyReports.map(d => (
                   <tr key={d.id}>
                     <td><strong>{d.date}</strong></td>

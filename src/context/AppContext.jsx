@@ -1,8 +1,54 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
+import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
 
 const AppContext = createContext();
+const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
+const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
+const CREATE_USER_ROLE_MAP = {
+  Admin: 'Admin',
+  Director: 'Director',
+  Marketing: 'Marketing',
+  'Marketing Team': 'Marketing',
+};
+
+const readableErrorText = (value) => {
+  if (typeof value !== 'string') return null;
+  const message = value.trim();
+  return message && message !== '{}' ? message : null;
+};
+
+const getErrorMessage = async (error) => {
+  if (!error) return ADD_USER_FALLBACK_MESSAGE;
+
+  const directError = readableErrorText(error);
+  if (directError) return directError;
+
+  const directMessage = readableErrorText(error.message);
+  const status = error.context?.status;
+
+  try {
+    if (error.context) {
+      const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
+      const body = typeof response.json === 'function' ? await response.json() : response;
+      const parts = [
+        status ? `HTTP ${status}` : null,
+        readableErrorText(body?.code),
+        readableErrorText(body?.error),
+        readableErrorText(body?.message),
+        readableErrorText(body?.details),
+      ].filter(Boolean);
+
+      console.error('admin-create-user Edge Function response:', { status: status ?? null, body });
+      if (parts.length > 0) return parts.join(' — ');
+    }
+  } catch (parseError) {
+    console.error('Failed to parse Edge Function error:', parseError);
+  }
+
+  return [status ? `HTTP ${status}` : null, directMessage].filter(Boolean).join(' — ') || ADD_USER_FALLBACK_MESSAGE;
+};
 
 // Canonical role values used throughout routing/permissions. Login must
 // never be blocked by a harmless case difference (e.g. 'admin' vs 'Admin')
@@ -10,9 +56,19 @@ const AppContext = createContext();
 const VALID_ROLES = ['Admin', 'Director', 'Marketing Team'];
 function normalizeRole(role) {
   if (!role) return null;
+  if (String(role).trim().toLowerCase() === 'marketing') return 'Marketing Team';
   const match = VALID_ROLES.find(r => r.toLowerCase() === String(role).trim().toLowerCase());
   return match || role;
 }
+const normalizeProfileData = (profile) => ({
+  ...profile,
+  role: normalizeRole(profile.role),
+  fullName: profile.fullName || profile.username || 'Not provided',
+  employeeName: profile.fullName || profile.employeeName || profile.username || 'Not provided',
+  mobileNumber: profile.mobileNumber || profile.mobile || 'Not provided',
+  mobile: profile.mobileNumber || profile.mobile || 'Not provided'
+});
+const normalizeVisitPlan = (plan) => ({ ...plan, status: normalizePlanStatus(plan.status), planType: inferPlanType(plan), products: Array.isArray(plan.products) ? plan.products : plan.productName ? [plan.productName] : plan.products ? [plan.products] : [] });
 
 export const AppProvider = ({ children }) => {
   // Auth / profile state
@@ -35,17 +91,18 @@ export const AppProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [companyInfo, setCompanyInfo] = useState(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('kw_vmm_theme') || 'dark');
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('kw_vmm_theme', theme);
-    if (theme === 'light') {
-      document.body.classList.add('theme-light');
-    } else {
-      document.body.classList.remove('theme-light');
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.style.colorScheme = theme;
+    document.body.classList.remove('theme-light');
   }, [theme]);
 
   const toggleTheme = () => {
@@ -82,47 +139,98 @@ export const AppProvider = ({ children }) => {
         // which is an expected state, not an unexpected failure.
         if (error.code !== 'PGRST116') {
           console.error('Profile query failed:', error);
+          throw error;
         }
         return null;
       }
       if (!data) return null;
-      const profile = rowToCamel(data);
-      profile.role = normalizeRole(profile.role);
-      return profile;
+      return normalizeProfileData(rowToCamel(data));
     } catch (err) {
       console.error('Unexpected error while loading profile:', err);
-      return null;
+      throw err;
     }
   }, []);
 
   useEffect(() => {
     let isMounted = true;
+    let sessionVersion = 0;
+    let initializationTimer;
 
-    // Supabase v2 fires onAuthStateChange immediately with the current
-    // session (event 'INITIAL_SESSION') when the listener is attached, so a
-    // separate getSession() + loadProfile() call on mount is redundant and
-    // was causing the profile (and therefore all dashboard data) to be
-    // fetched twice on every page load. A single subscription now handles
-    // both the initial session restore and all subsequent auth changes.
-    const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      try {
-        if (session?.user) {
-          const profile = await loadProfile(session.user.id);
-          if (isMounted) setCurrentUser(profile);
-        } else {
-          if (isMounted) setCurrentUser(null);
+    const applySession = async (session, version) => {
+      if (!isMounted || version !== sessionVersion) return;
+
+      if (!session?.user) {
+        if (isMounted && version === sessionVersion) {
+          setCurrentUser(null);
+          setAuthError(null);
         }
+        return;
+      }
+
+      const profile = await loadProfile(session.user.id);
+      if (!isMounted || version !== sessionVersion) return;
+      if (!profile) {
+        throw new Error('No profile found for this account. Contact Admin.');
+      }
+
+      setCurrentUser(profile);
+      setAuthError(null);
+    };
+
+    const initializeAuth = async () => {
+      const version = ++sessionVersion;
+      try {
+        const timeout = new Promise((_, reject) => {
+          initializationTimer = window.setTimeout(() => {
+            reject(new Error('Unable to load the application. Retry or sign out.'));
+          }, AUTH_INITIALIZATION_TIMEOUT_MS);
+        });
+
+        await Promise.race([
+          (async () => {
+            const { data, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            await applySession(data?.session, version);
+          })(),
+          timeout
+        ]);
       } catch (err) {
-        console.error('Auth state change handling failed:', err);
-        if (isMounted) setAuthError(err.message || 'Failed to restore your session. Please try logging in again.');
+        console.error('Auth initialization failed:', err);
+        sessionVersion += 1;
+        if (isMounted) {
+          setAuthError(err.message || 'Unable to load the application. Retry or sign out.');
+        }
       } finally {
+        window.clearTimeout(initializationTimer);
         if (isMounted) setAuthLoading(false);
       }
+    };
+
+    // Keep this callback synchronous. Supabase documents that awaiting another
+    // client call inside onAuthStateChange can deadlock the client. Profile work
+    // is deferred until after the callback returns.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+
+      const version = ++sessionVersion;
+      window.setTimeout(() => {
+        applySession(session, version).catch((err) => {
+          console.error('Auth state change handling failed:', err);
+          if (isMounted && version === sessionVersion) {
+            setAuthError(err.message || 'Failed to restore your session. Please try logging in again.');
+            setAuthLoading(false);
+          }
+        });
+      }, 0);
     });
+
+    initializeAuth();
 
     return () => {
       isMounted = false;
-      subscription?.subscription?.unsubscribe();
+      sessionVersion += 1;
+      window.clearTimeout(initializationTimer);
+      subscription?.unsubscribe();
     };
   }, [loadProfile]);
 
@@ -133,6 +241,8 @@ export const AppProvider = ({ children }) => {
   // table never blocks the rest of the dashboard from loading.
   // ---------------------------------------------------------------------
   const loadAllData = useCallback(async () => {
+    setDataLoading(true);
+    setDataError(null);
     const queries = [
       ['users', supabase.from('profiles').select('*')],
       ['products', supabase.from('products').select('*').order('display_order')],
@@ -169,12 +279,12 @@ export const AppProvider = ({ children }) => {
       }
     });
 
-    setUsers(rowsToCamel(results.users));
+    setUsers(rowsToCamel(results.users).map(normalizeProfileData));
     setProducts(rowsToCamel(results.products));
     setOrgTypes((results.orgTypes || []).map(r => r.name));
     setPurposes((results.purposes || []).map(r => r.name));
     setCustomers(rowsToCamel(results.customers));
-    setVisitPlans(rowsToCamel(results.visitPlans));
+    setVisitPlans(rowsToCamel(results.visitPlans).map(normalizeVisitPlan));
     setVisitReports(rowsToCamel(results.visitReports));
     setDailyReports(rowsToCamel(results.dailyReports));
     setFollowUps(rowsToCamel(results.followUps));
@@ -183,6 +293,34 @@ export const AppProvider = ({ children }) => {
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
     setCompanyInfo(results.companyInfo ? rowToCamel(results.companyInfo) : null);
+    const failed = Object.entries(results).filter(([, value]) => value === null).map(([key]) => key);
+    setDataError(failed.length ? `Unable to refresh: ${failed.join(', ')}` : null);
+    setLastUpdated(new Date());
+    setDataLoading(false);
+  }, []);
+
+  const refreshEntity = useCallback(async (table) => {
+    const config = {
+      profiles: [() => supabase.from('profiles').select('*'), setUsers],
+      customers: [() => supabase.from('customers').select('*').order('created_date', { ascending: false }), setCustomers],
+      visit_plans: [() => supabase.from('visit_plans').select('*').order('visit_date', { ascending: false }), setVisitPlans],
+      visit_reports: [() => supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }), setVisitReports],
+      daily_reports: [() => supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }), setDailyReports],
+      follow_ups: [() => supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false }), setFollowUps],
+      tenders: [() => supabase.from('tenders').select('*'), setTenders],
+      director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
+      notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
+      activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs]
+    };
+    const entry = config[table];
+    if (!entry) return;
+    const [query, setter] = entry;
+    const { data, error } = await query();
+    if (error) { console.error(`Failed to refresh ${table}:`, error); setDataError(`Unable to refresh ${table.replaceAll('_', ' ')}.`); return; }
+    const mapped = rowsToCamel(data);
+    setter(table === 'profiles' ? mapped.map(normalizeProfileData) : table === 'visit_plans' ? mapped.map(normalizeVisitPlan) : mapped);
+    setDataError(null);
+    setLastUpdated(new Date());
   }, []);
 
   useEffect(() => {
@@ -201,6 +339,30 @@ export const AppProvider = ({ children }) => {
     // reason (duplicate network requests with no data change).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, loadAllData]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return undefined;
+    const tables = ['profiles', 'customers', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'tenders', 'director_comments', 'notifications', 'activity_logs'];
+    const pending = new Map();
+    let channel = supabase.channel(`portal-live-${currentUser.id}`);
+    tables.forEach((table) => {
+      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        window.clearTimeout(pending.get(table));
+        pending.set(table, window.setTimeout(() => refreshEntity(table), 150));
+      });
+    });
+    channel.subscribe((subscriptionStatus) => {
+      if (subscriptionStatus === 'CHANNEL_ERROR' || subscriptionStatus === 'TIMED_OUT') {
+        console.error(`Realtime subscription ${subscriptionStatus.toLowerCase()}`);
+        setDataError('Live updates are temporarily unavailable. Use Refresh to retry.');
+      }
+    });
+    return () => {
+      pending.forEach((timer) => window.clearTimeout(timer));
+      pending.clear();
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, refreshEntity]);
 
   // ---------------------------------------------------------------------
   // Auth actions
@@ -236,10 +398,16 @@ export const AppProvider = ({ children }) => {
     if (currentUser) {
       logActivity(`User ${currentUser.employeeName} logged out`, 'Authentication');
     }
-    await supabase.auth.signOut();
-    setCurrentUser(null);
-    setAuthError(null);
-    showToast('Logged out successfully', 'info');
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      setCurrentUser(null);
+      setAuthError(null);
+      setAuthLoading(false);
+      showToast('Logged out successfully', 'info');
+    }
   };
 
   // ---------------------------------------------------------------------
@@ -248,35 +416,54 @@ export const AppProvider = ({ children }) => {
   // never reaches the browser). See supabase/functions/.
   // ---------------------------------------------------------------------
   const addUser = async (userData) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (import.meta.env.DEV) {
+      console.log('Session exists:', Boolean(session));
+      console.log('Access token exists:', Boolean(session?.access_token));
+    }
+
+    if (sessionError || !session?.access_token) {
+      const message = 'Your session has expired. Please log in again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+
+    const normalizedRole = CREATE_USER_ROLE_MAP[userData.role];
+    const requestBody = {
+      full_name: userData.employeeName,
+      employee_id: userData.employeeId,
+      mobile_number: userData.mobile,
+      email: userData.email,
+      role: normalizedRole || userData.role,
+      username: userData.username,
+      password: userData.password,
+      designation: userData.designation,
+    };
     const { data, error } = await supabase.functions.invoke('admin-create-user', {
-      body: userData,
-      headers: { Authorization: `Bearer ${session?.access_token}` }
+      body: requestBody,
+      headers: { Authorization: `Bearer ${session.access_token}` }
     });
 
     if (error) {
-      // supabase-js only puts the parsed JSON body on `data` for 2xx
-      // responses — for non-2xx responses (validation errors, 403, etc.)
-      // the real `{ success:false, error, code }` body is only reachable
-      // via `error.context`, otherwise callers only ever see the generic
-      // "Failed to send a request to the Edge Function" message.
-      let message = error.message || 'Failed to create user';
-      try {
-        if (error.context && typeof error.context.json === 'function') {
-          const body = await error.context.json();
-          if (body?.error) message = body.error;
-        }
-      } catch {
-        // Response body wasn't JSON (e.g. function not deployed/404, or a
-        // network failure) — fall back to the generic message above.
+      if (import.meta.env.DEV) {
+        console.error('Raw Edge Function error:', error);
       }
+
+      const message = await getErrorMessage(error);
       showToast(message, 'error');
-      return { success: false, error: message };
+      throw new Error(message);
     }
 
     if (data?.success === false) {
-      showToast(data.error || 'Failed to create user', 'error');
-      return { success: false, error: data.error };
+      const message = readableErrorText(data?.error) ||
+        readableErrorText(data?.message) ||
+        'Unable to create user.';
+      showToast(message, 'error');
+      throw new Error(message);
     }
 
     logActivity(`Added new user: ${userData.employeeName} (${userData.role})`, 'User Management');
@@ -375,6 +562,7 @@ export const AppProvider = ({ children }) => {
     }
     const newCust = rowToCamel(data);
     setCustomers(prev => [newCust, ...prev]);
+    await refreshEntity('customers');
     logActivity(`Created new customer: ${custData.organizationName}`, 'Customer Management');
     showToast(`Customer "${custData.organizationName}" submitted for approval`, 'success');
     return newCust;
@@ -389,6 +577,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: 'Approved' } : c));
+    await refreshEntity('customers');
     logActivity(`Approved customer: ${target.organizationName}`, 'Customer Management');
     showToast(`Approved customer ${target.organizationName}`, 'success');
   };
@@ -402,6 +591,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: 'Rejected' } : c));
+    await refreshEntity('customers');
     logActivity(`Rejected customer: ${target.organizationName}`, 'Customer Management');
     showToast(`Rejected customer ${target.organizationName}`, 'warning');
   };
@@ -411,11 +601,11 @@ export const AppProvider = ({ children }) => {
   // ---------------------------------------------------------------------
   const addVisitPlan = async (planData) => {
     const row = objToSnakeRow({
+      ...planData,
       employeeId: currentUser?.employeeId,
-      employeeName: currentUser?.employeeName,
-      status: 'Planned',
-      rescheduleHistory: [],
-      ...planData
+      fullName: currentUser?.fullName || currentUser?.employeeName,
+      status: normalizePlanStatus(planData.status || 'Planned'),
+      rescheduleHistory: []
     });
     const { data, error } = await supabase.from('visit_plans').insert(row).select().single();
     if (error) {
@@ -423,7 +613,66 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setVisitPlans(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('visit_plans');
     logActivity(`Created visit plan for ${planData.customerName} on ${planData.visitDate}`, 'Visit Plan');
+    return normalizeVisitPlan(rowToCamel(data));
+  };
+
+  const addTourPlanBatch = async ({ rows, planType, periodFrom, periodTo }) => {
+    const batchId = crypto.randomUUID();
+    const submittedAt = new Date().toISOString();
+    const status = 'Pending Approval';
+    const payload = rows.map((plan) => objToSnakeRow({
+      employeeId: currentUser?.employeeId,
+      fullName: currentUser?.fullName || currentUser?.employeeName,
+      visitDate: plan.visitDate,
+      expectedTime: plan.expectedTime || null,
+      customerId: plan.customerId || null,
+      customerName: plan.customerName || null,
+      organizationType: plan.organizationType || null,
+      contactPerson: plan.contactPerson || null,
+      mobileNumber: plan.mobileNumber || null,
+      state: plan.state || null,
+      district: plan.district || null,
+      city: plan.city || null,
+      area: plan.area || null,
+      fullAddress: plan.fullAddress || null,
+      visitPurpose: plan.visitPurpose || null,
+      products: Array.isArray(plan.products) ? plan.products : [],
+      requirement: plan.requirement || null,
+      priority: plan.priority || 'Medium',
+      isTenderRelated: Boolean(plan.isTenderRelated),
+      notes: plan.notes || null,
+      batchId,
+      planType,
+      periodFrom,
+      periodTo,
+      status,
+      submittedAt,
+      rescheduleHistory: plan.rescheduleHistory || []
+    }));
+
+    if (import.meta.env.DEV) console.log('Tour plan submission:', { batchId, planType, periodFrom, periodTo, employeeId: currentUser?.employeeId, entries: payload.length });
+    const { data, error } = await supabase.from('visit_plans').insert(payload).select();
+    if (error) {
+      console.error('Tour plan submission failed:', error);
+      showToast('Failed to submit tour plan. Your entries have been preserved.', 'error');
+      throw error;
+    }
+
+    const saved = rowsToCamel(data).map(normalizeVisitPlan);
+    if (import.meta.env.DEV) console.log('Tour plan saved:', { batchId, status, employeeId: currentUser?.employeeId, entries: saved.length });
+    setVisitPlans((current) => [...saved, ...current]);
+    await refreshEntity('visit_plans');
+
+    const directorIds = users.filter((user) => user.role === 'Director' && user.status === 'Active').map((user) => user.employeeId).filter(Boolean);
+    if (directorIds.length) {
+      const notificationsToCreate = directorIds.map((userId) => ({ user_id: userId, title: `${planType} tour plan awaiting review`, message: `${currentUser?.fullName || currentUser?.employeeName || currentUser?.employeeId} submitted ${saved.length} plan entries.`, timestamp: new Date().toLocaleString(), is_read: false, type: 'plan' }));
+      const { error: notificationError } = await supabase.from('notifications').insert(notificationsToCreate);
+      if (notificationError) console.error('Director plan notification failed:', notificationError);
+    }
+    logActivity(`Submitted ${planType.toLowerCase()} tour plan with ${saved.length} entries for Director approval`, 'Tour Plan');
+    return { batchId, rows: saved };
   };
 
   const updateVisitPlanStatus = async (id, newStatus, extra = {}) => {
@@ -435,8 +684,47 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setVisitPlans(prev => prev.map(p => p.id === id ? { ...p, status: newStatus, ...extra } : p));
+    await refreshEntity('visit_plans');
     logActivity(`Updated visit status to ${newStatus} for ${target.customerName}`, 'Visit Status');
     showToast(`Visit status updated to ${newStatus}`, 'info');
+  };
+
+  const updateTourPlanBatchStatus = async (batchId, newStatus, extra = {}) => {
+    const status = normalizePlanStatus(newStatus);
+    const batch = visitPlans.filter((plan) => (plan.batchId || plan.id) === batchId);
+    if (!batch.length) return false;
+    const historyEntry = { status, comment: extra.reviewComment || '', reviewedBy: currentUser?.employeeId, reviewedAt: new Date().toISOString() };
+    const update = objToSnakeRow({ status, reviewedAt: historyEntry.reviewedAt, reviewedBy: currentUser?.employeeId, reviewComment: extra.reviewComment || null, reviewHistory: [...(batch[0].reviewHistory || []), historyEntry] });
+    const query = supabase.from('visit_plans').update(update);
+    const { error } = batch[0].batchId ? await query.eq('batch_id', batchId) : await query.eq('id', batch[0].id);
+    if (error) { showToast('Failed to update tour plan review', 'error'); return false; }
+    await refreshEntity('visit_plans');
+    const targetEmployeeId = batch[0].employeeId;
+    const { error: notificationError } = await supabase.from('notifications').insert({ user_id: targetEmployeeId, title: `Tour plan ${status}`, message: extra.reviewComment || `Your ${inferPlanType(batch[0]).toLowerCase()} tour plan is ${status.toLowerCase()}.`, timestamp: new Date().toLocaleString(), is_read: false, type: 'plan' });
+    if (notificationError) console.error('Tour plan review notification failed:', notificationError);
+    logActivity(`${status} ${inferPlanType(batch[0]).toLowerCase()} tour plan for ${batch[0].fullName || batch[0].employeeId}`, 'Tour Plan Review');
+    return true;
+  };
+
+  const requestTourPlanChanges = async (batchId, comment) => {
+    const { data, error } = await supabase.rpc('request_tour_plan_changes', {
+      p_batch_id: batchId,
+      p_comment: comment
+    });
+    if (error) throw error;
+    await refreshEntity('visit_plans');
+    return data;
+  };
+
+  const reviewTourPlanBatch = async (batchId, action, comment = '') => {
+    const { data, error } = await supabase.rpc('review_tour_plan_batch', {
+      p_batch_id: batchId,
+      p_action: action,
+      p_comment: comment || null
+    });
+    if (error) throw error;
+    await refreshEntity('visit_plans');
+    return data;
   };
 
   const rescheduleVisitPlan = async (id, newDate, newTime, reason) => {
@@ -457,6 +745,7 @@ export const AppProvider = ({ children }) => {
     setVisitPlans(prev => prev.map(p => p.id === id
       ? { ...p, visitDate: newDate, expectedTime: newTime, status: 'Rescheduled', rescheduleHistory }
       : p));
+    await refreshEntity('visit_plans');
     logActivity(`Rescheduled visit for ${target.customerName} to ${newDate}`, 'Visit Plan');
     showToast('Visit rescheduled successfully', 'warning');
   };
@@ -478,6 +767,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setVisitReports(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('visit_reports');
 
     if (reportData.visitPlanId) {
       await updateVisitPlanStatus(reportData.visitPlanId, 'Completed');
@@ -502,6 +792,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setDailyReports(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('daily_reports');
     logActivity(`Submitted daily summary report for ${dReportData.date}`, 'Daily Report');
     showToast('Daily summary report submitted', 'success');
   };
@@ -517,6 +808,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setDailyReports(prev => prev.map(r => r.id === id ? { ...r, isLocked: nextLock, status: nextStatus } : r));
+    await refreshEntity('daily_reports');
     logActivity(`${nextLock ? 'Locked' : 'Reopened'} daily report ID ${id}`, 'Daily Report Management');
     showToast('Report lock status updated', 'info');
   };
@@ -534,6 +826,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setFollowUps(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('follow_ups');
     logActivity(`Added follow-up for ${folData.customerName} on ${folData.followUpDate}`, 'Follow-up Management');
     showToast('Follow-up scheduled', 'success');
   };
@@ -552,6 +845,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setTenders(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('tenders');
     logActivity(`Added new tender enquiry: ${tendData.tenderName}`, 'Tender Management');
     showToast('Tender enquiry added', 'success');
   };
@@ -571,6 +865,7 @@ export const AppProvider = ({ children }) => {
       return;
     }
     setDirectorComments(prev => [rowToCamel(data), ...prev]);
+    await refreshEntity('director_comments');
 
     const notifRow = {
       user_id: commentData.targetEmployeeId,
@@ -589,11 +884,22 @@ export const AppProvider = ({ children }) => {
     showToast('Comment posted successfully', 'success');
   };
 
+  const markNotificationRead = async (id) => {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) { showToast('Unable to mark notification as read', 'error'); return; }
+    setNotifications(prev => prev.map(item => item.id === id ? { ...item, isRead: true } : item));
+  };
+
   const value = {
     currentUser,
     currentRole: currentUser ? normalizeRole(currentUser.role) : null,
     authLoading,
     authError,
+    dataLoading,
+    dataError,
+    lastUpdated,
+    refreshEntity,
+    refreshAllData: loadAllData,
     users,
     products,
     orgTypes,
@@ -625,14 +931,19 @@ export const AppProvider = ({ children }) => {
     approveCustomer,
     rejectCustomer,
     addVisitPlan,
+    addTourPlanBatch,
     updateVisitPlanStatus,
+    updateTourPlanBatchStatus,
+    requestTourPlanChanges,
+    reviewTourPlanBatch,
     rescheduleVisitPlan,
     submitVisitReport,
     submitDailyReport,
     toggleDailyReportLock,
     addFollowUp,
     addTender,
-    addDirectorComment
+    addDirectorComment,
+    markNotificationRead
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

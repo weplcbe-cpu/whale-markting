@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
 import {
   LayoutDashboard,
   Building2,
@@ -14,40 +16,41 @@ import {
   Database,
   BarChart3,
   LogOut,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }) => {
   const { currentUser, currentRole, logout, notifications } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [expandedDirectorGroups, setExpandedDirectorGroups] = useState(new Set());
 
   const unreadNotifsCount = notifications.filter(
     n => !n.isRead && (!n.userId || n.userId === currentUser?.employeeId)
   ).length;
 
   // Single-source 9-Item Marketing Sidebar Navigation (Zero Duplication)
-  const marketingMenu = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'customers', label: 'Customers', icon: Building2 },
-    { id: 'visits', label: 'Visits', icon: Calendar },
-    { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
-    { id: 'follow-ups', label: 'Follow-ups', icon: Clock },
-    { id: 'tenders', label: 'Tenders', icon: FileText },
-    { id: 'director-comments', label: 'Director Comments', icon: MessageSquare, badge: unreadNotifsCount },
-    { id: 'profile', label: 'Profile', icon: User }
-  ];
+  const marketingIcons = {
+    dashboard: LayoutDashboard,
+    customers: Building2,
+    visits: Calendar,
+    reports: FileSpreadsheet,
+    'follow-ups': Clock,
+    tenders: FileText,
+    'director-comments': MessageSquare,
+    profile: User,
+  };
+  const marketingMenu = marketingRoutes.map(route => ({
+    ...route,
+    icon: marketingIcons[route.id],
+    badge: route.id === 'director-comments' ? unreadNotifsCount : undefined,
+  }));
 
   // Single-source 8-Item Director Sidebar Navigation
-  const directorMenu = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'team-overview', label: 'Marketing Team', icon: Users },
-    { id: 'weekly-plans', label: 'Weekly Plans Review', icon: Calendar },
-    { id: 'visit-reports', label: 'Visit Reports', icon: FileSpreadsheet },
-    { id: 'customers-overview', label: 'Customers Overview', icon: Building2 },
-    { id: 'tenders-monitoring', label: 'Tender Monitoring', icon: FileText },
-    { id: 'performance', label: 'Performance Analytics', icon: BarChart3 },
-    { id: 'director-comments', label: 'Comments History', icon: MessageSquare, badge: unreadNotifsCount },
-    { id: 'profile', label: 'My Profile', icon: User }
-  ];
+  const directorIcons = { dashboard: LayoutDashboard, team: Users, 'today-schedule': Clock, 'weekly-plans': Calendar, 'visit-plans': Calendar, 'visit-reports': FileSpreadsheet, 'daily-reports': FileSpreadsheet, customers: Building2, 'follow-ups': Clock, tenders: FileText, 'product-overview': Package, 'area-overview': Building2, performance: BarChart3, reports: FileSpreadsheet, comments: MessageSquare, notifications: MessageSquare, profile: User };
+  const directorMenu = directorRoutes.filter(route => route.nav !== false).map(route => ({ ...route, icon: directorIcons[route.id], badge: route.id === 'notifications' ? unreadNotifsCount : undefined }));
+  const directorGroups = directorNavigation.map((group) => ({ ...group, items: group.routeIds.map((id) => directorMenu.find((route) => route.id === id)).filter(Boolean) }));
 
   // Single-source 8-Item Admin Sidebar Navigation
   const adminMenu = [
@@ -67,12 +70,23 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
     ? directorMenu
     : marketingMenu;
 
-  const handleItemClick = (id) => {
-    setActiveTab(id);
+  const handleItemClick = (item) => {
+    if (currentRole === 'Marketing Team' || currentRole === 'Director') {
+      navigate(item.path);
+    } else {
+      setActiveTab(item.id);
+    }
     if (toggleSidebar && isMobileOpen) {
       toggleSidebar();
     }
   };
+
+  const isDirectorRouteActive = (item) => location.pathname === item.path || (item.path !== '/director' && location.pathname.startsWith(`${item.path}/`));
+  const toggleDirectorGroup = (groupId) => setExpandedDirectorGroups((current) => {
+    const next = new Set(current);
+    if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
+    return next;
+  });
 
   return (
     <>
@@ -101,18 +115,29 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
         </div>
 
         <nav className="sidebar-nav">
-          {menuItems.map(item => {
+          {currentRole === 'Director' ? directorGroups.map((group) => {
+            const hasChildren = group.items.length > 1;
+            const groupIsActive = group.items.some(isDirectorRouteActive);
+            const isExpanded = groupIsActive || expandedDirectorGroups.has(group.id);
+            if (!hasChildren) {
+              const item = group.items[0];
+              if (!item) return null;
+              const IconComponent = item.icon;
+              return <button type="button" key={group.id} className={`nav-item ${isDirectorRouteActive(item) ? 'active' : ''}`} onClick={() => handleItemClick(item)}><IconComponent size={18} /><span style={{ flex: 1 }}>{item.label}</span>{item.badge > 0 && <span className="notif-badge director-nav-badge">{item.badge}</span>}</button>;
+            }
+            return <div className={`director-nav-group ${groupIsActive ? 'active' : ''}`} key={group.id}><button type="button" className="director-nav-group__trigger" onClick={() => toggleDirectorGroup(group.id)} aria-expanded={isExpanded}><span>{group.label}</span><ChevronDown size={16} className={isExpanded ? 'expanded' : ''} /></button>{isExpanded && <div className="director-nav-group__items">{group.items.map((item) => { const IconComponent = item.icon; return <button type="button" key={item.id} className={`nav-item ${isDirectorRouteActive(item) ? 'active' : ''}`} onClick={() => handleItemClick(item)}><IconComponent size={17} /><span style={{ flex: 1 }}>{item.label}</span>{item.badge > 0 && <span className="notif-badge director-nav-badge">{item.badge}</span>}</button>; })}</div>}</div>;
+          }) : menuItems.map(item => {
             const IconComponent = item.icon;
-            const isActive = activeTab === item.id ||
-              (item.id === 'visits' && ['visits', 'today-schedule', 'my-plans', 'add-visit-plan', 'weekly-planning'].includes(activeTab)) ||
-              (item.id === 'customers' && ['customers', 'my-customers', 'add-customer', 'customers-hub'].includes(activeTab)) ||
-              (item.id === 'reports' && ['reports', 'daily-report', 'reports-hub'].includes(activeTab));
+            const isActive = currentRole === 'Marketing Team' || currentRole === 'Director'
+              ? location.pathname === item.path ||
+                (!['/marketing', '/director'].includes(item.path) && location.pathname.startsWith(`${item.path}/`))
+              : activeTab === item.id;
 
             return (
-              <div
+              <button type="button"
                 key={item.id}
                 className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleItemClick(item.id)}
+                onClick={() => handleItemClick(item)}
               >
                 <IconComponent size={18} />
                 <span style={{ flex: 1 }}>{item.label}</span>
@@ -121,7 +146,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
                     {item.badge}
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </nav>
@@ -129,10 +154,10 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
         <div className="sidebar-footer">
           <div className="user-badge-sidebar">
             <div className="avatar-circle">
-              {currentUser?.employeeName?.charAt(0) || 'U'}
+              {(currentUser?.fullName || currentUser?.employeeName || currentUser?.username)?.charAt(0) || 'U'}
             </div>
             <div className="user-info-text">
-              <div className="user-name">{currentUser?.employeeName || 'User'}</div>
+              <div className="user-name">{currentUser?.fullName || currentUser?.employeeName || currentUser?.username || 'User'}</div>
               <div className="user-role">{currentRole}</div>
             </div>
           </div>

@@ -35,13 +35,16 @@ function buildCorsHeaders(req) {
 }
 
 function jsonResponse(body, status, corsHeaders) {
+  if (status >= 400) {
+    console.error('admin-create-user response:', JSON.stringify({ status, body }));
+  }
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
 
-const VALID_ROLES = ['Admin', 'Director', 'Marketing Team'];
+const VALID_ROLES = ['Admin', 'Director', 'Marketing'];
 
 // Accepts common variants ('Marketing', 'marketing team', etc.) and maps
 // them to the exact value the `profiles.role` check constraint requires.
@@ -50,26 +53,33 @@ function normalizeRole(role) {
   const trimmed = role.trim().toLowerCase();
   if (trimmed === 'admin') return 'Admin';
   if (trimmed === 'director') return 'Director';
-  if (trimmed === 'marketing' || trimmed === 'marketing team') return 'Marketing Team';
+  if (trimmed === 'marketing' || trimmed === 'marketing team') return 'Marketing';
   const exact = VALID_ROLES.find((r) => r.toLowerCase() === trimmed);
   return exact ?? null;
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req);
-
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  if (req.method !== 'POST') {
-    return jsonResponse({ success: false, error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' }, 405, corsHeaders);
-  }
+  let corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
 
   try {
-    const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader) {
-      return jsonResponse({ success: false, error: 'Missing Authorization header', code: 'UNAUTHENTICATED' }, 401, corsHeaders);
+    corsHeaders = buildCorsHeaders(req);
+
+    if (req.method === 'OPTIONS') {
+      return jsonResponse({ success: true }, 200, corsHeaders);
+    }
+
+    if (req.method !== 'POST') {
+      return jsonResponse({ success: false, error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' }, 405, corsHeaders);
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return jsonResponse({ success: false, error: 'Missing or invalid Authorization header', code: 'UNAUTHENTICATED' }, 401, corsHeaders);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -82,21 +92,25 @@ Deno.serve(async (req) => {
     }
 
     // Client scoped to the caller's JWT — used only to verify who is calling.
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
     });
 
-    const { data: { user: callerUser }, error: callerErr } = await callerClient.auth.getUser();
-    if (callerErr || !callerUser) {
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
       return jsonResponse({ success: false, error: 'Your session has expired. Please log in again.', code: 'UNAUTHENTICATED' }, 401, corsHeaders);
     }
 
     // Never trust a role claimed by the frontend — always re-check the
     // caller's real role/status from the database.
-    const { data: callerProfile, error: callerProfileErr } = await callerClient
+    const { data: callerProfile, error: callerProfileErr } = await supabaseUser
       .from('profiles')
       .select('role, status')
-      .eq('id', callerUser.id)
+      .eq('id', user.id)
       .single();
 
     if (callerProfileErr || !callerProfile) {
@@ -113,25 +127,24 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: 'Request body must be valid JSON.', code: 'INVALID_BODY' }, 400, corsHeaders);
     }
 
-    // Accept both the app's existing camelCase field names and the
-    // documented snake_case names, so this works regardless of caller shape.
-    const employeeName = (body.employeeName ?? body.full_name ?? '').toString().trim();
-    const employeeId = (body.employeeId ?? body.employee_id ?? '').toString().trim();
+    const fullName = (body.full_name ?? '').toString().trim();
+    const employeeId = (body.employee_id ?? '').toString().trim();
     const email = (body.email ?? '').toString().trim().toLowerCase();
-    const mobile = (body.mobile ?? body.mobile_number ?? '').toString().trim();
+    const mobileNumber = (body.mobile_number ?? '').toString().trim();
     const password = (body.password ?? '').toString();
-    const username = (body.username ?? email).toString().trim();
-    const department = body.department ? String(body.department).trim() : null;
-    const designation = body.designation ? String(body.designation).trim() : null;
-    const status = (body.status ?? 'Active').toString().trim() || 'Active';
+    const username = (body.username ?? '').toString().trim();
+    const designation = (body.designation ?? '').toString().trim();
     const role = normalizeRole(body.role);
 
     const missing = [];
-    if (!employeeName) missing.push('employeeName');
-    if (!employeeId) missing.push('employeeId');
+    if (!fullName) missing.push('full_name');
+    if (!employeeId) missing.push('employee_id');
+    if (!mobileNumber) missing.push('mobile_number');
     if (!email) missing.push('email');
-    if (!password) missing.push('password');
     if (!role) missing.push('role');
+    if (!username) missing.push('username');
+    if (!password) missing.push('password');
+    if (!designation) missing.push('designation');
     if (missing.length > 0) {
       return jsonResponse(
         { success: false, error: `Missing required field(s): ${missing.join(', ')}`, code: 'VALIDATION_ERROR' },
@@ -146,10 +159,6 @@ Deno.serve(async (req) => {
     if (password.length < 6) {
       return jsonResponse({ success: false, error: 'Password must be at least 6 characters.', code: 'WEAK_PASSWORD' }, 400, corsHeaders);
     }
-    if (!['Active', 'Inactive'].includes(status)) {
-      return jsonResponse({ success: false, error: 'Status must be Active or Inactive.', code: 'VALIDATION_ERROR' }, 400, corsHeaders);
-    }
-
     // Admin client using the service_role key — never exposed to the browser.
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
@@ -157,51 +166,93 @@ Deno.serve(async (req) => {
     // (auth.admin.createUser would also reject a duplicate email, but this
     // gives a nicer error and also covers employee_id, which Auth doesn't
     // know about).
-    const { data: existingByEmail } = await adminClient
+    const { data: existingByEmail, error: emailLookupErr } = await adminClient
       .from('profiles')
       .select('id')
       .ilike('email', email)
       .maybeSingle();
+    if (emailLookupErr) {
+      return jsonResponse({
+        success: false,
+        error: 'Failed to check for an existing email',
+        details: emailLookupErr.message,
+        code: 'DUPLICATE_CHECK_FAILED',
+      }, 500, corsHeaders);
+    }
     if (existingByEmail) {
       return jsonResponse({ success: false, error: `A user with email "${email}" already exists.`, code: 'DUPLICATE_EMAIL' }, 409, corsHeaders);
     }
 
-    const { data: existingByEmployeeId } = await adminClient
+    const { data: existingByEmployeeId, error: employeeIdLookupErr } = await adminClient
       .from('profiles')
       .select('id')
       .eq('employee_id', employeeId)
       .maybeSingle();
+    if (employeeIdLookupErr) {
+      return jsonResponse({
+        success: false,
+        error: 'Failed to check for an existing employee ID',
+        details: employeeIdLookupErr.message,
+        code: 'DUPLICATE_CHECK_FAILED',
+      }, 500, corsHeaders);
+    }
     if (existingByEmployeeId) {
       return jsonResponse({ success: false, error: `Employee ID "${employeeId}" is already in use.`, code: 'DUPLICATE_EMPLOYEE_ID' }, 409, corsHeaders);
     }
 
-    const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+    const { data: created, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {
-        full_name: employeeName,
+        full_name: fullName,
         employee_id: employeeId,
+        username,
         role,
+        mobile_number: mobileNumber,
+        designation,
+        profile_creation_source: 'edge_function',
       },
     });
 
-    if (createErr || !created?.user) {
-      const message = createErr?.message || 'Failed to create the Auth user.';
-      const code = /already.*registered|already.*exists/i.test(message) ? 'DUPLICATE_EMAIL' : 'AUTH_CREATE_FAILED';
-      return jsonResponse({ success: false, error: message, code }, 400, corsHeaders);
+    if (authError) {
+      console.error('Auth create failed:', {
+        message: authError.message,
+        status: authError.status,
+        code: authError.code,
+        name: authError.name,
+      });
+
+      return jsonResponse({
+        success: false,
+        code: 'AUTH_CREATE_FAILED',
+        error: authError.message,
+        details: {
+          status: authError.status,
+          code: authError.code,
+          name: authError.name,
+        },
+      }, authError.status || 400, corsHeaders);
+    }
+
+    if (!created?.user) {
+      return jsonResponse({
+        success: false,
+        code: 'AUTH_CREATE_FAILED',
+        error: 'Supabase Auth did not return the created user.',
+      }, 400, corsHeaders);
     }
 
     const { error: profileErr } = await adminClient.from('profiles').insert({
       id: created.user.id,
+      full_name: fullName,
       employee_id: employeeId,
-      employee_name: employeeName,
-      username: username || email,
-      role,
-      mobile: mobile || null,
       email,
-      status,
-      department,
+      mobile_number: mobileNumber,
+      role,
+      status: 'Active',
+      username,
+      department: null,
       designation,
     });
 
@@ -212,7 +263,12 @@ Deno.serve(async (req) => {
       if (rollbackErr) {
         console.error('admin-create-user: failed to roll back orphaned auth user', created.user.id, rollbackErr);
       }
-      return jsonResponse({ success: false, error: `Failed to create profile: ${profileErr.message}`, code: 'PROFILE_CREATE_FAILED' }, 400, corsHeaders);
+      return jsonResponse({
+        success: false,
+        code: 'PROFILE_INSERT_FAILED',
+        error: 'Failed to create profile',
+        details: profileErr.message,
+      }, 400, corsHeaders);
     }
 
     return jsonResponse(

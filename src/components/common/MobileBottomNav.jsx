@@ -1,15 +1,22 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getDirectorRouteById, getMarketingRouteById } from '../../routes';
 import { LayoutDashboard, Calendar, PlusCircle, Building2, Menu } from 'lucide-react';
 
 export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
   const { currentRole } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isMarketing = currentRole === 'Marketing Team';
+  const isDirector = currentRole === 'Director';
+  const goToMarketing = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
 
   return (
     <div className="mobile-bottom-nav">
       <button
-        className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-        onClick={() => setActiveTab('dashboard')}
+        className={`mobile-nav-item ${(isMarketing ? location.pathname === '/marketing' : activeTab === 'dashboard') ? 'active' : ''}`}
+        onClick={() => isMarketing ? goToMarketing('dashboard') : isDirector ? navigate('/director') : setActiveTab('dashboard')}
       >
         <LayoutDashboard size={20} />
         <span>Dashboard</span>
@@ -18,16 +25,16 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
       {currentRole === 'Marketing Team' ? (
         <>
           <button
-            className={`mobile-nav-item ${activeTab === 'visits' || activeTab === 'today-schedule' || activeTab === 'my-plans' ? 'active' : ''}`}
-            onClick={() => setActiveTab('visits')}
+            className={`mobile-nav-item ${location.pathname === getMarketingRouteById('visits').path ? 'active' : ''}`}
+            onClick={() => goToMarketing('visits')}
           >
             <Calendar size={20} />
             <span>Visits</span>
           </button>
 
           <button
-            className={`mobile-nav-item ${activeTab === 'add-visit-plan' || activeTab === 'weekly-planning' ? 'active' : ''}`}
-            onClick={() => setActiveTab('add-visit-plan')}
+            className={`mobile-nav-item ${location.pathname === getMarketingRouteById('visits').path && location.search.includes('action=add-visit-plan') ? 'active' : ''}`}
+            onClick={() => goToMarketing('visits', '?action=add-visit-plan')}
           >
             <div className="mobile-fab-icon">
               <PlusCircle size={22} color="#fff" />
@@ -36,12 +43,17 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
           </button>
 
           <button
-            className={`mobile-nav-item ${activeTab === 'customers' || activeTab === 'my-customers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('customers')}
+            className={`mobile-nav-item ${location.pathname === getMarketingRouteById('customers').path ? 'active' : ''}`}
+            onClick={() => goToMarketing('customers')}
           >
             <Building2 size={20} />
             <span>Customers</span>
           </button>
+        </>
+      ) : isDirector ? (
+        <>
+          <button className={`mobile-nav-item ${location.pathname === getDirectorRouteById('weekly-plans').path || location.pathname.startsWith(`${getDirectorRouteById('weekly-plans').path}/`) ? 'active' : ''}`} onClick={() => navigate(getDirectorRouteById('weekly-plans').path)}><Calendar size={20} /><span>Plans</span></button>
+          <button className={`mobile-nav-item ${location.pathname === getDirectorRouteById('customers').path ? 'active' : ''}`} onClick={() => navigate(getDirectorRouteById('customers').path)}><Building2 size={20} /><span>Customers</span></button>
         </>
       ) : (
         <>
