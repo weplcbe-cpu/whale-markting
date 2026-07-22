@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Settings, Save, Clock, ShieldCheck, Database } from 'lucide-react';
+import { Settings, Save, ShieldCheck } from 'lucide-react';
 
 export const SystemSettings = () => {
   const { companyInfo, showToast, logActivity } = useApp();

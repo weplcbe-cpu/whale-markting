@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Package, Plus, Edit, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { Plus, ToggleLeft, ToggleRight, X } from 'lucide-react';
 
 export const ProductManagement = () => {
   const { products, addProduct, toggleProductStatus } = useApp();

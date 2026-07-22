@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { History, Download, Filter, Search } from 'lucide-react';
+import { History, Download } from 'lucide-react';
 
 export const ActivityLogs = () => {
   const { activityLogs, showToast } = useApp();

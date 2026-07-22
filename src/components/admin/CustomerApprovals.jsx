@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Building2, CheckCircle2, XCircle, AlertTriangle, Eye, Search, Filter } from 'lucide-react';
+import { Building2, CheckCircle2, XCircle, Eye } from 'lucide-react';
 
 export const CustomerApprovals = () => {
   const { customers, approveCustomer, rejectCustomer } = useApp();

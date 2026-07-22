@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Clock, Calculator, Save, Lock, AlertCircle } from 'lucide-react';
+import { Clock, Save } from 'lucide-react';
 
 export const DailyReportSubmit = () => {
   const { currentUser, visitPlans, customers, followUps, submitDailyReport, companyInfo } = useApp();

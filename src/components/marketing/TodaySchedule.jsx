@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Play, CheckCircle2, XCircle, Calendar, MapPin, Clock, X, Upload } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload } from 'lucide-react';
 
 export const TodaySchedule = () => {
-  const { currentUser, visitPlans, updateVisitPlanStatus, rescheduleVisitPlan, submitVisitReport, showToast } = useApp();
+  const { currentUser, visitPlans, updateVisitPlanStatus, rescheduleVisitPlan, submitVisitReport } = useApp();
 
   const empId = currentUser?.employeeId || 'EMP001';
-  const todayStr = new Date().toISOString().split('T')[0];
   const myTodayVisits = visitPlans.filter(p => p.employeeId === empId);
 
   // Modals state

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Target, Layers, Plus, Trash2 } from 'lucide-react';
+import { Target, Layers } from 'lucide-react';
 
 export const MasterDataManagement = () => {
   const { orgTypes, purposes } = useApp();
   const [activeTab, setActiveTab] = useState('purposes');
-  const [newPurpose, setNewPurpose] = useState('');
-  const [newOrgType, setNewOrgType] = useState('');
 
   return (
     <div>

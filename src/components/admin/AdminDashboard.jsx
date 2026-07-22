@@ -1,12 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Users, Building2, Calendar, CheckCircle2, Clock, FileText, AlertTriangle, UserCheck, Plus, ArrowRight } from 'lucide-react';
+import { Users, Building2, Calendar, CheckCircle2, Clock, FileText, AlertTriangle, UserCheck, ArrowRight } from 'lucide-react';
 
 export const AdminDashboard = ({ setActiveTab }) => {
   const { users, customers, visitPlans, followUps, tenders, activityLogs } = useApp();
 
   const totalMarketingTeam = users.filter(u => u.role === 'Marketing Team' && u.status === 'Active').length;
-  const totalDirectors = users.filter(u => u.role === 'Director' && u.status === 'Active').length;
   const totalCustomers = customers.length;
   const pendingCustomerApprovals = customers.filter(c => c.status === 'Pending Verification').length;
 

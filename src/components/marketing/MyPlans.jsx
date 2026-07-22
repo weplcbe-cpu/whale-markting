@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Calendar, List, Eye, Target, MapPin, Clock, X, Building2, User, Phone, CheckCircle2 } from 'lucide-react';
+import { Calendar, List, Eye, Target, X, Building2 } from 'lucide-react';
 
 export const MyPlans = () => {
   const { currentUser, visitPlans } = useApp();

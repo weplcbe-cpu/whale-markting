@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { FileText, Download, Printer, BarChart3, Filter } from 'lucide-react';
+import { Download, Printer, BarChart3 } from 'lucide-react';
 
 export const ReportsExport = () => {
-  const { visitPlans, visitReports, dailyReports, customers, followUps, tenders, showToast } = useApp();
+  const { visitPlans, dailyReports, customers, tenders, showToast } = useApp();
   const [reportType, setReportType] = useState('daily');
   const [dateFilter, setDateFilter] = useState('This Month');
 
