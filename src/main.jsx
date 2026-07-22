@@ -1,16 +1,35 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { AppProvider } from './context/AppContext.jsx';
 import { BrowserRouter } from 'react-router-dom';
+import { RootErrorBoundary, StartupFailure } from './components/common/StartupBoundary.jsx';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AppProvider>
-        <App />
-      </AppProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+const rootElement = document.getElementById('root');
+const root = ReactDOM.createRoot(rootElement);
+
+const bootstrap = async () => {
+  try {
+    const [{ default: App }, { AppProvider }] = await Promise.all([
+      import('./App.jsx'),
+      import('./context/AppContext.jsx')
+    ]);
+
+    root.render(
+      <React.StrictMode>
+        <RootErrorBoundary>
+          <BrowserRouter>
+            <AppProvider>
+              <App />
+            </AppProvider>
+          </BrowserRouter>
+        </RootErrorBoundary>
+      </React.StrictMode>
+    );
+  } catch (error) {
+    console.error('Application startup failed:', error);
+    root.render(<StartupFailure error={error} onRetry={bootstrap} />);
+  }
+};
+
+root.render(<div className="app-loading-screen" role="status">Loading application…</div>);
+bootstrap();

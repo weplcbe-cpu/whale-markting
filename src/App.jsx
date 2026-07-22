@@ -5,7 +5,7 @@ import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { directorRoutes, marketingRoutes, routes } from './routes';
 
 // Cache lazy-loaded components per route so `lazy()` is only ever created once
@@ -47,10 +47,13 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="app-loading-screen app-error-screen">
-          <p>Something went wrong while loading this page.</p>
-          <p className="app-error-detail">{this.state.error?.message || String(this.state.error)}</p>
-          <button type="button" onClick={() => window.location.reload()}>Reload</button>
+        <div className="app-loading-screen app-error-screen" role="alert">
+          <h1>Application failed to load.</h1>
+          {import.meta.env.DEV && <p className="app-error-detail">{this.state.error?.message || String(this.state.error)}</p>}
+          <div className="app-error-actions">
+            <button type="button" onClick={() => this.setState({ error: null })}>Retry</button>
+            <button type="button" onClick={() => window.location.reload()}>Reload</button>
+          </div>
         </div>
       );
     }
@@ -61,6 +64,7 @@ class ErrorBoundary extends React.Component {
 export function AppContent() {
   const { currentUser, currentRole, authLoading, authError, dataError, dataLoading, refreshAllData, logout } = useApp();
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -71,12 +75,24 @@ export function AppContent() {
     setActiveTab('dashboard');
   }, [currentUser?.id, currentRole]);
 
+  useEffect(() => {
+    if (authLoading) return;
+    if (!currentUser) {
+      if (location.pathname !== '/login') navigate('/login', { replace: true });
+      return;
+    }
+    if (location.pathname === '/' || location.pathname === '/login') {
+      const dashboardPath = currentRole === 'Director' ? '/director' : currentRole === 'Marketing Team' ? '/marketing' : '/admin';
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [authLoading, currentRole, currentUser, location.pathname, navigate]);
+
   const toggleSidebar = () => {
     setIsMobileSidebarOpen(prev => !prev);
   };
 
   if (authLoading) {
-    return <div className="app-loading-screen">Loading...</div>;
+    return <div className="app-loading-screen" role="status">Loading application…</div>;
   }
 
   if (authError) {

@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseAnonKey) {
   // Fail fast with a clear message instead of a confusing runtime error deep in the SDK.
   throw new Error(
-    'Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).'
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY'
   );
 }
 
