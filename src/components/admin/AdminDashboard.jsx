@@ -28,7 +28,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('customers')}>
+        <div className="stat-card" onClick={() => setActiveTab('customer-approvals')}>
           <div className="stat-icon-wrapper green"><Building2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{totalCustomers}</div>
@@ -36,7 +36,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('visit-plans')}>
+        <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper amber"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{todayVisits.length}</div>
@@ -44,7 +44,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('visit-plans')}>
+        <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{completedVisits}</div>
@@ -52,7 +52,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('visit-plans')}>
+        <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper rose"><Clock size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingVisits}</div>
@@ -60,7 +60,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('follow-ups')}>
+        <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper purple"><AlertTriangle size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingFollowups}</div>
@@ -68,7 +68,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('customers')}>
+        <div className="stat-card" onClick={() => setActiveTab('customer-approvals')}>
           <div className="stat-icon-wrapper blue"><UserCheck size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingCustomerApprovals}</div>
@@ -76,7 +76,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('tenders')}>
+        <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper amber"><FileText size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{tenderOpportunities}</div>
@@ -91,7 +91,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
         <div className="card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><Calendar size={18} color="var(--accent-cyan)" /> Today's Field Visit Schedule</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('visit-plans')}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('reports')}>
               View All Plans <ArrowRight size={14} />
             </button>
           </div>

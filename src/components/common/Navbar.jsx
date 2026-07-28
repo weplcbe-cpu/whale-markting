@@ -39,7 +39,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, showToast, users, customers, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, customers, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -51,7 +51,27 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
     n => !n.userId || n.userId === currentUser?.employeeId
   );
   const unreadCount = userNotifs.filter(n => !n.isRead).length;
-  const notificationPath = (notification) => { const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase(); if (text.includes('tender')) return '/director/tenders'; if (text.includes('report')) return '/director/visit-reports'; if (text.includes('customer')) return '/director/customers'; if (text.includes('comment')) return '/director/comments'; if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans'; return '/director'; };
+  const notificationPath = (notification) => {
+    const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase();
+    if (currentRole === 'Marketing Team') {
+      if (text.includes('comment')) return '/marketing/director-comments';
+      if (text.includes('tender')) return '/marketing/tenders';
+      if (text.includes('customer')) return '/marketing/customers';
+      if (text.includes('report')) return '/marketing/reports';
+      return '/marketing/visits';
+    }
+    if (currentRole === 'Admin') {
+      if (text.includes('customer')) return '/admin/customer-approvals';
+      if (text.includes('user') || text.includes('employee')) return '/admin/users';
+      return '/admin/reports';
+    }
+    if (text.includes('tender')) return '/director/tenders';
+    if (text.includes('report')) return '/director/visit-reports';
+    if (text.includes('customer')) return '/director/customers';
+    if (text.includes('comment')) return '/director/comments';
+    if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';
+    return '/director/notifications';
+  };
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
     ...customers.filter(item => `${item.organizationName || ''} ${item.district || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `customer-${item.id}`, label: item.organizationName, group: 'Customers', path: '/director/customers' })),
@@ -131,7 +151,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
         <button
           className="icon-btn"
           title="Settings"
-          onClick={() => currentRole === 'Director' ? navigate('/director/profile') : showToast('Open your profile to manage account settings.', 'info')}
+          onClick={() => currentRole === 'Director' ? navigate('/director/profile') : currentRole === 'Marketing Team' ? navigate('/marketing/profile') : navigate('/admin/settings')}
         >
           <Settings2 size={20} strokeWidth={2.5} />
         </button>
@@ -204,7 +224,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
                     <button
                       key={n.id}
                       type="button"
-                      onClick={() => { markNotificationRead(n.id); if (currentRole === 'Director') navigate(notificationPath(n)); setShowNotifDropdown(false); }}
+                      onClick={() => { markNotificationRead(n.id); navigate(notificationPath(n)); setShowNotifDropdown(false); }}
                       style={{
                         padding: '10px',
                         background: 'rgba(117, 139, 253, 0.08)',

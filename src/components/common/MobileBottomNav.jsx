@@ -58,16 +58,16 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
       ) : (
         <>
           <button
-            className={`mobile-nav-item ${activeTab === 'weekly-plans' || activeTab === 'visit-reports' ? 'active' : ''}`}
-            onClick={() => setActiveTab('weekly-plans')}
+            className={`mobile-nav-item ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
           >
             <Calendar size={20} />
-            <span>Plans</span>
+            <span>Reports</span>
           </button>
 
           <button
-            className={`mobile-nav-item ${activeTab === 'customers-overview' || activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('customers-overview')}
+            className={`mobile-nav-item ${activeTab === 'customer-approvals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('customer-approvals')}
           >
             <Building2 size={20} />
             <span>Customers</span>

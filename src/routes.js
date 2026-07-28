@@ -46,13 +46,15 @@ export const directorNavigation = [
 export const getMarketingRouteById = (id) => marketingRoutes.find(route => route.id === id);
 export const getDirectorRouteById = (id) => directorRoutes.find(route => route.id === id);
 
-export const routes = [
-  { role: 'Admin', id: 'dashboard', component: () => import('./components/admin/AdminDashboard') },
-  { role: 'Admin', id: 'users', component: () => import('./components/admin/UserManagement') },
-  { role: 'Admin', id: 'products', component: () => import('./components/admin/ProductManagement') },
-  { role: 'Admin', id: 'customer-approvals', component: () => import('./components/admin/CustomerApprovals') },
-  { role: 'Admin', id: 'master-data', component: () => import('./components/admin/MasterDataManagement') },
-  { role: 'Admin', id: 'activity-logs', component: () => import('./components/admin/ActivityLogs') },
-  { role: 'Admin', id: 'reports', component: () => import('./components/admin/ReportsExport') },
-  { role: 'Admin', id: 'settings', component: () => import('./components/admin/SystemSettings') },
+export const adminRoutes = [
+  { role: 'Admin', id: 'dashboard', path: '/admin', label: 'Dashboard', component: () => import('./components/admin/AdminDashboard') },
+  { role: 'Admin', id: 'users', path: '/admin/users', label: 'User Management', component: () => import('./components/admin/UserManagement') },
+  { role: 'Admin', id: 'products', path: '/admin/products', label: 'Product Catalog', component: () => import('./components/admin/ProductManagement') },
+  { role: 'Admin', id: 'customer-approvals', path: '/admin/customer-approvals', label: 'Customer Approvals', component: () => import('./components/admin/CustomerApprovals') },
+  { role: 'Admin', id: 'master-data', path: '/admin/master-data', label: 'Master Data', component: () => import('./components/admin/MasterDataManagement') },
+  { role: 'Admin', id: 'activity-logs', path: '/admin/activity-logs', label: 'Activity Logs', component: () => import('./components/admin/ActivityLogs') },
+  { role: 'Admin', id: 'reports', path: '/admin/reports', label: 'Reports & Export', component: () => import('./components/admin/ReportsExport') },
+  { role: 'Admin', id: 'settings', path: '/admin/settings', label: 'System Settings', component: () => import('./components/admin/SystemSettings') },
 ];
+
+export const routes = adminRoutes;

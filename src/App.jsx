@@ -6,7 +6,7 @@ import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { directorRoutes, marketingRoutes, routes } from './routes';
+import { adminRoutes, directorRoutes, marketingRoutes } from './routes';
 
 // Cache lazy-loaded components per route so `lazy()` is only ever created once
 // per route instead of on every render (calling lazy() inside render is a
@@ -65,16 +65,11 @@ export function AppContent() {
   const { currentUser, currentRole, authLoading, authError, dataError, dataLoading, refreshAllData, logout } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Whenever the logged-in user (or their role) changes — fresh login, logout
   // + different account, or a role change — reset to that role's default
   // dashboard tab instead of keeping a stale activeTab from a previous session.
-  useEffect(() => {
-    setActiveTab('dashboard');
-  }, [currentUser?.id, currentRole]);
-
   useEffect(() => {
     if (authLoading) return;
     if (!currentUser) {
@@ -114,9 +109,12 @@ export function AppContent() {
 
   const isMarketingUser = currentRole === 'Marketing Team';
   const isDirectorUser = currentRole === 'Director';
+  const isAdminUser = currentRole === 'Admin';
   const marketingRoute = marketingRoutes.find(route => route.path === location.pathname);
   const directorRoute = directorRoutes.find(route => matchesConfiguredPath(route.path, location.pathname));
-  const currentTab = isMarketingUser ? (marketingRoute?.id || '') : isDirectorUser ? (directorRoute?.id || '') : activeTab;
+  const adminRoute = adminRoutes.find(route => route.path === location.pathname);
+  const currentTab = isMarketingUser ? (marketingRoute?.id || '') : isDirectorUser ? (directorRoute?.id || '') : (adminRoute?.id || 'dashboard');
+  const selectAdminTab = (id) => navigate(adminRoutes.find(route => route.id === id)?.path || '/admin');
 
   const renderMarketingRoutes = () => (
     <Routes>
@@ -148,8 +146,18 @@ export function AppContent() {
     </Routes>
   );
 
+  const renderAdminRoutes = () => (
+    <Routes>
+      {adminRoutes.map(route => {
+        const Component = getLazyComponent(route);
+        return <Route key={route.path} path={route.path} element={<Suspense fallback={<div className="app-loading-screen">Loading...</div>}><Component setActiveTab={selectAdminTab} /></Suspense>} />;
+      })}
+      <Route path="*" element={<Navigate to="/admin" replace />} />
+    </Routes>
+  );
+
   // Consolidated route definitions are imported from routes.js
-  const renderContent = () => {
+  const _renderContent = () => {
     const match = routes.find(r => r.role === currentRole && r.id === activeTab);
     const Component = match ? getLazyComponent(match) : null;
     if (Component) {
@@ -185,7 +193,7 @@ export function AppContent() {
         {/* Role Specific Streamlined Sidebar */}
         <Sidebar
           activeTab={currentTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={selectAdminTab}
           isMobileOpen={isMobileSidebarOpen}
           toggleSidebar={toggleSidebar}
         />
@@ -194,7 +202,7 @@ export function AppContent() {
           {/* Top Navbar */}
           <Navbar
             activeTab={currentTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={selectAdminTab}
             toggleSidebar={toggleSidebar}
           />
 
@@ -202,8 +210,8 @@ export function AppContent() {
           <main className="main-view-wrapper">
             {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
             {dataLoading && <div className="director-live-status" role="status">Refreshing portal data…</div>}
-            <ErrorBoundary key={(isMarketingUser || isDirectorUser) ? location.pathname : activeTab}>
-              {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : renderContent()}
+            <ErrorBoundary key={location.pathname}>
+              {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
             </ErrorBoundary>
           </main>
         </div>
@@ -212,7 +220,7 @@ export function AppContent() {
       {/* Mobile Native 1-Thumb Bottom Navigation */}
       <MobileBottomNav
         activeTab={currentTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={selectAdminTab}
         toggleSidebar={toggleSidebar}
       />
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
+import { adminRoutes, directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
 import {
   LayoutDashboard,
   Building2,
@@ -53,16 +53,8 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   const directorGroups = directorNavigation.map((group) => ({ ...group, items: group.routeIds.map((id) => directorMenu.find((route) => route.id === id)).filter(Boolean) }));
 
   // Single-source 8-Item Admin Sidebar Navigation
-  const adminMenu = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'customer-approvals', label: 'Customer Approvals', icon: Building2 },
-    { id: 'products', label: 'Product Catalog', icon: Package },
-    { id: 'master-data', label: 'Master Data', icon: Database },
-    { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
-    { id: 'activity-logs', label: 'Activity Logs', icon: Clock },
-    { id: 'settings', label: 'System Settings', icon: User }
-  ];
+  const adminIcons = { dashboard: LayoutDashboard, users: Users, 'customer-approvals': Building2, products: Package, 'master-data': Database, reports: BarChart3, 'activity-logs': Clock, settings: User };
+  const adminMenu = adminRoutes.map(route => ({ ...route, icon: adminIcons[route.id] }));
 
   const menuItems = currentRole === 'Admin'
     ? adminMenu
@@ -71,7 +63,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
     : marketingMenu;
 
   const handleItemClick = (item) => {
-    if (currentRole === 'Marketing Team' || currentRole === 'Director') {
+    if (currentRole === 'Marketing Team' || currentRole === 'Director' || currentRole === 'Admin') {
       navigate(item.path);
     } else {
       setActiveTab(item.id);
