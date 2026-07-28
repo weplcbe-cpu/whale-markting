@@ -638,6 +638,87 @@ export const AppProvider = ({ children }) => {
     return normalizeVisitPlan(rowToCamel(data));
   };
 
+  const toTourPlanRow = (plan, { planType, periodFrom, periodTo, status }) => objToSnakeRow({
+    employeeId: currentUser?.employeeId,
+    fullName: currentUser?.fullName || currentUser?.employeeName,
+    visitDate: plan.visitDate,
+    expectedTime: plan.expectedTime || null,
+    customerId: plan.customerId || null,
+    customerName: plan.customerName || null,
+    organizationType: plan.organizationType || null,
+    contactPerson: plan.contactPerson || null,
+    mobileNumber: plan.mobileNumber || null,
+    state: plan.state || null,
+    district: plan.district || plan.area || null,
+    city: plan.city || plan.area || null,
+    area: plan.area || null,
+    fullAddress: plan.fullAddress || null,
+    visitPurpose: plan.visitPurpose || null,
+    products: Array.isArray(plan.products) ? plan.products : [],
+    requirement: plan.requirement || null,
+    priority: plan.priority || 'Medium',
+    isTenderRelated: Boolean(plan.isTenderRelated),
+    notes: plan.notes || null,
+    planType,
+    periodFrom,
+    periodTo,
+    status,
+    rescheduleHistory: plan.rescheduleHistory || []
+  });
+
+  const saveTourPlanDraft = async ({ rows, planType, periodFrom, periodTo }) => {
+    const editableStatuses = new Set(['Draft', 'Changes Requested']);
+    const savedRows = [];
+    for (const row of rows) {
+      const existing = visitPlans.find((plan) => plan.id === row.id);
+      const existingStatus = normalizePlanStatus(existing?.status);
+      if (existing && !editableStatuses.has(existingStatus)) {
+        const error = new Error('Only Draft or Changes Requested entries can be saved.');
+        showToast(error.message, 'error');
+        throw error;
+      }
+      const status = existing && editableStatuses.has(existingStatus) ? existingStatus : 'Draft';
+      const payload = toTourPlanRow(row, { planType, periodFrom, periodTo, status });
+      const query = existing
+        ? supabase.from('visit_plans').update(payload).eq('id', existing.id)
+        : supabase.from('visit_plans').insert(payload);
+      const { data, error } = await query.select().single();
+      if (error) {
+        showToast('Unable to save the weekly plan draft. Please try again.', 'error');
+        throw error;
+      }
+      savedRows.push(normalizeVisitPlan(rowToCamel(data)));
+    }
+    await refreshEntity('visit_plans');
+    logActivity(`Saved ${planType.toLowerCase()} plan draft with ${savedRows.length} entries`, 'Tour Plan');
+    return savedRows;
+  };
+
+  const deleteVisitPlanEntry = async (entryId) => {
+    if (!entryId) throw new Error('Visit entry ID is missing.');
+    const target = visitPlans.find((plan) => plan.id === entryId);
+    if (!target) throw new Error('Visit entry was not found. Refresh and try again.');
+    const status = normalizePlanStatus(target.status);
+    const role = normalizeRole(currentUser?.role);
+    if (role === 'Director' || (!['Admin', 'Marketing Team'].includes(role))) {
+      throw new Error('You do not have permission to delete this visit entry.');
+    }
+    if (role !== 'Admin' && target.employeeId !== currentUser?.employeeId) {
+      throw new Error('You can only delete your own visit entries.');
+    }
+    if (role !== 'Admin' && !['Draft', 'Changes Requested'].includes(status)) {
+      throw new Error('Only Draft or Changes Requested entries can be deleted.');
+    }
+    const { error } = await supabase.from('visit_plans').delete().eq('id', entryId);
+    if (error) {
+      showToast('Unable to delete the visit entry. Please try again.', 'error');
+      throw error;
+    }
+    await refreshEntity('visit_plans');
+    logActivity(`Deleted visit entry ID ${entryId}`, 'Tour Plan');
+    return true;
+  };
+
   const addTourPlanBatch = async ({ rows, planType, periodFrom, periodTo }) => {
     const batchId = crypto.randomUUID();
     const submittedAt = new Date().toISOString();
@@ -952,7 +1033,9 @@ export const AppProvider = ({ children }) => {
     approveCustomer,
     rejectCustomer,
     addVisitPlan,
+    saveTourPlanDraft,
     addTourPlanBatch,
+    deleteVisitPlanEntry,
     updateVisitPlanStatus,
     updateTourPlanBatchStatus,
     requestTourPlanChanges,

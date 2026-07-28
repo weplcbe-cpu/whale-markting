@@ -471,7 +471,13 @@ create policy "visit_plans_update" on public.visit_plans for update to authentic
   with check (public.is_admin_or_director() or employee_id = public.current_employee_id());
 drop policy if exists "visit_plans_delete" on public.visit_plans;
 create policy "visit_plans_delete" on public.visit_plans for delete to authenticated
-  using (public.is_admin_or_director() or employee_id = public.current_employee_id());
+  using (
+    public.is_admin()
+    or (
+      employee_id = public.current_employee_id()
+      and status in ('Draft', 'Changes Requested')
+    )
+  );
 
 -- Visit reports: same pattern as visit plans.
 drop policy if exists "visit_reports_select" on public.visit_reports;

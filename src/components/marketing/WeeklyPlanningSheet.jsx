@@ -87,7 +87,7 @@ const ProductMultiSelect = ({ products, value, onChange, optional, customValue, 
 };
 
 export const WeeklyPlanningSheet = () => {
-  const { currentUser, customers, products, purposes, addTourPlanBatch, showToast } = useApp();
+  const { currentUser, customers, products, purposes, visitPlans, addTourPlanBatch, saveTourPlanDraft, deleteVisitPlanEntry, showToast } = useApp();
   const saved = useMemo(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { return null; } }, []);
   const [weekFrom, setWeekFrom] = useState(saved?.weekFrom || '2026-08-03');
   const [weekTo, setWeekTo] = useState(saved?.weekTo || '2026-08-10');
@@ -95,6 +95,8 @@ export const WeeklyPlanningSheet = () => {
   const [rows, setRows] = useState(() => (saved?.rows?.length ? saved.rows : exampleRows).map(normalizeRow));
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const purposeOptions = [...new Set([...purposes, ...requiredProductPurposes, ...optionalProductPurposes])];
@@ -102,16 +104,69 @@ export const WeeklyPlanningSheet = () => {
   const update = (id, field, value) => setRows((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
   const addRow = () => { const row = blankRow(); setRows((current) => [...current, row]); setEditing(row.id); };
   const duplicate = (row) => { const copy = { ...row, id: blankRow().id, status: 'Draft' }; setRows((current) => [...current, copy]); setEditing(copy.id); };
-  const remove = () => { setRows((current) => current.filter((row) => row.id !== deleting)); setDeleting(null); showToast('Visit entry removed', 'info'); };
-  const saveDraft = () => { localStorage.setItem(DRAFT_KEY, JSON.stringify({ weekFrom, weekTo, rows })); setStatus('Draft'); showToast('Weekly plan saved as draft', 'info'); };
+  const persistedPlanById = useMemo(() => new Map(visitPlans.map((plan) => [plan.id, plan])), [visitPlans]);
+  const canDelete = (row) => {
+    const savedPlan = persistedPlanById.get(row.id);
+    return !savedPlan || ['Draft', 'Changes Requested'].includes(normalizePlanStatus(savedPlan.status));
+  };
+  const persistLocalDraft = (nextRows) => localStorage.setItem(DRAFT_KEY, JSON.stringify({ weekFrom, weekTo, rows: nextRows }));
+  const remove = async () => {
+    const row = rows.find((entry) => entry.id === deleting);
+    if (!row || isDeleting) return;
+    const savedPlan = persistedPlanById.get(row.id);
+    if (!canDelete(row)) {
+      setDeleting(null);
+      showToast('Only Draft or Changes Requested entries can be deleted.', 'error');
+      return;
+    }
+    if (!savedPlan) {
+      const nextRows = rows.filter((entry) => entry.id !== row.id);
+      setRows(nextRows);
+      persistLocalDraft(nextRows);
+      setDeleting(null);
+      showToast('Unsaved visit entry removed.', 'info');
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteVisitPlanEntry(savedPlan.id);
+      const nextRows = rows.filter((entry) => entry.id !== row.id);
+      setRows(nextRows);
+      persistLocalDraft(nextRows);
+      setDeleting(null);
+      showToast('Visit entry deleted successfully.', 'success');
+    } catch (error) {
+      showToast(error?.message || 'Unable to delete the visit entry. Please try again.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  const saveDraft = async () => {
+    if (isSavingDraft) return;
+    setIsSavingDraft(true);
+    try {
+      const savedRows = await saveTourPlanDraft({ rows, planType: 'Weekly', periodFrom: weekFrom, periodTo: weekTo });
+      const nextRows = rows.map((row, index) => normalizeRow({ ...row, ...savedRows[index] }));
+      setRows(nextRows);
+      persistLocalDraft(nextRows);
+      setStatus('Draft');
+      showToast('Weekly plan saved as draft', 'success');
+    } catch {
+      // Keep all form values in place when the draft save request fails.
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
   const review = () => { setShowErrors(true); setReviewing(true); };
   const submit = async () => {
     setShowErrors(true);
     if (invalidRows.length) return;
     const payload = rows.map((row) => { const custom = row.customProductOrRequirement?.trim(); const requirement = custom && !row.requirement.toLowerCase().includes(custom.toLowerCase()) ? `${row.requirement} — ${custom}` : row.requirement; return { ...row, products: row.products, district: row.district || row.area, city: row.city || row.area, requirement, status: 'Pending Approval' }; });
     try {
-      await addTourPlanBatch({ rows: payload, planType: 'Weekly', periodFrom: weekFrom, periodTo: weekTo });
-      setRows((current) => current.map((row) => ({ ...row, status: normalizePlanStatus('Submitted') })));
+      const result = await addTourPlanBatch({ rows: payload, planType: 'Weekly', periodFrom: weekFrom, periodTo: weekTo });
+      const nextRows = rows.map((row, index) => normalizeRow({ ...row, ...result.rows[index], status: normalizePlanStatus('Submitted') }));
+      setRows(nextRows);
+      persistLocalDraft(nextRows);
       setStatus('Submitted for Director Approval');
       setReviewing(false);
       showToast(`Weekly plan with ${rows.length} visits submitted for approval`, 'success');
@@ -124,9 +179,9 @@ export const WeeklyPlanningSheet = () => {
     <section className="ds-week-header"><div><small>Employee Name</small><strong>{currentUser?.employeeName || currentUser?.fullName || 'Marketing Employee'}</strong></div><DateField label="Week From" value={weekFrom} onChange={(event) => setWeekFrom(event.target.value)} /><DateField label="Week To" value={weekTo} onChange={(event) => setWeekTo(event.target.value)} /><div><small>Plan Status</small><Badge tone={status === 'Draft' ? 'neutral' : 'success'}>{status}</Badge></div></section>
     <div className="ds-visit-list">{rows.map((row, index) => { const errors = getErrors(row); return <article className={`ds-visit-row ${showErrors && hasErrors(row) ? 'has-errors' : ''}`} key={row.id}><div className="ds-week-card-summary"><span className="ds-monthly-row__number">{index + 1}</span><div><small>Date & Time</small><strong>{displayDate(row.visitDate)} · {row.expectedTime}</strong></div><div><small>Area / Customer</small><strong>{row.area || 'Area not set'}</strong><span>{row.customerName || 'Customer not selected'}</span></div><div><small>Purpose</small><strong>{row.visitPurpose || 'Purpose not set'}</strong><span>{row.requirement || 'Requirement not set'}</span></div><div className="ds-week-products"><small>Products</small><div>{row.products.length ? row.products.map((name) => <Badge key={name}>{name}</Badge>) : <span>Optional / none</span>}</div></div><div><small>Priority / Status</small><Badge tone={row.priority === 'High' ? 'danger' : 'neutral'}>{row.priority}</Badge> <Badge>{row.status}</Badge></div><div className="ds-visit-row__actions"><Button variant="secondary" aria-label={`Edit visit ${index + 1}`} onClick={() => setEditing(editing === row.id ? null : row.id)}><Edit3 size={16} /></Button><Button variant="secondary" aria-label={`Duplicate visit ${index + 1}`} onClick={() => duplicate(row)}><Copy size={16} /></Button><Button variant="danger" aria-label={`Delete visit ${index + 1}`} onClick={() => setDeleting(row.id)}><Trash2 size={16} /></Button></div></div>
       {editing === row.id && <div className="ds-week-editor"><div className="ds-form-grid"><DateField label="Visit Date" required value={row.visitDate} error={showErrors ? errors.visitDate : ''} onChange={(event) => update(row.id, 'visitDate', event.target.value)} /><FormField label="Expected Time" value={row.expectedTime} onChange={(event) => update(row.id, 'expectedTime', event.target.value)} /><FormField label="Area / City" required value={row.area} error={showErrors ? errors.area : ''} onChange={(event) => update(row.id, 'area', event.target.value)} /><SelectField label="Customer / Organization" value={row.customerId} onChange={(event) => { const customer = customers.find((item) => String(item.id) === event.target.value); update(row.id, 'customerId', customer?.id || ''); update(row.id, 'customerName', customer?.organizationName || ''); }}><option value="">Customer not selected</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.organizationName}</option>)}</SelectField><SelectField className="ds-field--full" label="Visit Purpose" required value={row.visitPurpose} error={showErrors ? errors.visitPurpose : ''} onChange={(event) => update(row.id, 'visitPurpose', event.target.value)}><option value="">Select visit purpose</option>{purposeOptions.map((purpose) => <option key={purpose}>{purpose}</option>)}</SelectField><ProductMultiSelect products={products} value={row.products} onChange={(value) => update(row.id, 'products', value)} optional={!requiredProductPurposes.has(row.visitPurpose)} customValue={row.customProductOrRequirement} onCustomChange={(value) => update(row.id, 'customProductOrRequirement', value)} error={showErrors ? errors.products : ''} /><TextArea className="ds-field--full" label="Requirement / Project" required rows={3} value={row.requirement} error={showErrors ? errors.requirement : ''} onChange={(event) => update(row.id, 'requirement', event.target.value)} hint="Examples: Service, New Requirements, Recycler Hiring, Water Tanker" /><SelectField label="Priority" value={row.priority} onChange={(event) => update(row.id, 'priority', event.target.value)}><option>High</option><option>Medium</option><option>Low</option></SelectField><TextArea label="Notes" rows={3} value={row.notes} onChange={(event) => update(row.id, 'notes', event.target.value)} /></div></div>}</article>; })}</div>
-    <div className="ds-sticky-actions"><Button variant="secondary" onClick={addRow}><Plus size={16} /> Add Visit Entry</Button><Button variant="secondary" onClick={saveDraft}>Save Draft</Button><Button onClick={review}>Review Plan</Button></div>
+    <div className="ds-sticky-actions"><Button variant="secondary" onClick={addRow}><Plus size={16} /> Add Visit Entry</Button><Button variant="secondary" onClick={saveDraft} loading={isSavingDraft}>Save Draft</Button><Button onClick={review}>Review Plan</Button></div>
     <Modal open={reviewing} onClose={() => setReviewing(false)} title="Review Weekly Plan" subtitle={`${weekFrom} to ${weekTo}`} footer={<><Button variant="secondary" onClick={() => setReviewing(false)}>Back to Edit</Button><Button onClick={submit} disabled={invalidRows.length > 0}><Send size={16} /> Submit for Director Approval</Button></>}><div className="ds-week-review">{invalidRows.length > 0 && <div className="ds-error" role="alert">{invalidRows.length} visit {invalidRows.length === 1 ? 'has' : 'have'} missing required information. Return to edit the highlighted cards.</div>}<div className="ds-week-review__head"><strong>Date</strong><strong>Area</strong><strong>Purpose</strong><strong>Products</strong><strong>Requirement</strong><strong>Priority</strong></div>{rows.map((row) => <div className={hasErrors(row) ? 'has-errors' : ''} key={row.id}><span>{displayDate(row.visitDate)}</span><span>{row.area || 'Missing'}</span><span>{row.visitPurpose || 'Missing'}</span><span>{row.products.join(', ') || 'Optional / none'}</span><span>{row.requirement || 'Missing'}</span><Badge tone={row.priority === 'High' ? 'danger' : 'neutral'}>{row.priority}</Badge></div>)}</div></Modal>
-    <ConfirmationDialog open={Boolean(deleting)} title="Delete visit?" message="This visit will be removed from the weekly plan." confirmLabel="Delete Visit" danger onClose={() => setDeleting(null)} onConfirm={remove} />
+    <ConfirmationDialog open={Boolean(deleting)} title="Delete visit entry?" message="This visit entry will be permanently removed from the plan." confirmLabel="Delete Entry" danger confirming={isDeleting} onClose={() => { if (!isDeleting) setDeleting(null); }} onConfirm={remove} />
   </div>;
 };
 
