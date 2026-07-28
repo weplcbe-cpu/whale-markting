@@ -311,7 +311,8 @@ export const AppProvider = ({ children }) => {
       tenders: [() => supabase.from('tenders').select('*'), setTenders],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
-      activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs]
+      activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
+      company_info: [() => supabase.from('company_info').select('*').eq('id', 1), setCompanyInfo]
     };
     const entry = config[table];
     if (!entry) return;
@@ -319,7 +320,7 @@ export const AppProvider = ({ children }) => {
     const { data, error } = await query();
     if (error) { console.error(`Failed to refresh ${table}:`, error); setDataError(`Unable to refresh ${table.replaceAll('_', ' ')}.`); return; }
     const mapped = rowsToCamel(data);
-    setter(table === 'profiles' ? mapped.map(normalizeProfileData) : table === 'visit_plans' ? mapped.map(normalizeVisitPlan) : mapped);
+    setter(table === 'profiles' ? mapped.map(normalizeProfileData) : table === 'visit_plans' ? mapped.map(normalizeVisitPlan) : table === 'company_info' ? (mapped[0] || null) : mapped);
     setDataError(null);
     setLastUpdated(new Date());
   }, []);
@@ -543,6 +544,24 @@ export const AppProvider = ({ children }) => {
     }
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: next } : p));
     logActivity(`Changed status of product ${target.name} to ${next}`, 'Product Management');
+  };
+
+  const updateCompanyInfo = async (updates) => {
+    const { data, error } = await supabase
+      .from('company_info')
+      .update(objToSnakeRow(updates))
+      .eq('id', 1)
+      .select()
+      .single();
+    if (error) {
+      showToast('Failed to save system settings', 'error');
+      return false;
+    }
+    setCompanyInfo(rowToCamel(data));
+    await refreshEntity('company_info');
+    logActivity('Updated system settings', 'Settings');
+    showToast('System settings updated successfully', 'success');
+    return true;
   };
 
   // ---------------------------------------------------------------------
@@ -928,6 +947,7 @@ export const AppProvider = ({ children }) => {
     deleteUser,
     addProduct,
     toggleProductStatus,
+    updateCompanyInfo,
     addCustomer,
     approveCustomer,
     rejectCustomer,

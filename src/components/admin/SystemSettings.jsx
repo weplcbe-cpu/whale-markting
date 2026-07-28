@@ -3,14 +3,17 @@ import { useApp } from '../../context/AppContext';
 import { Settings, Save, ShieldCheck } from 'lucide-react';
 
 export const SystemSettings = () => {
-  const { companyInfo, showToast, logActivity } = useApp();
+  const { companyInfo, updateCompanyInfo } = useApp();
   const [timeLimit, setTimeLimit] = useState(companyInfo?.reportEditTimeLimitHours ?? 24);
   const [companyName, setCompanyName] = useState(companyInfo?.name ?? '');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    logActivity(`Updated system settings (Edit Limit: ${timeLimit} Hours)`, 'Settings');
-    showToast('System Settings updated successfully', 'success');
+    if (isSaving) return;
+    setIsSaving(true);
+    await updateCompanyInfo({ name: companyName.trim(), reportEditTimeLimitHours: Number(timeLimit) });
+    setIsSaving(false);
   };
 
   return (
@@ -59,7 +62,7 @@ export const SystemSettings = () => {
           </div>
 
           <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
               <Save size={16} /> Save Settings
             </button>
           </div>
