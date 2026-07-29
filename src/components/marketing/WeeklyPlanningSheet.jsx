@@ -517,7 +517,7 @@ export const WeeklyPlanningSheet = () => {
       setStatus("Submitted");
       setReviewing(false);
       showToast(
-        `Weekly plan with ${rows.length} visits submitted for approval`,
+        `Weekly plan with ${rows.length} visits submitted successfully`,
         "success",
       );
     } catch {
