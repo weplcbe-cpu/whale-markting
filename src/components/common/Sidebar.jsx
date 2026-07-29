@@ -20,13 +20,16 @@ import {
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications } = useApp();
+  const { currentUser, currentRole, logout, notifications, directorComments } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedDirectorGroups, setExpandedDirectorGroups] = useState(new Set());
 
   const unreadNotifsCount = notifications.filter(
     n => !n.isRead && (!n.userId || n.userId === currentUser?.employeeId)
+  ).length;
+  const unreadFeedbackCount = directorComments.filter(
+    feedback => !feedback.isRead && feedback.employeeId === currentUser?.employeeId
   ).length;
 
   // Single-source 9-Item Marketing Sidebar Navigation (Zero Duplication)
@@ -42,7 +45,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   const marketingMenu = marketingRoutes.map(route => ({
     ...route,
     icon: marketingIcons[route.id],
-    badge: route.id === 'director-comments' ? unreadNotifsCount : undefined,
+    badge: route.id === 'director-comments' ? unreadFeedbackCount : undefined,
   }));
 
   // Single-source 8-Item Director Sidebar Navigation

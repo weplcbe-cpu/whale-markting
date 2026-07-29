@@ -5,12 +5,13 @@ import { getDirectorRouteById, getMarketingRouteById } from '../../routes';
 import { LayoutDashboard, Calendar, PlusCircle, FileText, Menu } from 'lucide-react';
 
 export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
-  const { currentRole } = useApp();
+  const { currentRole, currentUser, directorComments } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const isMarketing = currentRole === 'Marketing Team';
   const isDirector = currentRole === 'Director';
   const goToMarketing = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
+  const unreadFeedbackCount = directorComments.filter((item) => !item.isRead && item.employeeId === currentUser?.employeeId).length;
 
   return (
     <div className="mobile-bottom-nav">
@@ -67,7 +68,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
         className="mobile-nav-item"
         onClick={toggleSidebar}
       >
-        <Menu size={20} />
+        <span className="mobile-nav-icon-with-badge"><Menu size={20} />{isMarketing && unreadFeedbackCount > 0 && <span className="notif-badge">{unreadFeedbackCount}</span>}</span>
         <span>Menu</span>
       </button>
     </div>

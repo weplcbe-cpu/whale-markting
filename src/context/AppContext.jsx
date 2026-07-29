@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
 import { isDatabaseVisitPlanId, removeVisitPlanFromDraftCaches } from '../utils/visitPlanDraftCache';
+import { normalizeDirectorFeedback, normalizeDirectorFeedbackList } from '../utils/directorFeedback';
 
 const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
@@ -288,7 +289,7 @@ export const AppProvider = ({ children }) => {
     setDailyReports(rowsToCamel(results.dailyReports));
     setFollowUps(rowsToCamel(results.followUps));
     setTenders(rowsToCamel(results.tenders));
-    setDirectorComments(rowsToCamel(results.directorComments));
+    setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
     setCompanyInfo(results.companyInfo ? rowToCamel(results.companyInfo) : null);
@@ -317,7 +318,15 @@ export const AppProvider = ({ children }) => {
     const { data, error } = await query();
     if (error) { console.error(`Failed to refresh ${table}:`, error); setDataError(`Unable to refresh ${table.replaceAll('_', ' ')}.`); return; }
     const mapped = rowsToCamel(data);
-    setter(table === 'profiles' ? mapped.map(normalizeProfileData) : table === 'visit_plans' ? mapped.map(normalizeVisitPlan) : table === 'company_info' ? (mapped[0] || null) : mapped);
+    setter(table === 'profiles'
+      ? mapped.map(normalizeProfileData)
+      : table === 'visit_plans'
+        ? mapped.map(normalizeVisitPlan)
+        : table === 'director_comments'
+          ? normalizeDirectorFeedbackList(mapped)
+          : table === 'company_info'
+            ? (mapped[0] || null)
+            : mapped);
     setDataError(null);
     setLastUpdated(new Date());
   }, []);
@@ -353,7 +362,6 @@ export const AppProvider = ({ children }) => {
     channel.subscribe((subscriptionStatus) => {
       if (subscriptionStatus === 'CHANNEL_ERROR' || subscriptionStatus === 'TIMED_OUT') {
         console.error(`Realtime subscription ${subscriptionStatus.toLowerCase()}`);
-        setDataError('Live updates are temporarily unavailable. Use Refresh to retry.');
       }
     });
     return () => {
@@ -1019,37 +1027,49 @@ export const AppProvider = ({ children }) => {
   };
 
   const addDirectorComment = async (commentData) => {
-    const row = objToSnakeRow({
-      author: currentUser?.employeeName,
-      authorRole: currentUser?.role,
-      createdAt: new Date().toISOString(),
-      isRead: false,
-      replies: [],
-      ...commentData
-    });
-    const { data, error } = await supabase.from('director_comments').insert(row).select().single();
+    const submissionKey = commentData.submissionKey || crypto.randomUUID();
+    const { data, error } = await supabase.rpc('create_director_feedback', {
+      p_target_employee_id: commentData.employeeId || commentData.targetEmployeeId,
+      p_target_type: commentData.targetType || commentData.targetModule || 'General',
+      p_target_id: commentData.targetId || commentData.referenceId || null,
+      p_target_title: commentData.targetTitle || null,
+      p_message: commentData.message,
+      p_comment_type: commentData.commentType || 'General Comment',
+      p_submission_key: submissionKey,
+    }).single();
     if (error) {
-      showToast('Failed to post comment', 'error');
-      return;
+      showToast(error.message || 'Failed to post feedback', 'error');
+      throw error;
     }
-    setDirectorComments(prev => [rowToCamel(data), ...prev]);
+    const feedback = normalizeDirectorFeedback(rowToCamel(data));
+    setDirectorComments((previous) => normalizeDirectorFeedbackList([feedback, ...previous]));
     await refreshEntity('director_comments');
+    await refreshEntity('notifications');
+    logActivity(`Director posted feedback for ${commentData.targetEmployeeName || commentData.employeeId}`, 'Director Comments');
+    showToast('Feedback posted successfully', 'success');
+    return feedback;
+  };
 
-    const notifRow = {
-      user_id: commentData.targetEmployeeId,
-      title: `${currentUser?.role || 'Director'} Comment Added`,
-      message: `${currentUser?.employeeName}: "${commentData.message}"`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      is_read: false,
-      type: 'comment'
-    };
-    const { data: notifData, error: notifErr } = await supabase.from('notifications').insert(notifRow).select().single();
-    if (!notifErr) {
-      setNotifications(prev => [rowToCamel(notifData), ...prev]);
+  const markDirectorFeedbackRead = async (ids) => {
+    const requested = Array.isArray(ids) ? ids : [ids];
+    const unreadIds = requested.filter(Boolean).filter((id) =>
+      directorComments.some((feedback) => feedback.id === id && !feedback.isRead));
+    if (!unreadIds.length) return true;
+    setDirectorComments((previous) => previous.map((feedback) =>
+      unreadIds.includes(feedback.id)
+        ? { ...feedback, isRead: true, readAt: new Date().toISOString() }
+        : feedback));
+    const readAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('director_comments')
+      .update({ is_read: true, read_at: readAt })
+      .in('id', unreadIds);
+    if (error) {
+      await refreshEntity('director_comments');
+      showToast('Unable to mark feedback as read', 'error');
+      return false;
     }
-
-    logActivity(`Director posted comment for ${commentData.targetEmployeeName}`, 'Director Comments');
-    showToast('Comment posted successfully', 'success');
+    return true;
   };
 
   const markNotificationRead = async (id) => {
@@ -1113,6 +1133,7 @@ export const AppProvider = ({ children }) => {
     addFollowUp,
     addTender,
     addDirectorComment,
+    markDirectorFeedbackRead,
     markNotificationRead
   };
 

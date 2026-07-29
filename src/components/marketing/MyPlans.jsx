@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Calendar, List, Eye, Target, X, Building2 } from 'lucide-react';
 import { ModalPortal } from '../ui';
@@ -8,9 +9,15 @@ export const MyPlans = () => {
   const [filterView, setFilterView] = useState('All');
   const [viewMode, setViewMode] = useState('calendar'); // Cards or Table
   const [selectedPlanModal, setSelectedPlanModal] = useState(null);
+  const [searchParams] = useSearchParams();
 
   const empId = currentUser?.employeeId || 'EMP001';
   let myPlans = visitPlans.filter(p => p.employeeId === empId);
+
+  useEffect(() => {
+    const planId = searchParams.get('planId');
+    if (planId) setSelectedPlanModal(visitPlans.find((plan) => plan.id === planId && plan.employeeId === empId) || null);
+  }, [empId, searchParams, visitPlans]);
 
   if (filterView === 'Today') {
     myPlans = myPlans.filter(p => p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]);

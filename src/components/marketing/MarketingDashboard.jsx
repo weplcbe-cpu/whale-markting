@@ -24,7 +24,11 @@ export const MarketingDashboard = () => {
   const myPendingFollowups = followUps.filter(f => f.employeeId === empId && f.status === 'Pending');
   const mySubmittedPlans = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Submitted').length;
 
-  const myDirectorComments = directorComments.filter(c => c.targetEmployeeId === empId);
+  const myDirectorComments = directorComments.filter(c => c.employeeId === empId);
+  const feedbackPreview = [
+    ...myDirectorComments.filter((item) => !item.isRead),
+    ...myDirectorComments.filter((item) => item.isRead),
+  ].slice(0, 3);
 
   return (
     <div>
@@ -85,16 +89,16 @@ export const MarketingDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
+        <button type="button" className="stat-card" onClick={() => goTo('director-comments')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myDirectorComments.length}</div>
             <div className="stat-label">Director Comments</div>
           </div>
           <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>
-            100% Verified
+            Total feedback
           </div>
-        </div>
+        </button>
 
       </div>
 
@@ -149,16 +153,19 @@ export const MarketingDashboard = () => {
         <div className="card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><MessageSquare size={20} color="var(--action-orange)" /> Director Feedback</h3>
-            <button className="btn btn-secondary btn-sm" onClick={() => goTo('director-comments')}>View</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => goTo('director-comments')}>View All</button>
           </div>
 
           {myDirectorComments.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No comments received yet.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {myDirectorComments.map(com => (
-                <div
+              {feedbackPreview.map(com => (
+                <button
+                  type="button"
                   key={com.id}
+                  className={`dashboard-feedback-card ${com.isRead ? '' : 'is-unread'}`}
+                  onClick={() => goTo('director-comments', `?feedbackId=${encodeURIComponent(com.id)}`)}
                   style={{
                     padding: '14px 16px',
                     background: 'rgba(255, 134, 0, 0.08)',
@@ -167,10 +174,12 @@ export const MarketingDashboard = () => {
                   }}
                 >
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--action-orange)', marginBottom: '4px' }}>
-                    {com.author} ({com.targetModule})
+                    {com.directorName} · {com.targetType}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--primary-dark)', fontWeight: 600 }}>"{com.message}"</div>
-                </div>
+                  <div className="dashboard-feedback-card__meta"><span>{com.commentType}</span><time>{com.createdAt ? new Date(com.createdAt).toLocaleString('en-IN') : 'Date unavailable'}</time></div>
+                  <div className="dashboard-feedback-card__message">{com.message}</div>
+                  {!com.isRead && <span className="director-feedback-unread">Unread</span>}
+                </button>
               ))}
             </div>
           )}

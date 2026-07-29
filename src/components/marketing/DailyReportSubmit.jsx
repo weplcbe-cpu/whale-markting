@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Clock, Save } from 'lucide-react';
+import { Button, Modal } from '../ui';
 
 export const DailyReportSubmit = () => {
-  const { currentUser, visitPlans, followUps, submitDailyReport, companyInfo } = useApp();
+  const { currentUser, visitPlans, visitReports, dailyReports, followUps, submitDailyReport, companyInfo } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const empId = currentUser?.employeeId || 'EMP001';
   const todayStr = new Date().toISOString().split('T')[0];
@@ -14,6 +17,9 @@ export const DailyReportSubmit = () => {
   const completedCount = todayVisits.filter(p => p.status === 'Completed').length;
   const cancelledCount = todayVisits.filter(p => p.status === 'Cancelled').length;
   const followupsCompletedCount = followUps.filter(f => f.employeeId === empId && f.status === 'Completed').length;
+  const relatedId = searchParams.get('reportId');
+  const relatedReport = [...visitReports, ...dailyReports].find((item) => item.id === relatedId && item.employeeId === empId);
+  const closeRelated = () => { const next = new URLSearchParams(searchParams); next.delete('reportId'); setSearchParams(next, { replace: true }); };
 
   const [formData, setFormData] = useState({
     date: todayStr,
@@ -122,6 +128,9 @@ export const DailyReportSubmit = () => {
           </div>
         </form>
       </div>
+      <Modal open={Boolean(relatedId)} onClose={closeRelated} title="Report Details" footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}>
+        {relatedReport ? <div className="director-feedback-detail"><div><small>Report Date</small><strong>{relatedReport.date || relatedReport.visitDate || relatedReport.submittedAt}</strong></div><div><small>Status</small><strong>{relatedReport.status || 'Submitted'}</strong></div><div><small>Organization</small><strong>{relatedReport.customerName || 'Daily Report'}</strong></div><p>{relatedReport.importantDiscussion || relatedReport.discussionNotes || relatedReport.remarks || 'No additional details.'}</p></div> : <div className="ds-error">This related record is no longer available.</div>}
+      </Modal>
     </div>
   );
 };

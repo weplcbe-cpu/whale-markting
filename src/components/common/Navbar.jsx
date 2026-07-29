@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { directorRoutes, marketingRoutes } from '../../routes';
+import { isLegacyApprovalNotification } from '../../utils/directorFeedback';
 import {
   Bell,
   LogOut,
@@ -48,12 +49,14 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   // Filter notifications relevant to this user
   const userNotifs = notifications.filter(
     n => !n.userId || n.userId === currentUser?.employeeId
-  );
+  ).filter((notification) => currentRole !== 'Marketing Team' || !isLegacyApprovalNotification(notification));
   const unreadCount = userNotifs.filter(n => !n.isRead).length;
   const notificationPath = (notification) => {
     const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase();
     if (currentRole === 'Marketing Team') {
-      if (text.includes('comment')) return '/marketing/director-comments';
+      if (text.includes('comment') || text.includes('director_feedback') || text.includes('director feedback')) {
+        return `/marketing/director-comments${notification.referenceId ? `?feedbackId=${encodeURIComponent(notification.referenceId)}` : ''}`;
+      }
       if (text.includes('tender')) return '/marketing/tenders';
       if (text.includes('report')) return '/marketing/reports';
       return '/marketing/visits';
