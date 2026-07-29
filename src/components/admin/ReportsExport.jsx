@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Download, Printer, BarChart3 } from 'lucide-react';
+import { CompanyLogo } from '../common/CompanyLogo';
 
 export const ReportsExport = () => {
   const { visitPlans, dailyReports, tenders, showToast } = useApp();
@@ -8,7 +9,7 @@ export const ReportsExport = () => {
   const [dateFilter, setDateFilter] = useState('This Month');
 
   const handleExportCSV = () => {
-    let filename = `kaiser_whale_${reportType}_report.csv`;
+    let filename = `whale_enterprise_${reportType}_report.csv`;
     let headers = [];
     let rows = [];
 
@@ -78,6 +79,10 @@ export const ReportsExport = () => {
       </div>
 
       <div className="card">
+        <div className="report-brand">
+          <CompanyLogo />
+          <span>Whale Enterprise</span>
+        </div>
         <div className="card-header-clean">
           <h3 className="card-title-clean">
             <BarChart3 size={18} color="var(--accent-cyan)" />

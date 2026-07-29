@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { RootErrorBoundary, StartupFailure } from './components/common/StartupBoundary.jsx';
+import { BrandedLoadingScreen } from './components/common/CompanyLogo.jsx';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -31,5 +32,5 @@ const bootstrap = async () => {
   }
 };
 
-root.render(<div className="app-loading-screen" role="status">Loading application…</div>);
+root.render(<BrandedLoadingScreen />);
 bootstrap();

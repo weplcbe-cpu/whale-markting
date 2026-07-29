@@ -5,6 +5,7 @@ import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
+import { BrandedLoadingScreen, CompanyLogo } from './components/common/CompanyLogo';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { adminRoutes, directorRoutes, marketingRoutes } from './routes';
 
@@ -48,6 +49,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.error) {
       return (
         <div className="app-loading-screen app-error-screen" role="alert">
+          <CompanyLogo className="app-loading-logo" />
           <h1>Application failed to load.</h1>
           {import.meta.env.DEV && <p className="app-error-detail">{this.state.error?.message || String(this.state.error)}</p>}
           <div className="app-error-actions">
@@ -87,12 +89,13 @@ export function AppContent() {
   };
 
   if (authLoading) {
-    return <div className="app-loading-screen" role="status">Loading application…</div>;
+    return <BrandedLoadingScreen />;
   }
 
   if (authError) {
     return (
       <div className="app-loading-screen app-error-screen">
+        <CompanyLogo className="app-loading-logo" />
         <p>Unable to load the application. Retry or sign out.</p>
         <p className="app-error-detail">{authError}</p>
         <div className="app-error-actions">
@@ -125,7 +128,7 @@ export function AppContent() {
             key={route.path}
             path={route.path}
             element={(
-              <Suspense fallback={<div className="app-loading-screen">Loading...</div>}>
+              <Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}>
                 <Component />
               </Suspense>
             )}
@@ -140,7 +143,7 @@ export function AppContent() {
     <Routes>
       {directorRoutes.map(route => {
         const Component = getLazyComponent(route);
-        return <Route key={route.path} path={route.path} element={<Suspense fallback={<div className="app-loading-screen">Loading...</div>}><Component /></Suspense>} />;
+        return <Route key={route.path} path={route.path} element={<Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}><Component /></Suspense>} />;
       })}
       <Route path="*" element={<Navigate to="/director" replace />} />
     </Routes>
@@ -150,7 +153,7 @@ export function AppContent() {
     <Routes>
       {adminRoutes.map(route => {
         const Component = getLazyComponent(route);
-        return <Route key={route.path} path={route.path} element={<Suspense fallback={<div className="app-loading-screen">Loading...</div>}><Component setActiveTab={selectAdminTab} /></Suspense>} />;
+        return <Route key={route.path} path={route.path} element={<Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}><Component setActiveTab={selectAdminTab} /></Suspense>} />;
       })}
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
@@ -162,7 +165,7 @@ export function AppContent() {
     const Component = match ? getLazyComponent(match) : null;
     if (Component) {
       return (
-        <Suspense fallback={<div className="app-loading-screen">Loading...</div>}>
+        <Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}>
           <Component setActiveTab={setActiveTab} />
         </Suspense>
       );
@@ -172,7 +175,7 @@ export function AppContent() {
     const DefaultComponent = defaultRoute ? getLazyComponent(defaultRoute) : null;
     if (DefaultComponent) {
       return (
-        <Suspense fallback={<div className="app-loading-screen">Loading...</div>}>
+        <Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}>
           <DefaultComponent setActiveTab={setActiveTab} />
         </Suspense>
       );
@@ -181,6 +184,7 @@ export function AppContent() {
     console.error(`No route found for role "${currentRole}" and tab "${activeTab}"`);
     return (
       <div className="app-loading-screen app-error-screen">
+        <CompanyLogo className="app-loading-logo" />
         <p>No dashboard is configured for your account role ({currentRole || 'unknown'}).</p>
         <p className="app-error-detail">Contact your Admin to verify your account setup.</p>
       </div>

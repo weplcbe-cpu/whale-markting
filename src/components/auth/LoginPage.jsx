@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, AlertCircle, MapPin, Radar, TrendingUp } from 'lucide-react';
 import { ModalPortal } from '../ui';
+import { CompanyLogo } from '../common/CompanyLogo';
 
 export const LoginPage = () => {
   const { login } = useApp();
@@ -51,8 +52,7 @@ export const LoginPage = () => {
 
         <div className="kw-login-left-content">
           <div className="kw-login-logo-badge">
-            {/* Replace this src to swap the Kaiser Whale logo image */}
-            <img src="/kaiser-whale-logo.png" alt="Kaiser Whale" className="kw-login-logo-img" />
+            <CompanyLogo className="kw-login-logo-img" />
           </div>
 
           <h1 className="kw-login-left-heading">Marketing Visit Management</h1>
@@ -80,7 +80,7 @@ export const LoginPage = () => {
       <div className="kw-login-right">
         <div className="kw-login-card">
           <div className="kw-login-card-logo">
-            <img src="/kaiser-whale-logo.png" alt="Kaiser Whale" />
+            <CompanyLogo />
           </div>
 
           <h2 className="kw-login-card-title">Welcome Back</h2>
@@ -173,7 +173,7 @@ export const LoginPage = () => {
           </form>
 
           <p className="kw-login-footer">
-            © 2026 Kaiser Whale Equipment Ltd. All rights reserved.
+            © 2026 Whale Enterprise. All rights reserved.
           </p>
         </div>
       </div>

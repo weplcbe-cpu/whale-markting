@@ -4,7 +4,7 @@
   --font-primary: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
 
-  /* Kaiser Whale semantic color system */
+  /* Whale Enterprise semantic color system */
   --color-bg-app: #f1f2f6;
   --color-bg-sidebar: #27187e;
   --color-bg-header: #ffffff;
@@ -80,6 +80,20 @@ html.dark .top-navbar {
   width: 100vw;
   color: var(--text-muted);
   font-size: 1rem;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.company-logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.app-loading-logo {
+  width: clamp(180px, 28vw, 320px);
+  max-height: 110px;
 }
 
 .app-error-screen {
@@ -798,6 +812,32 @@ body {
   justify-content: center;
   flex: 1;
   min-width: 0;
+  position: relative;
+  padding-left: 128px;
+}
+
+.navbar-company-logo {
+  width: 112px;
+  max-height: 28px;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.report-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.report-brand .company-logo {
+  width: clamp(170px, 24vw, 270px);
+  max-height: 82px;
 }
 
 .navbar-breadcrumb {

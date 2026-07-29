@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { directorRoutes, marketingRoutes } from '../../routes';
 import { isLegacyApprovalNotification } from '../../utils/directorFeedback';
+import { CompanyLogo } from './CompanyLogo';
 import {
   Bell,
   LogOut,
@@ -115,6 +116,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
 
       {/* Center: breadcrumb (small) above the portal name (primary heading) */}
       <div className="navbar-center">
+        <CompanyLogo className="navbar-company-logo" />
         <nav aria-label="breadcrumb" className="navbar-breadcrumb">
           {breadcrumb.map((crumb, idx) => (
             <span key={idx}>

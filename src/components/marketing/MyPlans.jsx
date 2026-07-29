@@ -207,7 +207,7 @@ export const MyPlans = () => {
 
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px', display: 'block' }}>
-                  INTERESTED KAISER WHALE PRODUCTS
+                  INTERESTED WHALE ENTERPRISE PRODUCTS
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {Array.isArray(selectedPlanModal.products) ? (

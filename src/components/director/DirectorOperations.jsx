@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, SectionCard, SelectField, TextArea } from '../ui';
 import { normalizePlanStatus } from '../../utils/planStatus';
 import { AnalyticsTabs } from './AnalyticsTabs';
+import { CompanyLogo } from '../common/CompanyLogo';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const text = (value) => value || 'Not provided';
@@ -81,7 +82,7 @@ export const DirectorOperations = () => {
   if (location.pathname === '/director/reports') {
     const rows = visitPlans.filter(matches).map((row) => ({ id: row.id, employee: employeeName(row.employeeId, row.fullName), date: row.visitDate, area: row.area || row.city || row.district, customer: row.customerName, products: productText(row), status: normalizePlanStatus(row.status) }));
     const downloadCsv = () => { const header = ['Employee', 'Date', 'Area', 'Organization', 'Products', 'Status']; const csv = [header, ...rows.map((row) => [row.employee, row.date, row.area, row.customer, row.products, row.status])].map((values) => values.map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(',')).join('\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); const link = document.createElement('a'); link.href = url; link.download = 'director-team-report.csv'; link.click(); URL.revokeObjectURL(url); showToast('Report exported successfully.', 'success'); };
-    return <div className="ds-page"><PageHeader title="Director Reports" description="Team, employee, area, product, organization, follow-up, tender, and visit reporting." actions={<><Button variant="secondary" onClick={downloadCsv}><Download size={16} /> Excel / CSV</Button><Button variant="secondary" onClick={() => window.print()}><Printer size={16} /> PDF / Print</Button></>} />{filterBar}<DataTable rows={rows} columns={[{ key: 'employee', label: 'Employee' }, { key: 'date', label: 'Date' }, { key: 'area', label: 'Area' }, { key: 'customer', label: 'Organization' }, { key: 'products', label: 'Products' }, { key: 'status', label: 'Status' }]} empty={<EmptyState icon={FileText} title="No report data found" />} /></div>;
+    return <div className="ds-page"><div className="report-brand"><CompanyLogo /><span>Whale Enterprise</span></div><PageHeader title="Director Reports" description="Team, employee, area, product, organization, follow-up, tender, and visit reporting." actions={<><Button variant="secondary" onClick={downloadCsv}><Download size={16} /> Excel / CSV</Button><Button variant="secondary" onClick={() => window.print()}><Printer size={16} /> PDF / Print</Button></>} />{filterBar}<DataTable rows={rows} columns={[{ key: 'employee', label: 'Employee' }, { key: 'date', label: 'Date' }, { key: 'area', label: 'Area' }, { key: 'customer', label: 'Organization' }, { key: 'products', label: 'Products' }, { key: 'status', label: 'Status' }]} empty={<EmptyState icon={FileText} title="No report data found" />} /></div>;
   }
 
   const rows = notifications.filter((notification) => !notification.userId || notification.userId === currentUser?.employeeId).filter(matches);

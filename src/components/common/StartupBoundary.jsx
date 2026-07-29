@@ -1,7 +1,9 @@
 import React from 'react';
+import { CompanyLogo } from './CompanyLogo';
 
 export const StartupFailure = ({ error, onRetry }) => (
   <div className="app-loading-screen app-error-screen" role="alert">
+    <CompanyLogo className="app-loading-logo" />
     <h1>Application failed to load.</h1>
     <p>Check the application configuration and try again.</p>
     {import.meta.env.DEV && <p className="app-error-detail">{error?.message || 'Unknown startup error'}</p>}

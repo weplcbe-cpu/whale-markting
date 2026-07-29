@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { adminRoutes, directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
+import { CompanyLogo } from './CompanyLogo';
 import {
   LayoutDashboard,
   Calendar,
@@ -90,11 +91,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
       <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-card">
-            <img
-              src="/kaiser-whale-logo.png"
-              alt="Kaiser Whale Logo"
-              className="sidebar-logo-img"
-            />
+            <CompanyLogo className="sidebar-logo-img" />
           </div>
 
           {isMobileOpen && (
