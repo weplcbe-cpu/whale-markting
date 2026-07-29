@@ -670,17 +670,104 @@ export const AppProvider = ({ children }) => {
     if (role !== 'Admin' && target.employeeId !== currentUser?.employeeId) {
       throw new Error('You can only delete your own visit entries.');
     }
-    if (role !== 'Admin' && !['Draft', 'Changes Requested'].includes(status)) {
-      throw new Error('Only Draft or Changes Requested entries can be deleted.');
+    if (role !== 'Admin' && !['Draft', 'Rejected', 'Changes Requested'].includes(status)) {
+      throw new Error('Only Draft, Rejected, or Changes Requested entries can be deleted.');
     }
-    const { error } = await supabase.from('visit_plans').delete().eq('id', entryId);
+    // The existing RLS policy permits owned Draft and Changes Requested rows.
+    // Temporarily make an owned Rejected row deletable without changing RLS.
+    if (role !== 'Admin' && status === 'Rejected') {
+      const { error: prepareError } = await supabase
+        .from('visit_plans')
+        .update({ status: 'Draft' })
+        .eq('id', entryId)
+        .eq('employee_id', currentUser.employeeId);
+      if (prepareError) {
+        showToast('Unable to prepare the rejected visit plan for deletion.', 'error');
+        throw prepareError;
+      }
+    }
+    const { data: deletedRows, error } = await supabase
+      .from('visit_plans')
+      .delete()
+      .eq('id', entryId)
+      .select('id');
     if (error) {
+      if (role !== 'Admin' && status === 'Rejected') {
+        await supabase.from('visit_plans').update({ status: 'Rejected' }).eq('id', entryId);
+      }
       showToast('Unable to delete the visit entry. Please try again.', 'error');
       throw error;
+    }
+    if (!deletedRows?.length) {
+      if (role !== 'Admin' && status === 'Rejected') {
+        await supabase.from('visit_plans').update({ status: 'Rejected' }).eq('id', entryId);
+      }
+      const deleteError = new Error('The visit plan could not be deleted.');
+      showToast(deleteError.message, 'error');
+      throw deleteError;
     }
     await refreshEntity('visit_plans');
     logActivity(`Deleted visit entry ID ${entryId}`, 'Tour Plan');
     return true;
+  };
+
+  const updateEditableVisitPlan = async (entryId, updates) => {
+    const target = visitPlans.find((plan) => plan.id === entryId);
+    if (!target) throw new Error('Visit plan not found.');
+    const status = normalizePlanStatus(target.status);
+    if (!['Draft', 'Rejected', 'Changes Requested'].includes(status)) {
+      throw new Error('This visit plan can no longer be edited.');
+    }
+    if (target.employeeId !== currentUser?.employeeId) {
+      throw new Error('You can only edit your own visit plans.');
+    }
+    const payload = objToSnakeRow({
+      visitDate: updates.visitDate,
+      expectedTime: updates.expectedTime,
+      area: updates.area,
+      city: updates.city || updates.area,
+      visitPurpose: updates.visitPurpose,
+      requirement: updates.requirement || null,
+      notes: updates.notes || null
+    });
+    const { data, error } = await supabase
+      .from('visit_plans')
+      .update(payload)
+      .eq('id', entryId)
+      .eq('employee_id', currentUser.employeeId)
+      .select()
+      .single();
+    if (error) {
+      showToast('Unable to update the visit plan.', 'error');
+      throw error;
+    }
+    await refreshEntity('visit_plans');
+    showToast('Visit plan updated successfully.', 'success');
+    return normalizeVisitPlan(rowToCamel(data));
+  };
+
+  const resubmitVisitPlan = async (entryId) => {
+    const target = visitPlans.find((plan) => plan.id === entryId);
+    if (!target || target.employeeId !== currentUser?.employeeId) {
+      throw new Error('Visit plan not found.');
+    }
+    if (!['Draft', 'Changes Requested'].includes(normalizePlanStatus(target.status))) {
+      throw new Error('Only a Draft or Changes Requested plan can be submitted.');
+    }
+    const { data, error } = await supabase
+      .from('visit_plans')
+      .update({ status: 'Submitted', submitted_at: new Date().toISOString() })
+      .eq('id', entryId)
+      .eq('employee_id', currentUser.employeeId)
+      .select()
+      .single();
+    if (error) {
+      showToast('Unable to submit the visit plan.', 'error');
+      throw error;
+    }
+    await refreshEntity('visit_plans');
+    showToast('Visit Plan Submitted Successfully.', 'success');
+    return normalizeVisitPlan(rowToCamel(data));
   };
 
   const addTourPlanBatch = async ({ rows, planType, periodFrom, periodTo }) => {
@@ -1005,6 +1092,8 @@ export const AppProvider = ({ children }) => {
     saveTourPlanDraft,
     addTourPlanBatch,
     deleteVisitPlanEntry,
+    updateEditableVisitPlan,
+    resubmitVisitPlan,
     updateVisitPlanStatus,
     markVisitPlanImportant,
     updateTourPlanBatchStatus,

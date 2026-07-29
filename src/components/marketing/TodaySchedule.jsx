@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
+import { normalizePlanStatus } from '../../utils/planStatus';
 
 export const TodaySchedule = () => {
-  const { currentUser, visitPlans, updateVisitPlanStatus, rescheduleVisitPlan, submitVisitReport } = useApp();
+  const {
+    currentUser,
+    visitPlans,
+    updateVisitPlanStatus,
+    rescheduleVisitPlan,
+    submitVisitReport,
+    deleteVisitPlanEntry,
+    updateEditableVisitPlan,
+    resubmitVisitPlan,
+    showToast
+  } = useApp();
 
   const empId = currentUser?.employeeId || 'EMP001';
   const myTodayVisits = visitPlans.filter(p => p.employeeId === empId);
@@ -13,6 +24,9 @@ export const TodaySchedule = () => {
   const [completeModal, setCompleteModal] = useState(null);
   const [cancelModal, setCancelModal] = useState(null);
   const [rescheduleModal, setRescheduleModal] = useState(null);
+  const [detailsModal, setDetailsModal] = useState(null);
+  const [editModal, setEditModal] = useState(null);
+  const [busyAction, setBusyAction] = useState('');
 
   // Form states
   const [cancelReason, setCancelReason] = useState('');
@@ -66,12 +80,99 @@ export const TodaySchedule = () => {
     setCompleteModal(null);
   };
 
+  const openEditor = (visit) => setEditModal({
+    id: visit.id,
+    visitDate: visit.visitDate || '',
+    expectedTime: visit.expectedTime || '',
+    area: visit.area || visit.city || '',
+    visitPurpose: visit.visitPurpose || '',
+    requirement: visit.requirement || '',
+    notes: visit.notes || ''
+  });
+
+  const handleEdit = async (event) => {
+    event.preventDefault();
+    if (!editModal || busyAction) return;
+    setBusyAction(`edit-${editModal.id}`);
+    try {
+      await updateEditableVisitPlan(editModal.id, editModal);
+      setEditModal(null);
+    } catch (error) {
+      showToast(error?.message || 'Unable to update the visit plan.', 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleDelete = async (visit) => {
+    if (busyAction || !window.confirm('Permanently delete this visit plan? This cannot be undone.')) return;
+    setBusyAction(`delete-${visit.id}`);
+    try {
+      await deleteVisitPlanEntry(visit.id);
+      showToast('Visit plan permanently deleted.', 'success');
+    } catch (error) {
+      showToast(error?.message || 'Unable to delete the visit plan.', 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const handleResubmit = async (visit) => {
+    if (busyAction) return;
+    setBusyAction(`submit-${visit.id}`);
+    try {
+      await resubmitVisitPlan(visit.id);
+    } catch (error) {
+      showToast(error?.message || 'Unable to submit the visit plan.', 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const renderActions = (visit) => {
+    const status = normalizePlanStatus(visit.status);
+    const pending = busyAction.endsWith(visit.id);
+    if (['Completed', 'Cancelled'].includes(status)) {
+      return <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>;
+    }
+    if (status === 'Submitted') {
+      return <>
+        <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}><Play size={16} /> Start Visit</button>
+        <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
+        <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>
+      </>;
+    }
+    if (status === 'Started') {
+      return <>
+        <button className="btn btn-success" onClick={() => setCompleteModal(visit)}><CheckCircle2 size={16} /> Complete Visit</button>
+        <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
+        <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+      </>;
+    }
+    if (status === 'Rescheduled') {
+      return <>
+        <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Edit Date/Time</button>
+        <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}><Play size={16} /> Start Visit</button>
+        <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+      </>;
+    }
+    if (status === 'Draft') {
+      return <>
+        <button className="btn btn-secondary btn-sm" disabled={pending} onClick={() => openEditor(visit)}><Edit3 size={14} /> Edit</button>
+        <button className="btn btn-danger btn-sm" disabled={pending} onClick={() => handleDelete(visit)}><Trash2 size={14} /> Delete</button>
+        <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => handleResubmit(visit)}><Send size={14} /> Submit Visit Plan</button>
+      </>;
+    }
+    return <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>;
+  };
+
   return (
     <div>
       <div className="toolbar-bar">
         <div>
           <h3 style={{ color: 'var(--text-main)', fontSize: '1.1rem' }}>Today's Scheduled Field Visits</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Update live status (Start Visit, Complete Outcome, Reschedule, or Cancel)</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Available actions are based on each visit plan's current status.</p>
         </div>
       </div>
 
@@ -103,30 +204,51 @@ export const TodaySchedule = () => {
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '160px' }}>
-                {visit.status === 'Planned' && (
-                  <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}>
-                    <Play size={16} /> Start Visit
-                  </button>
-                )}
-
-                {(visit.status === 'Planned' || visit.status === 'Started') && (
-                  <button className="btn btn-success" onClick={() => setCompleteModal(visit)}>
-                    <CheckCircle2 size={16} /> Complete Visit
-                  </button>
-                )}
-
-                <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}>
-                  <Calendar size={14} /> Reschedule
-                </button>
-
-                <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}>
-                  <XCircle size={14} /> Cancel Visit
-                </button>
+                {renderActions(visit)}
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {detailsModal && (
+        <div className="modal-overlay" onClick={() => setDetailsModal(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-header"><h3>Visit Plan Details</h3><button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(null)}><X size={16} /></button></div>
+            <div className="modal-body" style={{ display: 'grid', gap: '10px' }}>
+              <div><strong>Status:</strong> {normalizePlanStatus(detailsModal.status)}</div>
+              <div><strong>Visit Date:</strong> {detailsModal.visitDate || 'Not provided'}</div>
+              <div><strong>Expected Time:</strong> {detailsModal.expectedTime || 'Not provided'}</div>
+              <div><strong>Area / City:</strong> {detailsModal.area || detailsModal.city || 'Not provided'}</div>
+              <div><strong>Customer / Organization:</strong> {detailsModal.customerName || detailsModal.organizationName || 'Not provided'}</div>
+              <div><strong>Visit Purpose:</strong> {detailsModal.visitPurpose || 'Not provided'}</div>
+              <div><strong>Products:</strong> {Array.isArray(detailsModal.products) ? detailsModal.products.join(', ') || 'Not provided' : detailsModal.products || 'Not provided'}</div>
+              <div><strong>Requirement:</strong> {detailsModal.requirement || 'Not provided'}</div>
+              <div><strong>Notes:</strong> {detailsModal.notes || 'Not provided'}</div>
+            </div>
+            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setDetailsModal(null)}>Close</button></div>
+          </div>
+        </div>
+      )}
+
+      {editModal && (
+        <div className="modal-overlay" onClick={() => setEditModal(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-header"><h3>Edit Visit Plan</h3></div>
+            <form onSubmit={handleEdit}>
+              <div className="modal-body" style={{ display: 'grid', gap: '12px' }}>
+                <label className="form-group"><span className="form-label">Visit Date *</span><input className="form-input" type="date" required value={editModal.visitDate} onChange={(event) => setEditModal({ ...editModal, visitDate: event.target.value })} /></label>
+                <label className="form-group"><span className="form-label">Expected Time *</span><input className="form-input" required value={editModal.expectedTime} onChange={(event) => setEditModal({ ...editModal, expectedTime: event.target.value })} /></label>
+                <label className="form-group"><span className="form-label">Area / City *</span><input className="form-input" required value={editModal.area} onChange={(event) => setEditModal({ ...editModal, area: event.target.value })} /></label>
+                <label className="form-group"><span className="form-label">Visit Purpose *</span><input className="form-input" required value={editModal.visitPurpose} onChange={(event) => setEditModal({ ...editModal, visitPurpose: event.target.value })} /></label>
+                <label className="form-group"><span className="form-label">Requirement / Objective (Optional)</span><textarea className="form-textarea" rows={3} value={editModal.requirement} onChange={(event) => setEditModal({ ...editModal, requirement: event.target.value })} /></label>
+                <label className="form-group"><span className="form-label">Notes (Optional)</span><textarea className="form-textarea" rows={3} value={editModal.notes} onChange={(event) => setEditModal({ ...editModal, notes: event.target.value })} /></label>
+              </div>
+              <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancel</button><button type="submit" className="btn btn-primary" disabled={Boolean(busyAction)}>Save Changes</button></div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Start Visit Modal */}
       {startVisitModal && (
