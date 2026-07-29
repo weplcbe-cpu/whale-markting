@@ -28,8 +28,14 @@ import {
   TextArea,
 } from "../ui";
 import { normalizePlanStatus } from "../../utils/planStatus";
+import {
+  WEEKLY_VISIT_PLAN_DRAFT_KEY,
+  isDatabaseVisitPlanId,
+  isUnsavedVisitPlanDraft,
+  readVisitPlanDraft,
+  writeVisitPlanDraft,
+} from "../../utils/visitPlanDraftCache";
 
-const DRAFT_KEY = "marketing-weekly-plan-draft";
 const requiredProductPurposes = new Set([
   "Product Demo",
   "Product Presentation",
@@ -49,54 +55,6 @@ const optionalProductPurposes = [
   "Site Inspection",
   "Other",
 ];
-const exampleRows = [
-  [
-    "2026-08-03",
-    "Tirunelveli",
-    "Product Demo",
-    ["Whale Super Sucker"],
-    "Super Sucker",
-  ],
-  [
-    "2026-08-04",
-    "Thoothukudi",
-    "New Requirement",
-    ["Whale Super Sucker", "Whale Recycler"],
-    "New Super Sucker, New Requirements, Recycler Hiring",
-  ],
-  ["2026-08-05", "Dindigul", "Service Visit", [], "Service, New Requirements"],
-  [
-    "2026-08-06",
-    "Madurai",
-    "Recycler Hiring",
-    ["Whale Super Sucker", "Whale Recycler"],
-    "Super Sucker, Recycler Hiring",
-  ],
-  ["2026-08-07", "Sivakasi", "New Requirement", [], "Water Tanker"],
-  ["2026-08-08", "Sivagangai", "Service Visit", [], "Service"],
-  ["2026-08-10", "Nagercoil", "New Requirement", [], "New Requirements"],
-].map(([visitDate, area, visitPurpose, products, requirement], index) => ({
-  id: `weekly-example-${index + 1}`,
-  visitDate,
-  expectedTime: "10:00 AM",
-  area,
-  state: "Tamil Nadu",
-  district: area,
-  city: area,
-  customerId: "",
-  customerName: "",
-  visitPurpose,
-  products,
-  requirement,
-  customProductOrRequirement:
-    requiredProductPurposes.has(visitPurpose) && !products.length
-      ? requirement
-      : "",
-  priority: "Medium",
-  status: "Draft",
-  notes: "",
-}));
-
 const blankRow = () => ({
   id: `weekly-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   visitDate: "",
@@ -124,6 +82,17 @@ const normalizeRow = (row) => ({
       ? [row.productName]
       : [],
 });
+const rowSignature = (row) =>
+  `${row.visitDate || ""}|${String(row.area || "").trim().toLowerCase()}|${String(row.visitPurpose || "").trim().toLowerCase()}`;
+const toWeeklyRow = (plan) =>
+  normalizeRow({
+    ...plan,
+    id: plan.id,
+    databaseId: plan.id,
+    clientId: plan.submissionKey || null,
+    customerName: plan.customerName || plan.organizationName || "",
+    organizationName: plan.organizationName || plan.customerName || "",
+  });
 const getErrors = (row) => ({
   visitDate: !row.visitDate ? "Visit date is required." : "",
   area: !row.area?.trim() ? "Area or city is required." : "",
@@ -355,20 +324,20 @@ export const WeeklyPlanningSheet = () => {
     addTourPlanBatch,
     saveTourPlanDraft,
     deleteVisitPlanEntry,
+    dataLoading,
     showToast,
   } = useApp();
   const saved = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem(DRAFT_KEY));
-    } catch {
-      return null;
-    }
+    return readVisitPlanDraft(WEEKLY_VISIT_PLAN_DRAFT_KEY, {
+      weekFrom: "2026-08-03",
+      weekTo: "2026-08-10",
+    });
   }, []);
   const [weekFrom, setWeekFrom] = useState(saved?.weekFrom || "2026-08-03");
   const [weekTo, setWeekTo] = useState(saved?.weekTo || "2026-08-10");
   const [status, setStatus] = useState("Draft");
   const [rows, setRows] = useState(() =>
-    (saved?.rows?.length ? saved.rows : exampleRows).map(normalizeRow),
+    (saved?.rows || []).map(normalizeRow),
   );
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -394,32 +363,88 @@ export const WeeklyPlanningSheet = () => {
     setEditing(row.id);
   };
   const duplicate = (row) => {
-    const copy = { ...row, id: blankRow().id, status: "Draft" };
+    const {
+      databaseId: _databaseId,
+      batchId: _batchId,
+      clientId: _clientId,
+      localId: _localId,
+      submissionKey: _submissionKey,
+      rawStatus: _rawStatus,
+      ...draft
+    } = row;
+    const copy = { ...draft, id: blankRow().id, status: "Draft" };
     setRows((current) => [...current, copy]);
     setEditing(copy.id);
   };
-  const persistedPlanById = useMemo(
-    () => new Map(visitPlans.map((plan) => [plan.id, plan])),
-    [visitPlans],
+  const weeklyPlans = useMemo(
+    () =>
+      visitPlans
+        .filter(
+          (plan) =>
+            plan.employeeId === currentUser?.employeeId &&
+            plan.visitDate >= weekFrom &&
+            plan.visitDate <= weekTo,
+        )
+        .sort((a, b) =>
+          String(a.visitDate || "").localeCompare(String(b.visitDate || "")),
+        ),
+    [currentUser?.employeeId, visitPlans, weekFrom, weekTo],
   );
+  const persistedPlanById = useMemo(
+    () => new Map(weeklyPlans.map((plan) => [plan.id, plan])),
+    [weeklyPlans],
+  );
+  useEffect(() => {
+    if (dataLoading) return;
+    const databaseRows = weeklyPlans.map(toWeeklyRow);
+    const databaseSignatures = new Set(databaseRows.map(rowSignature));
+    setRows((current) => {
+      const unsavedRows = current
+        .filter(isUnsavedVisitPlanDraft)
+        .filter((row) => !databaseSignatures.has(rowSignature(row)));
+      writeVisitPlanDraft(WEEKLY_VISIT_PLAN_DRAFT_KEY, unsavedRows, {
+        weekFrom,
+        weekTo,
+      });
+      return [...databaseRows, ...unsavedRows];
+    });
+    const latest = [...weeklyPlans].sort((a, b) =>
+      String(b.submittedAt || b.createdAt || "").localeCompare(
+        String(a.submittedAt || a.createdAt || ""),
+      ),
+    )[0];
+    setStatus(latest ? normalizePlanStatus(latest.status) : "Draft");
+  }, [dataLoading, weekFrom, weekTo, weeklyPlans]);
   const canDelete = (row) => {
-    const savedPlan = persistedPlanById.get(row.id);
+    const databaseId =
+      row.databaseId || (isDatabaseVisitPlanId(row.id) ? row.id : null);
+    const savedPlan = databaseId ? persistedPlanById.get(databaseId) : null;
+    const rawStatus = String(
+      savedPlan?.rawStatus || savedPlan?.status || "",
+    ).trim().toLowerCase();
     return (
       !savedPlan ||
-      ["Draft", "Changes Requested"].includes(
-        normalizePlanStatus(savedPlan.status),
-      )
+      normalizePlanStatus(savedPlan.status) === "Draft" ||
+      [
+        "approved",
+        "rejected",
+        "changes requested",
+        "pending approval",
+        "submitted for director approval",
+      ].includes(rawStatus)
     );
   };
   const persistLocalDraft = (nextRows) =>
-    localStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({ weekFrom, weekTo, rows: nextRows }),
-    );
+    writeVisitPlanDraft(WEEKLY_VISIT_PLAN_DRAFT_KEY, nextRows, {
+      weekFrom,
+      weekTo,
+    });
   const remove = async () => {
     const row = rows.find((entry) => entry.id === deleting);
     if (!row || isDeleting) return;
-    const savedPlan = persistedPlanById.get(row.id);
+    const databaseId =
+      row.databaseId || (isDatabaseVisitPlanId(row.id) ? row.id : null);
+    const savedPlan = databaseId ? persistedPlanById.get(databaseId) : null;
     if (!canDelete(row)) {
       setDeleting(null);
       showToast(
@@ -478,6 +503,7 @@ export const WeeklyPlanningSheet = () => {
   };
   const review = () => {
     setShowErrors(true);
+    if (!rows.length || invalidRows.length) return;
     setReviewing(true);
   };
   const submit = async () => {
@@ -624,13 +650,15 @@ export const WeeklyPlanningSheet = () => {
                   >
                     <Copy size={16} />
                   </Button>
-                  <Button
-                    variant="danger"
-                    aria-label={`Delete visit ${index + 1}`}
-                    onClick={() => setDeleting(row.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
+                  {canDelete(row) && (
+                    <Button
+                      variant="danger"
+                      aria-label={`Delete visit ${index + 1}`}
+                      onClick={() => setDeleting(row.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  )}
                 </div>
               </div>
               {editing === row.id && (
@@ -732,6 +760,12 @@ export const WeeklyPlanningSheet = () => {
           );
         })}
       </div>
+      {!rows.length && (
+        <div className="ds-empty">
+          <h3>No weekly plan entries</h3>
+          <p>Add a visit entry to begin.</p>
+        </div>
+      )}
       <div className="ds-sticky-actions">
         <Button variant="secondary" onClick={addRow}>
           <Plus size={16} /> Add Visit Entry
@@ -739,7 +773,7 @@ export const WeeklyPlanningSheet = () => {
         <Button variant="secondary" onClick={saveDraft} loading={isSavingDraft}>
           Save Draft
         </Button>
-        <Button onClick={review}>Review Plan</Button>
+        <Button onClick={review} disabled={!rows.length}>Review Plan</Button>
       </div>
       <Modal
         open={reviewing}

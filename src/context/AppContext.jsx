@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
+import { removeVisitPlanFromDraftCaches } from '../utils/visitPlanDraftCache';
 
 const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
@@ -69,7 +70,7 @@ const normalizeProfileData = (profile) => ({
   mobileNumber: profile.mobileNumber || profile.mobile || 'Not provided',
   mobile: profile.mobileNumber || profile.mobile || 'Not provided'
 });
-const normalizeVisitPlan = (plan) => ({ ...plan, status: normalizePlanStatus(plan.status), planType: inferPlanType(plan), products: Array.isArray(plan.products) ? plan.products : plan.productName ? [plan.productName] : plan.products ? [plan.products] : [] });
+const normalizeVisitPlan = (plan) => ({ ...plan, rawStatus: plan.rawStatus || plan.status, status: normalizePlanStatus(plan.status), planType: inferPlanType(plan), products: Array.isArray(plan.products) ? plan.products : plan.productName ? [plan.productName] : plan.products ? [plan.products] : [] });
 
 export const AppProvider = ({ children }) => {
   // Auth / profile state
@@ -663,7 +664,7 @@ export const AppProvider = ({ children }) => {
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit entry was not found. Refresh and try again.');
     const status = normalizePlanStatus(target.status);
-    const rawStatus = String(target.status || '').trim().toLowerCase();
+    const rawStatus = String(target.rawStatus || target.status || '').trim().toLowerCase();
     const legacyStatuses = new Set([
       'approved',
       'rejected',
@@ -700,6 +701,14 @@ export const AppProvider = ({ children }) => {
       throw deleteError;
     }
     setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
+    removeVisitPlanFromDraftCaches({
+      id: entryId,
+      databaseId: entryId,
+      clientId: target.clientId,
+      localId: target.localId,
+      submissionKey: target.submissionKey,
+      batchId: target.batchId,
+    });
     await refreshEntity('visit_plans');
     logActivity(`Deleted visit entry ID ${entryId}`, 'Tour Plan');
     return true;

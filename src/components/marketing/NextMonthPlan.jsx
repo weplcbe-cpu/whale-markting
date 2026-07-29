@@ -3,11 +3,16 @@ import { Check, ChevronDown, Copy, Edit3, Plus, Search, Send, Trash2 } from 'luc
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, ConfirmationDialog, DateField, FormField, Modal, PageHeader } from '../ui';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import {
+  MONTHLY_VISIT_PLAN_DRAFT_KEY,
+  isDatabaseVisitPlanId,
+  isUnsavedVisitPlanDraft,
+  readVisitPlanDraft,
+  writeVisitPlanDraft,
+} from '../../utils/visitPlanDraftCache';
 
-const DRAFT_KEY = 'marketing-next-month-plan-draft';
 const projectOptions = ['Super Sucker', 'New Super Sucker', 'New Requirements', 'Recycler Hiring', 'Service', 'Water Tanker'];
 const displayDate = (value) => value ? value.split('-').reverse().join('-') : 'Select date';
-const isDatabaseId = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || '');
 const rowSignature = (row) => `${row.plannedDate || ''}|${String(row.area || '').trim().toLowerCase()}|${[...(row.projects || [])].sort().join('|').toLowerCase()}`;
 const toMonthlyRow = (plan) => ({
   id: plan.id,
@@ -20,24 +25,14 @@ const toMonthlyRow = (plan) => ({
   status: plan.status || 'Draft'
 });
 const readDraft = () => {
-  try {
-    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
-    return {
-      rows: Array.isArray(draft?.rows)
-        ? draft.rows.filter((row) => !row.databaseId && !isDatabaseId(row.id) && normalizePlanStatus(row.status) === 'Draft')
-        : [],
-      monthFrom: draft?.monthFrom || '2026-08-01',
-      monthTo: draft?.monthTo || '2026-08-31'
-    };
-  } catch {
-    return { rows: [], monthFrom: '2026-08-01', monthTo: '2026-08-31' };
-  }
+  return readVisitPlanDraft(MONTHLY_VISIT_PLAN_DRAFT_KEY, {
+    monthFrom: '2026-08-01',
+    monthTo: '2026-08-31',
+  });
 };
-const localDraftRows = (entries) => entries.filter((row) => !row.databaseId && !isDatabaseId(row.id) && normalizePlanStatus(row.status) === 'Draft');
+const localDraftRows = (entries) => entries.filter(isUnsavedVisitPlanDraft);
 const persistDraftRows = (entries, monthFrom, monthTo) => {
-  const unsavedRows = localDraftRows(entries);
-  if (unsavedRows.length) localStorage.setItem(DRAFT_KEY, JSON.stringify({ rows: unsavedRows, monthFrom, monthTo }));
-  else localStorage.removeItem(DRAFT_KEY);
+  writeVisitPlanDraft(MONTHLY_VISIT_PLAN_DRAFT_KEY, entries, { monthFrom, monthTo });
 };
 
 const ProjectMultiSelect = ({ value, onChange }) => {
@@ -61,7 +56,7 @@ export const NextMonthPlan = () => {
   const [reviewing, setReviewing] = useState(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const monthlyPlans = useMemo(() => visitPlans
-    .filter((plan) => plan.employeeId === currentUser?.employeeId && plan.planType === 'Monthly' && plan.periodFrom === monthFrom && plan.periodTo === monthTo)
+    .filter((plan) => plan.employeeId === currentUser?.employeeId && plan.visitDate >= monthFrom && plan.visitDate <= monthTo)
     .sort((a, b) => String(a.visitDate || '').localeCompare(String(b.visitDate || ''))), [currentUser?.employeeId, monthFrom, monthTo, visitPlans]);
   const currentMonthlyPlan = [...monthlyPlans].sort((a, b) => String(b.submittedAt || b.createdAt).localeCompare(String(a.submittedAt || a.createdAt)))[0];
   const reviewComment = directorComments.find((comment) => comment.referenceId === currentMonthlyPlan?.batchId && comment.targetModule === 'Tour Plan');
@@ -79,12 +74,12 @@ export const NextMonthPlan = () => {
   const valid = useMemo(() => rows.length > 0 && rows.every((row) => row.area.trim() && row.plannedDate && row.projects.length), [rows]);
   const update = (id, field, value) => setRows((current) => current.map((row) => row.id === id ? { ...row, [field]: value } : row));
   const add = () => { const row = { id: `monthly-${Date.now()}`, area: '', projects: [], plannedDate: '', status: 'Draft' }; setRows((current) => [...current, row]); setEditing(row.id); };
-  const duplicate = (row) => { const { databaseId: _databaseId, batchId: _batchId, ...draft } = row; const copy = { ...draft, id: `monthly-${Date.now()}`, clientId: crypto.randomUUID(), status: 'Draft' }; setRows((current) => [...current, copy]); setEditing(copy.id); };
+  const duplicate = (row) => { const { databaseId: _databaseId, batchId: _batchId, clientId: _clientId, localId: _localId, submissionKey: _submissionKey, rawStatus: _rawStatus, ...draft } = row; const copy = { ...draft, id: `monthly-${Date.now()}`, clientId: crypto.randomUUID(), status: 'Draft' }; setRows((current) => [...current, copy]); setEditing(copy.id); };
   const remove = async () => {
     if (!deleting || isDeleting) return;
     setIsDeleting(true);
     try {
-      const databaseId = deleting.databaseId || (isDatabaseId(deleting.id) ? deleting.id : null);
+      const databaseId = deleting.databaseId || (isDatabaseVisitPlanId(deleting.id) ? deleting.id : null);
       if (databaseId) await deleteVisitPlanEntry(databaseId);
       const nextRows = rows.filter((row) => row.id !== deleting.id && row.databaseId !== databaseId);
       persistDraftRows(nextRows, monthFrom, monthTo);
@@ -113,7 +108,7 @@ export const NextMonthPlan = () => {
       setRows(submittedRows);
       setPlanStatus('Submitted');
       setReviewing(false);
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(MONTHLY_VISIT_PLAN_DRAFT_KEY);
       showToast?.('Monthly plan submitted successfully.', 'success');
     } catch {
       // Preserve the review and all entered values when persistence fails.
