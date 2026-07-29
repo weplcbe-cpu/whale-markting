@@ -9,6 +9,7 @@ const cleanEnvValue = (value) => {
   const cleaned = value
     .trim()
     .replace(/^(['"])(.*)\1$/, '$2')
+    .replace(/ï»¿/g, '')
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
     .trim();
 
@@ -22,6 +23,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   // Fail fast with a clear message instead of a confusing runtime error deep in the SDK.
   throw new Error(
     'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY'
+  );
+}
+
+if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)) {
+  throw new Error(
+    'VITE_SUPABASE_URL is invalid. Copy the HTTPS project URL again from Supabase.'
   );
 }
 

@@ -1,5 +1,6 @@
 /* oxlint-disable react/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
@@ -9,6 +10,13 @@ import { normalizeDirectorFeedback, normalizeDirectorFeedbackList } from '../uti
 const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
+const ADD_USER_ERROR_MESSAGES = {
+  DUPLICATE_EMAIL: 'Email already exists.',
+  DUPLICATE_EMPLOYEE_ID: 'Employee ID already exists.',
+  DUPLICATE_USERNAME: 'Username already exists.',
+  FORBIDDEN: 'Database permission denied.',
+  UNAUTHENTICATED: 'Your session has expired. Please log in again.',
+};
 const CREATE_USER_ROLE_MAP = {
   Admin: 'Admin',
   Director: 'Director',
@@ -51,6 +59,36 @@ const getErrorMessage = async (error) => {
   }
 
   return [status ? `HTTP ${status}` : null, directMessage].filter(Boolean).join(' — ') || ADD_USER_FALLBACK_MESSAGE;
+};
+
+const getAddUserErrorMessage = async (error) => {
+  if (error instanceof FunctionsFetchError) return 'Unable to connect to server.';
+  if (error instanceof FunctionsRelayError) return 'Network connection lost.';
+
+  const status = error?.context?.status;
+  if (error instanceof FunctionsHttpError && error.context) {
+    try {
+      const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
+      const body = typeof response.json === 'function' ? await response.json() : response;
+      console.error('admin-create-user HTTP response:', { status, body });
+      if (ADD_USER_ERROR_MESSAGES[body?.code]) return ADD_USER_ERROR_MESSAGES[body.code];
+      if (status === 401) return ADD_USER_ERROR_MESSAGES.UNAUTHENTICATED;
+      if (status === 403) return ADD_USER_ERROR_MESSAGES.FORBIDDEN;
+      if (body?.code === 'PROFILE_INSERT_FAILED' && /permission|policy|rls/i.test(`${body?.error || ''} ${body?.details || ''}`)) {
+        return ADD_USER_ERROR_MESSAGES.FORBIDDEN;
+      }
+      const serverMessage = readableErrorText(body?.error) || readableErrorText(body?.message);
+      if (serverMessage) return serverMessage;
+    } catch (parseError) {
+      console.error('Unable to parse admin-create-user HTTP error response:', parseError);
+    }
+  }
+
+  const fallbackMessage = await getErrorMessage(error);
+  if (/failed to fetch|failed to send a request|networkerror|load failed/i.test(fallbackMessage)) {
+    return 'Unable to connect to server.';
+  }
+  return fallbackMessage;
 };
 
 // Canonical role values used throughout routing/permissions. Login must
@@ -456,17 +494,26 @@ export const AppProvider = ({ children }) => {
     });
 
     if (error) {
-      if (import.meta.env.DEV) {
-        console.error('Raw Edge Function error:', error);
-      }
+      console.error('admin-create-user invocation failed:', {
+        error,
+        name: error?.name,
+        message: error?.message,
+        context: error?.context,
+        requestBody: { ...requestBody, password: '[REDACTED]' },
+      });
 
-      const message = await getErrorMessage(error);
+      const message = await getAddUserErrorMessage(error);
       showToast(message, 'error');
       throw new Error(message);
     }
 
     if (data?.success === false) {
-      const message = readableErrorText(data?.error) ||
+      console.error('admin-create-user returned an application error:', {
+        response: data,
+        requestBody: { ...requestBody, password: '[REDACTED]' },
+      });
+      const message = ADD_USER_ERROR_MESSAGES[data?.code] ||
+        readableErrorText(data?.error) ||
         readableErrorText(data?.message) ||
         'Unable to create user.';
       showToast(message, 'error');

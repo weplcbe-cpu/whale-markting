@@ -18,13 +18,21 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://kaiserwhalemarketing.vercel.app',
+  'https://whale-marketing.vercel.app',
+];
 
 function buildCorsHeaders(req) {
   const origin = req.headers.get('Origin') ?? '';
-  const extraOrigin = Deno.env.get('ALLOWED_ORIGIN');
-  const allowedOrigins = extraOrigin ? [...DEFAULT_ALLOWED_ORIGINS, extraOrigin] : DEFAULT_ALLOWED_ORIGINS;
-  const allowOrigin = allowedOrigins.includes(origin) ? origin : (extraOrigin || DEFAULT_ALLOWED_ORIGINS[0]);
+  const configuredOrigins = (Deno.env.get('ALLOWED_ORIGINS') || Deno.env.get('ALLOWED_ORIGIN') || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const allowedOrigins = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins])];
+  const allowOrigin = allowedOrigins.includes(origin) ? origin : DEFAULT_ALLOWED_ORIGINS[0];
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
@@ -200,6 +208,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: `Employee ID "${employeeId}" is already in use.`, code: 'DUPLICATE_EMPLOYEE_ID' }, 409, corsHeaders);
     }
 
+    const { data: existingByUsername, error: usernameLookupErr } = await adminClient
+      .from('profiles')
+      .select('id')
+      .ilike('username', username)
+      .maybeSingle();
+    if (usernameLookupErr) {
+      return jsonResponse({
+        success: false,
+        error: 'Failed to check for an existing username',
+        details: usernameLookupErr.message,
+        code: 'DUPLICATE_CHECK_FAILED',
+      }, 500, corsHeaders);
+    }
+    if (existingByUsername) {
+      return jsonResponse({ success: false, error: `Username "${username}" is already in use.`, code: 'DUPLICATE_USERNAME' }, 409, corsHeaders);
+    }
+
     const { data: created, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -257,6 +282,12 @@ Deno.serve(async (req) => {
     });
 
     if (profileErr) {
+      console.error('Profile insert failed:', {
+        message: profileErr.message,
+        code: profileErr.code,
+        details: profileErr.details,
+        hint: profileErr.hint,
+      });
       // Roll back the auth user if the profile insert failed, so we never
       // leave an orphaned login with no profile.
       const { error: rollbackErr } = await adminClient.auth.admin.deleteUser(created.user.id);

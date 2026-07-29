@@ -173,7 +173,14 @@ export const UserManagement = () => {
         closeModal();
       }
     } catch (error) {
-      console.error('Add user error:', error);
+      console.error('Add user workflow failed:', {
+        error,
+        name: error?.name,
+        message: error?.message,
+        employeeId: formData.employeeId,
+        username: formData.username,
+        email: formData.email,
+      });
       setFormError(getCaughtErrorMessage(error));
     } finally {
       submitLockRef.current = false;
