@@ -31,7 +31,7 @@ export const MarketingDashboard = () => {
   ].slice(0, 3);
 
   return (
-    <div>
+    <div className="marketing-dashboard">
       {/* Dashboard Hero Section (#27187E → #758BFD) */}
       <div className="hero-welcome-card">
         <div className="hero-text">
@@ -55,7 +55,7 @@ export const MarketingDashboard = () => {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="stat-grid">
+      <div className="stat-grid dashboard-summary-grid">
         <div className="stat-card" onClick={() => goTo('visits', '?view=today')}>
           <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
           <div className="stat-content">
@@ -103,9 +103,9 @@ export const MarketingDashboard = () => {
       </div>
 
       {/* Main Grid: Today's Schedule & Director Feedback */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="dashboard-main-grid">
         {/* Today's Schedule */}
-        <div className="card">
+        <div className="card dashboard-schedule-card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><Calendar size={20} color="var(--primary-blue)" /> Today's Field Visit Schedule</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => goTo('visits', '?view=today')}>
@@ -120,6 +120,7 @@ export const MarketingDashboard = () => {
               {myTodayVisits.map(v => (
                 <div
                   key={v.id}
+                  className="dashboard-visit-card"
                   style={{
                     padding: '18px 22px',
                     background: '#ffffff',
@@ -128,7 +129,7 @@ export const MarketingDashboard = () => {
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="dashboard-visit-card__header">
                     <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-dark)' }}>
                       🕒 {v.expectedTime}
                     </span>
@@ -136,7 +137,7 @@ export const MarketingDashboard = () => {
                   </div>
 
                   <h4 style={{ color: 'var(--primary-dark)', fontSize: '1.2rem', marginBottom: '6px', fontWeight: 800 }}>{v.customerName}</h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  <p className="dashboard-visit-card__details">
                     Purpose: <strong>{v.visitPurpose}</strong> &nbsp;|&nbsp; Product: <strong>{Array.isArray(v.products) ? v.products.join(', ') : v.products}</strong>
                   </p>
 
@@ -150,7 +151,7 @@ export const MarketingDashboard = () => {
         </div>
 
         {/* Director Feedback Side Card */}
-        <div className="card">
+        <div className="card dashboard-feedback-panel">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><MessageSquare size={20} color="var(--action-orange)" /> Director Feedback</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => goTo('director-comments')}>View All</button>
@@ -173,7 +174,7 @@ export const MarketingDashboard = () => {
                     borderRadius: 'var(--radius-md)'
                   }}
                 >
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--action-orange)', marginBottom: '4px' }}>
+                  <div className="dashboard-feedback-card__title">
                     {com.directorName} · {com.targetType}
                   </div>
                   <div className="dashboard-feedback-card__meta"><span>{com.commentType}</span><time>{com.createdAt ? new Date(com.createdAt).toLocaleString('en-IN') : 'Date unavailable'}</time></div>

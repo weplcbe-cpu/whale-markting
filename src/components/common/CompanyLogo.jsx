@@ -5,7 +5,7 @@ export const COMPANY_LOGO_SRC = '/whale-enterprise-logo.png';
 export const CompanyLogo = ({ className = '', ...props }) => (
   <img
     src={COMPANY_LOGO_SRC}
-    alt="Whale Enterprise company logo"
+    alt="Whale Enterprise PVT Ltd company logo"
     className={`company-logo ${className}`.trim()}
     {...props}
   />

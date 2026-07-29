@@ -1,8 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
-  --font-primary: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-primary: Inter, Arial, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-primary);
+  --mobile-nav-height: 64px;
 
   /* Whale Enterprise semantic color system */
   --color-bg-app: #f1f2f6;
@@ -131,13 +130,19 @@ html.dark .top-navbar {
 }
 
 /* Strict Page & Body Scroll Lock - NO whole page scrolling */
-html, body {
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
   height: 100vh !important;
   max-height: 100vh !important;
   overflow: hidden !important;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -150,6 +155,10 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea, a {
+  font-family: inherit;
 }
 
 /* App Container - Locked 100vh */
@@ -181,8 +190,56 @@ body {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  font-family: 'Inter', var(--font-primary);
+  overflow-y: auto;
+  font-family: var(--font-primary);
   color: var(--kw-text-main);
+}
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.dashboard-main-grid > *,
+.dashboard-summary-grid > *,
+.marketing-dashboard,
+.dashboard-schedule-card,
+.dashboard-feedback-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dashboard-visit-card,
+.dashboard-feedback-card {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-visit-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-visit-card__details {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-feedback-card__title {
+  margin-bottom: 4px;
+  color: var(--action-orange);
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Left brand panel ---------- */
@@ -404,7 +461,7 @@ body {
   border: 1.5px solid var(--kw-border);
   border-radius: 12px;
   padding: 0 44px 0 46px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-family: inherit;
   color: var(--kw-text-main);
   background: #fff;
@@ -507,6 +564,7 @@ body {
   color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
+  font-family: Arial, system-ui, sans-serif;
   letter-spacing: 0.02em;
   display: flex;
   align-items: center;
@@ -569,7 +627,10 @@ body {
   }
 
   .kw-login-card {
-    padding: 28px 20px;
+    width: calc(100% - 32px);
+    max-width: 440px;
+    margin-inline: auto;
+    padding: 24px 20px;
   }
 }
 
@@ -2297,6 +2358,208 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* Mobile viewport hardening for dashboard, navigation, and transient UI. */
+@media (max-width: 767px) {
+  .main-layout {
+    margin-bottom: 0;
+  }
+
+  .main-view-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-right: 0;
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 16px);
+  }
+
+  .mobile-bottom-nav {
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 12px);
+    width: auto;
+    max-width: calc(100vw - 24px);
+  }
+
+  .toast {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    align-items: flex-start;
+  }
+
+  .toast > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .dashboard-main-grid .card {
+    height: auto;
+    overflow: visible;
+  }
+
+  .dashboard-main-grid .card-header-clean {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .dashboard-main-grid .card-header-clean .btn {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-feedback-card__meta {
+    align-items: flex-start;
+  }
+
+  .top-navbar {
+    max-width: 100%;
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .navbar-center {
+    padding-left: 96px;
+  }
+
+  .navbar-company-logo {
+    width: 86px;
+    max-height: 26px;
+  }
+
+  .navbar-breadcrumb {
+    display: none;
+  }
+
+  .navbar-title {
+    font-size: 0.9rem;
+  }
+
+  .navbar-right {
+    gap: 2px;
+  }
+
+  .navbar-right > .icon-btn:first-of-type {
+    display: none;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .kw-login-page {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+
+  .kw-login-left {
+    padding: 18px 20px 14px;
+  }
+
+  .kw-login-left-content {
+    width: 100%;
+    text-align: center;
+  }
+
+  .kw-login-logo-badge {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+  }
+
+  .kw-login-logo-badge .kw-login-logo-img {
+    height: 34px;
+  }
+
+  .kw-login-left-heading {
+    font-size: 1.3rem;
+    margin-bottom: 5px;
+  }
+
+  .kw-login-left-system-text {
+    margin-bottom: 0;
+  }
+
+  .kw-login-left-tagline {
+    display: none;
+  }
+
+  .kw-login-right {
+    padding: 16px 0 32px;
+  }
+
+  .kw-login-card {
+    width: calc(100% - 32px);
+    max-width: 440px;
+    margin-inline: auto;
+    padding: 24px 20px;
+  }
+
+  .kw-login-card-logo {
+    margin-bottom: 10px;
+  }
+
+  .kw-login-card-logo img {
+    height: 34px;
+  }
+
+  .kw-login-card-subtitle {
+    margin-bottom: 20px;
+  }
+
+  .kw-form-group {
+    margin-bottom: 14px;
+  }
+
+  .kw-login-options-row {
+    margin-bottom: 18px;
+  }
+
+  .kw-login-footer {
+    margin-top: 20px;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .marketing-dashboard .dashboard-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .marketing-dashboard .dashboard-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-main-grid .card-header-clean .btn {
+    width: 100%;
+  }
+
+  .navbar-center {
+    padding-left: 0;
+  }
+
+  .navbar-company-logo {
+    position: static;
+    width: 88px;
+    transform: none;
+  }
+
+  .navbar-title {
+    display: none;
+  }
 }
 
 @media (max-width: 575px) {

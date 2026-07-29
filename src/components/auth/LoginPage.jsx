@@ -173,7 +173,7 @@ export const LoginPage = () => {
           </form>
 
           <p className="kw-login-footer">
-            © 2026 Whale Enterprise. All rights reserved.
+            © 2026 Whale Enterprise PVT Ltd. All rights reserved.
           </p>
         </div>
       </div>

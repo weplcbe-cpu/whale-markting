@@ -7,9 +7,13 @@ export const ToastContainer = () => {
 
   if (!toasts || toasts.length === 0) return null;
 
+  const visibleToasts = toasts.filter((toast, index, list) => (
+    index === list.findIndex((candidate) => candidate.message === toast.message && candidate.type === toast.type)
+  ));
+
   return (
     <div className="toast-container">
-      {toasts.map(toast => {
+      {visibleToasts.map(toast => {
         let IconComponent = Info;
         if (toast.type === 'success') IconComponent = CheckCircle2;
         if (toast.type === 'error') IconComponent = AlertCircle;

@@ -81,7 +81,7 @@ export const ReportsExport = () => {
       <div className="card">
         <div className="report-brand">
           <CompanyLogo />
-          <span>Whale Enterprise</span>
+          <span>Whale Enterprise PVT Ltd</span>
         </div>
         <div className="card-header-clean">
           <h3 className="card-title-clean">
