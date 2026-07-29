@@ -99,6 +99,11 @@ export const UserManagement = () => {
     closeModal();
   };
 
+  const updateFormField = (field, value) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    if (formError) setFormError('');
+  };
+
   const handleOpenAdd = () => {
     setFormError('');
     const nextFormData = {
@@ -173,14 +178,7 @@ export const UserManagement = () => {
         closeModal();
       }
     } catch (error) {
-      console.error('Add user workflow failed:', {
-        error,
-        name: error?.name,
-        message: error?.message,
-        employeeId: formData.employeeId,
-        username: formData.username,
-        email: formData.email,
-      });
+      if (import.meta.env.DEV) console.error('Add user workflow failed:', { name: error?.name, message: error?.message });
       setFormError(getCaughtErrorMessage(error));
     } finally {
       submitLockRef.current = false;
@@ -335,7 +333,7 @@ export const UserManagement = () => {
                     className="form-input"
                     required
                     value={formData.employeeName}
-                    onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })}
+                    onChange={(e) => updateFormField('employeeName', e.target.value)}
                   />
                 </div>
 
@@ -346,7 +344,7 @@ export const UserManagement = () => {
                     className="form-input"
                     required
                     value={formData.employeeId}
-                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                    onChange={(e) => updateFormField('employeeId', e.target.value)}
                   />
                 </div>
 
@@ -356,18 +354,21 @@ export const UserManagement = () => {
                     type="text"
                     className="form-input"
                     required
+                    inputMode="tel"
+                    pattern="\+?[0-9][0-9\s-]{6,19}"
                     value={formData.mobile}
-                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                    onChange={(e) => updateFormField('mobile', e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Email Address</label>
+                  <label className="form-label">Email Address *</label>
                   <input
                     type="email"
                     className="form-input"
+                    required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => updateFormField('email', e.target.value)}
                   />
                 </div>
 
@@ -376,7 +377,7 @@ export const UserManagement = () => {
                   <select
                     className="form-select"
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => updateFormField('role', e.target.value)}
                   >
                     <option value="Marketing Team">Marketing Team</option>
                     <option value="Director">Director</option>
@@ -391,7 +392,7 @@ export const UserManagement = () => {
                     className="form-input"
                     required
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={(e) => updateFormField('username', e.target.value)}
                   />
                 </div>
 
@@ -405,7 +406,7 @@ export const UserManagement = () => {
                       minLength={6}
                       autoComplete="new-password"
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      onChange={(e) => updateFormField('password', e.target.value)}
                     />
                   </div>
                 )}
@@ -416,7 +417,7 @@ export const UserManagement = () => {
                     type="text"
                     className="form-input"
                     value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                    onChange={(e) => updateFormField('designation', e.target.value)}
                   />
                 </div>
               </div>
@@ -424,7 +425,7 @@ export const UserManagement = () => {
               <footer className="user-modal__footer">
                 <button type="button" className="btn btn-secondary" disabled={isSubmitting} onClick={requestClose}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save User Record'}
+                  {isSubmitting ? 'Creating User...' : 'Save User Record'}
                 </button>
               </footer>
             </form>

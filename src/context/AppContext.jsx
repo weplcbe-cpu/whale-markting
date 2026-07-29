@@ -11,11 +11,14 @@ const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
 const ADD_USER_ERROR_MESSAGES = {
-  DUPLICATE_EMAIL: 'Email already exists.',
-  DUPLICATE_EMPLOYEE_ID: 'Employee ID already exists.',
-  DUPLICATE_USERNAME: 'Username already exists.',
-  FORBIDDEN: 'Database permission denied.',
-  UNAUTHENTICATED: 'Your session has expired. Please log in again.',
+  EMAIL_ALREADY_EXISTS: 'This email address is already registered.',
+  EMPLOYEE_ID_ALREADY_EXISTS: 'This employee ID already exists.',
+  USERNAME_ALREADY_EXISTS: 'This username already exists.',
+  AUTH_CREATE_FAILED: 'Login account creation failed.',
+  PROFILE_CREATE_FAILED: 'Employee profile creation failed. The login account was rolled back.',
+  ORIGIN_NOT_ALLOWED: 'This production site is not allowed to call the user creation service.',
+  FORBIDDEN: 'You do not have permission to create users.',
+  UNAUTHENTICATED: 'Your session has expired. Please sign in again.',
 };
 const CREATE_USER_ROLE_MAP = {
   Admin: 'Admin',
@@ -51,18 +54,18 @@ const getErrorMessage = async (error) => {
         readableErrorText(body?.details),
       ].filter(Boolean);
 
-      console.error('admin-create-user Edge Function response:', { status: status ?? null, body });
+      if (import.meta.env.DEV) console.error('admin-create-user Edge Function response:', { status: status ?? null, body });
       if (parts.length > 0) return parts.join(' — ');
     }
   } catch (parseError) {
-    console.error('Failed to parse Edge Function error:', parseError);
+    if (import.meta.env.DEV) console.error('Failed to parse Edge Function error:', parseError);
   }
 
   return [status ? `HTTP ${status}` : null, directMessage].filter(Boolean).join(' — ') || ADD_USER_FALLBACK_MESSAGE;
 };
 
 const getAddUserErrorMessage = async (error) => {
-  if (error instanceof FunctionsFetchError) return 'Unable to connect to server.';
+  if (error instanceof FunctionsFetchError) return 'Unable to connect to the user creation service. Please check the server connection and try again.';
   if (error instanceof FunctionsRelayError) return 'Network connection lost.';
 
   const status = error?.context?.status;
@@ -70,23 +73,23 @@ const getAddUserErrorMessage = async (error) => {
     try {
       const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
       const body = typeof response.json === 'function' ? await response.json() : response;
-      console.error('admin-create-user HTTP response:', { status, body });
+      if (import.meta.env.DEV) console.error('admin-create-user HTTP response:', { status, body });
       if (ADD_USER_ERROR_MESSAGES[body?.code]) return ADD_USER_ERROR_MESSAGES[body.code];
       if (status === 401) return ADD_USER_ERROR_MESSAGES.UNAUTHENTICATED;
       if (status === 403) return ADD_USER_ERROR_MESSAGES.FORBIDDEN;
-      if (body?.code === 'PROFILE_INSERT_FAILED' && /permission|policy|rls/i.test(`${body?.error || ''} ${body?.details || ''}`)) {
+      if (body?.code === 'PROFILE_CREATE_FAILED' && /permission|policy|rls/i.test(`${body?.error || ''} ${body?.details || ''}`)) {
         return ADD_USER_ERROR_MESSAGES.FORBIDDEN;
       }
       const serverMessage = readableErrorText(body?.error) || readableErrorText(body?.message);
       if (serverMessage) return serverMessage;
     } catch (parseError) {
-      console.error('Unable to parse admin-create-user HTTP error response:', parseError);
+      if (import.meta.env.DEV) console.error('Unable to parse admin-create-user HTTP error response:', parseError);
     }
   }
 
   const fallbackMessage = await getErrorMessage(error);
   if (/failed to fetch|failed to send a request|networkerror|load failed/i.test(fallbackMessage)) {
-    return 'Unable to connect to server.';
+    return 'Unable to connect to the user creation service. Please check the server connection and try again.';
   }
   return fallbackMessage;
 };
@@ -472,51 +475,44 @@ export const AppProvider = ({ children }) => {
     }
 
     if (sessionError || !session?.access_token) {
-      const message = 'Your session has expired. Please log in again.';
-      showToast(message, 'error');
+      const message = 'Your session has expired. Please sign in again.';
       throw new Error(message);
     }
 
     const normalizedRole = CREATE_USER_ROLE_MAP[userData.role];
     const requestBody = {
-      full_name: userData.employeeName,
-      employee_id: userData.employeeId,
-      mobile_number: userData.mobile,
-      email: userData.email,
+      employeeName: userData.employeeName.trim(),
+      employeeId: userData.employeeId.trim(),
+      mobileNumber: userData.mobile.trim(),
+      email: userData.email.trim().toLowerCase(),
       role: normalizedRole || userData.role,
-      username: userData.username,
+      username: userData.username.trim(),
       password: userData.password,
-      designation: userData.designation,
+      designation: userData.designation.trim(),
     };
     const { data, error } = await supabase.functions.invoke('admin-create-user', {
-      body: requestBody,
-      headers: { Authorization: `Bearer ${session.access_token}` }
+      body: requestBody
     });
 
     if (error) {
-      console.error('admin-create-user invocation failed:', {
-        error,
-        name: error?.name,
-        message: error?.message,
-        context: error?.context,
-        requestBody: { ...requestBody, password: '[REDACTED]' },
-      });
+      if (import.meta.env.DEV) {
+        console.error('admin-create-user invocation failed:', {
+          code: error?.context?.status,
+          name: error?.name,
+          message: error?.message,
+        });
+      }
 
       const message = await getAddUserErrorMessage(error);
-      showToast(message, 'error');
       throw new Error(message);
     }
 
     if (data?.success === false) {
-      console.error('admin-create-user returned an application error:', {
-        response: data,
-        requestBody: { ...requestBody, password: '[REDACTED]' },
-      });
+      if (import.meta.env.DEV) console.error('admin-create-user application error:', { code: data?.code });
       const message = ADD_USER_ERROR_MESSAGES[data?.code] ||
         readableErrorText(data?.error) ||
         readableErrorText(data?.message) ||
         'Unable to create user.';
-      showToast(message, 'error');
       throw new Error(message);
     }
 
