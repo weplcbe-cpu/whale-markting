@@ -681,20 +681,22 @@ export const AppProvider = ({ children }) => {
     if (status !== 'Draft' && !legacyStatuses.has(rawStatus)) {
       throw new Error('This visit plan status cannot be deleted.');
     }
-    const { data: deletedRows, error } = await supabase
+    const { data: deletedRow, error } = await supabase
       .from('visit_plans')
       .delete()
       .eq('id', entryId)
       .eq('employee_id', currentUser.employeeId)
-      .select('id');
+      .select('id')
+      .single();
     if (error) {
-      const deleteError = new Error(error.message || 'The database rejected the delete request.');
-      showToast(deleteError.message, 'error');
+      const noRowDeleted = error.code === 'PGRST116';
+      const deleteError = new Error(noRowDeleted
+        ? 'Visit plan was not deleted. The record may be protected or unavailable.'
+        : error.message || 'The database rejected the delete request.');
       throw deleteError;
     }
-    if (deletedRows?.length !== 1) {
-      const deleteError = new Error('The database security policy blocked deletion of this visit plan.');
-      showToast(deleteError.message, 'error');
+    if (deletedRow?.id !== entryId) {
+      const deleteError = new Error('Visit plan was not deleted. The record may be protected or unavailable.');
       throw deleteError;
     }
     setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
