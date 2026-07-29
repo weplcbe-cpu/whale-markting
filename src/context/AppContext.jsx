@@ -82,7 +82,6 @@ export const AppProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [orgTypes, setOrgTypes] = useState([]);
   const [purposes, setPurposes] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [visitPlans, setVisitPlans] = useState([]);
   const [visitReports, setVisitReports] = useState([]);
   const [dailyReports, setDailyReports] = useState([]);
@@ -249,7 +248,6 @@ export const AppProvider = ({ children }) => {
       ['products', supabase.from('products').select('*').order('display_order')],
       ['orgTypes', supabase.from('org_types').select('*').order('name')],
       ['purposes', supabase.from('purposes').select('*').order('name')],
-      ['customers', supabase.from('customers').select('*').order('created_date', { ascending: false })],
       ['visitPlans', supabase.from('visit_plans').select('*').order('visit_date', { ascending: false })],
       ['visitReports', supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false })],
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
@@ -284,7 +282,6 @@ export const AppProvider = ({ children }) => {
     setProducts(rowsToCamel(results.products));
     setOrgTypes((results.orgTypes || []).map(r => r.name));
     setPurposes((results.purposes || []).map(r => r.name));
-    setCustomers(rowsToCamel(results.customers));
     setVisitPlans(rowsToCamel(results.visitPlans).map(normalizeVisitPlan));
     setVisitReports(rowsToCamel(results.visitReports));
     setDailyReports(rowsToCamel(results.dailyReports));
@@ -303,7 +300,6 @@ export const AppProvider = ({ children }) => {
   const refreshEntity = useCallback(async (table) => {
     const config = {
       profiles: [() => supabase.from('profiles').select('*'), setUsers],
-      customers: [() => supabase.from('customers').select('*').order('created_date', { ascending: false }), setCustomers],
       visit_plans: [() => supabase.from('visit_plans').select('*').order('visit_date', { ascending: false }), setVisitPlans],
       visit_reports: [() => supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }), setVisitReports],
       daily_reports: [() => supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }), setDailyReports],
@@ -331,7 +327,7 @@ export const AppProvider = ({ children }) => {
     } else {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
-      setCustomers([]); setVisitPlans([]); setVisitReports([]); setDailyReports([]);
+      setVisitPlans([]); setVisitReports([]); setDailyReports([]);
       setFollowUps([]); setTenders([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
@@ -344,7 +340,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;
-    const tables = ['profiles', 'customers', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'tenders', 'director_comments', 'notifications', 'activity_logs'];
+    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'tenders', 'director_comments', 'notifications', 'activity_logs'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
     tables.forEach((table) => {
@@ -562,58 +558,6 @@ export const AppProvider = ({ children }) => {
     logActivity('Updated system settings', 'Settings');
     showToast('System settings updated successfully', 'success');
     return true;
-  };
-
-  // ---------------------------------------------------------------------
-  // Customers
-  // ---------------------------------------------------------------------
-  const addCustomer = async (custData) => {
-    const row = objToSnakeRow({
-      ...custData,
-      createdBy: currentUser?.employeeId,
-      createdByName: currentUser?.employeeName,
-      status: 'Pending Verification',
-      createdDate: new Date().toISOString().split('T')[0]
-    });
-    const { data, error } = await supabase.from('customers').insert(row).select().single();
-    if (error) {
-      showToast('Failed to submit customer', 'error');
-      return null;
-    }
-    const newCust = rowToCamel(data);
-    setCustomers(prev => [newCust, ...prev]);
-    await refreshEntity('customers');
-    logActivity(`Created new customer: ${custData.organizationName}`, 'Customer Management');
-    showToast(`Customer "${custData.organizationName}" submitted for approval`, 'success');
-    return newCust;
-  };
-
-  const approveCustomer = async (id) => {
-    const target = customers.find(c => c.id === id);
-    if (!target) return;
-    const { error } = await supabase.from('customers').update({ status: 'Approved' }).eq('id', id);
-    if (error) {
-      showToast('Failed to approve customer', 'error');
-      return;
-    }
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: 'Approved' } : c));
-    await refreshEntity('customers');
-    logActivity(`Approved customer: ${target.organizationName}`, 'Customer Management');
-    showToast(`Approved customer ${target.organizationName}`, 'success');
-  };
-
-  const rejectCustomer = async (id) => {
-    const target = customers.find(c => c.id === id);
-    if (!target) return;
-    const { error } = await supabase.from('customers').update({ status: 'Rejected' }).eq('id', id);
-    if (error) {
-      showToast('Failed to reject customer', 'error');
-      return;
-    }
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: 'Rejected' } : c));
-    await refreshEntity('customers');
-    logActivity(`Rejected customer: ${target.organizationName}`, 'Customer Management');
-    showToast(`Rejected customer ${target.organizationName}`, 'warning');
   };
 
   // ---------------------------------------------------------------------
@@ -1034,7 +978,6 @@ export const AppProvider = ({ children }) => {
     products,
     orgTypes,
     purposes,
-    customers,
     visitPlans,
     visitReports,
     dailyReports,
@@ -1058,9 +1001,6 @@ export const AppProvider = ({ children }) => {
     addProduct,
     toggleProductStatus,
     updateCompanyInfo,
-    addCustomer,
-    approveCustomer,
-    rejectCustomer,
     addVisitPlan,
     saveTourPlanDraft,
     addTourPlanBatch,

@@ -1,13 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Users, Building2, Calendar, CheckCircle2, Clock, FileText, AlertTriangle, UserCheck, ArrowRight } from 'lucide-react';
+import { Users, Calendar, CheckCircle2, Clock, FileText, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export const AdminDashboard = ({ setActiveTab }) => {
-  const { users, customers, visitPlans, followUps, tenders, activityLogs } = useApp();
+  const { users, visitPlans, followUps, tenders, activityLogs } = useApp();
 
   const totalMarketingTeam = users.filter(u => u.role === 'Marketing Team' && u.status === 'Active').length;
-  const totalCustomers = customers.length;
-  const pendingCustomerApprovals = customers.filter(c => c.status === 'Pending Verification').length;
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayVisits = visitPlans.filter(p => p.visitDate === todayStr || p.visitDate === '2026-07-21');
@@ -28,13 +26,6 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('customer-approvals')}>
-          <div className="stat-icon-wrapper green"><Building2 size={24} /></div>
-          <div className="stat-content">
-            <div className="stat-value">{totalCustomers}</div>
-            <div className="stat-label">Total Customers</div>
-          </div>
-        </div>
 
         <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper amber"><Calendar size={24} /></div>
@@ -68,13 +59,6 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('customer-approvals')}>
-          <div className="stat-icon-wrapper blue"><UserCheck size={24} /></div>
-          <div className="stat-content">
-            <div className="stat-value">{pendingCustomerApprovals}</div>
-            <div className="stat-label">Pending Customer Approvals</div>
-          </div>
-        </div>
 
         <div className="stat-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper amber"><FileText size={24} /></div>

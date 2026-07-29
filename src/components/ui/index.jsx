@@ -1,6 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Building2, Check, Inbox, LoaderCircle, Search, X } from 'lucide-react';
+import { AlertCircle, Check, Inbox, LoaderCircle, X } from 'lucide-react';
 
 const FieldLabel = ({ htmlFor, label, required }) => <label htmlFor={htmlFor}>{label}{required && <span className="ds-required" aria-hidden="true"> *</span>}</label>;
 
@@ -36,22 +36,6 @@ export const TextArea = ({ label, hint, error, id, className = '', ...props }) =
   const generatedId = useId();
   const inputId = id || generatedId;
   return <div className={`ds-field ${className}`}><FieldLabel htmlFor={inputId} label={label} required={props.required} /><textarea id={inputId} {...props} />{hint && <small>{hint}</small>}{error && <span className="ds-field__error">{error}</span>}</div>;
-};
-
-export const SearchableCustomerSelect = ({ customers, value, onChange, onAddCustomer, label = 'Customer', hint, required }) => {
-  const id = useId();
-  const rootRef = useRef(null);
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [active, setActive] = useState(0);
-  const selected = customers.find((customer) => String(customer.id) === String(value));
-  const filtered = useMemo(() => customers.filter((customer) => `${customer.organizationName || ''} ${customer.customerName || ''} ${customer.contactPerson || ''} ${customer.city || ''}`.toLowerCase().includes(query.toLowerCase())).slice(0, 8), [customers, query]);
-  const recent = useMemo(() => [...customers].sort((a, b) => String(b.lastVisitDate || b.updatedAt || '').localeCompare(String(a.lastVisitDate || a.updatedAt || ''))).slice(0, 3), [customers]);
-  useEffect(() => { const close = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, []);
-  const choose = (customer) => { onChange(String(customer.id)); setQuery(''); setOpen(false); };
-  const options = query ? filtered : recent;
-  const keyDown = (event) => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); setActive((current) => Math.min(current + 1, options.length - 1)); } if (event.key === 'ArrowUp') { event.preventDefault(); setActive((current) => Math.max(current - 1, 0)); } if (event.key === 'Enter' && open && options[active]) { event.preventDefault(); choose(options[active]); } if (event.key === 'Escape') setOpen(false); };
-  return <div className="ds-field ds-customer-field" ref={rootRef}><FieldLabel htmlFor={id} label={label} required={required} /><div className="ds-combobox"><Building2 size={20} aria-hidden="true" /><input id={id} role="combobox" aria-expanded={open} aria-controls={`${id}-listbox`} aria-autocomplete="list" placeholder={selected ? selected.organizationName : 'Search customers or organizations'} value={open ? query : (selected?.organizationName || '')} onFocus={() => { setOpen(true); setQuery(''); }} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(0); }} onKeyDown={keyDown} /><Search size={18} aria-hidden="true" /></div>{hint && <small>{hint}</small>}{open && <div className="ds-combobox-menu" id={`${id}-listbox`} role="listbox"><div className="ds-combobox-heading">{query ? 'Search results' : 'Recent and last visited customers'}</div>{options.map((customer, index) => <button type="button" role="option" aria-selected={String(customer.id) === String(value)} className={index === active ? 'active' : ''} key={customer.id} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(customer)}><Building2 size={18} /><span><strong>{customer.organizationName}</strong><small>{customer.contactPerson || customer.city || 'Customer'}</small></span>{String(customer.id) === String(value) && <Check size={17} />}</button>)}{options.length === 0 && <div className="ds-combobox-empty"><strong>No customers available</strong>{onAddCustomer && <Button type="button" onClick={onAddCustomer}>+ Add Customer</Button>}</div>}</div>}</div>;
 };
 
 export const Button = ({ variant = 'primary', loading = false, children, className = '', disabled, ...props }) => (

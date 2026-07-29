@@ -2,11 +2,11 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { getMarketingRouteById } from '../../routes';
-import { Building2, Calendar, CheckCircle2, Clock, UserPlus, PlusCircle, MessageSquare, ArrowRight, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, PlusCircle, MessageSquare, ArrowRight, TrendingUp } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
 
 export const MarketingDashboard = () => {
-  const { currentUser, visitPlans, customers, followUps, directorComments } = useApp();
+  const { currentUser, visitPlans, followUps, directorComments } = useApp();
   const navigate = useNavigate();
   const goTo = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
 
@@ -23,7 +23,6 @@ export const MarketingDashboard = () => {
   const myTodayVisits = visitPlans.filter(p => p.employeeId === empId && (p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]));
   const myPendingFollowups = followUps.filter(f => f.employeeId === empId && f.status === 'Pending');
   const mySubmittedPlans = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Submitted').length;
-  const myCustomers = customers.filter(c => c.createdBy === empId).length;
 
   const myDirectorComments = directorComments.filter(c => c.targetEmployeeId === empId);
 
@@ -46,9 +45,8 @@ export const MarketingDashboard = () => {
             <Clock size={18} /> Submit Daily Report
           </button>
 
-          <button className="btn btn-secondary" onClick={() => goTo('customers', '?action=add-customer')}>
-            <UserPlus size={18} /> Add Customer (Optional)
-          </button>
+          <button className="btn btn-secondary" onClick={() => goTo('follow-ups')}><Clock size={18} /> Add Follow-up</button>
+          <button className="btn btn-secondary" onClick={() => goTo('tenders')}><PlusCircle size={18} /> Add Tender</button>
         </div>
       </div>
 
@@ -98,16 +96,6 @@ export const MarketingDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => goTo('customers')}>
-          <div className="stat-icon-wrapper purple"><Building2 size={24} /></div>
-          <div className="stat-content">
-            <div className="stat-value">{myCustomers}</div>
-            <div className="stat-label">My Customers Added</div>
-          </div>
-          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: 'var(--primary-dark)', fontWeight: 700 }}>
-            Verified
-          </div>
-        </div>
       </div>
 
       {/* Main Grid: Today's Schedule & Director Feedback */}

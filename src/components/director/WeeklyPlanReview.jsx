@@ -8,7 +8,7 @@ import { getTourPlanBatchId, inferPlanType, normalizePlanStatus } from '../../ut
 const LIST_PATH = '/director/tour-plans';
 const displayDate = (value) => value ? value.split('-').reverse().join('-') : 'Not provided';
 const displayValue = (value) => value || 'Not provided';
-const destinationName = (entry) => entry.customerName || entry.organizationName || 'Customer not selected';
+const destinationName = (entry) => entry.customerName || entry.organizationName || 'Organization not provided';
 
 export const WeeklyPlanReview = () => {
   const { batchId: selectedPlanBatchId } = useParams();
@@ -89,7 +89,7 @@ export const WeeklyPlanReview = () => {
             </dl>
 
             <table className="tour-plan-review-table">
-              <thead><tr><th>Visit</th><th>Area / Customer</th><th>Purpose / Products</th><th>Requirement / Priority</th><th>Notes / Status</th></tr></thead>
+              <thead><tr><th>Visit</th><th>Area / Organization</th><th>Purpose / Products</th><th>Requirement / Priority</th><th>Notes / Status</th></tr></thead>
               <tbody>{selectedPlan.entries.map((entry) => <tr key={entry.id}>
                 <td>{displayDate(entry.visitDate)}<br /><small>{displayValue(entry.expectedTime)}</small></td>
                 <td>{entry.area || entry.city || entry.district || 'Not provided'}<br /><small>{destinationName(entry)}</small></td>

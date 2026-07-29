@@ -46,7 +46,7 @@ export const DirectorDashboard = () => {
   const tenderOpportunities = scopedTenders.filter((tender) => !['Won', 'Lost'].includes(tender.status));
   const employeeFor = (employeeId) => marketing.find((user) => user.employeeId === employeeId);
   const nameFor = (employeeId, fallback) => fallback || employeeFor(employeeId)?.fullName || employeeFor(employeeId)?.username || employeeId || 'Not provided';
-  const destinationFor = (plan) => plan.customerName || plan.organizationName || 'Customer not selected';
+  const destinationFor = (plan) => plan.customerName || plan.organizationName || 'Organization not provided';
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   const formattedDate = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 

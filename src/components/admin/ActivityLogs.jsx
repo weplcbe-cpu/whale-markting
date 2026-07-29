@@ -51,7 +51,6 @@ export const ActivityLogs = () => {
             <option value="All">All Modules</option>
             <option value="Authentication">Authentication</option>
             <option value="User Management">User Management</option>
-            <option value="Customer Management">Customer Management</option>
             <option value="Visit Plan">Visit Plan</option>
             <option value="Daily Report">Daily Report</option>
             <option value="Director Comments">Director Comments</option>

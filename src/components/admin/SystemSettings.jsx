@@ -57,7 +57,7 @@ export const SystemSettings = () => {
             <ul style={{ paddingLeft: '20px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <li>Role Auto-Identification enabled on Login Page (Username/EmpID).</li>
               <li>GPS location tracking: <strong>Disabled</strong> per privacy protocol.</li>
-              <li>Marketing team access limited to own customer & visit records.</li>
+              <li>Marketing team access limited to their own visit and report records.</li>
             </ul>
           </div>
 

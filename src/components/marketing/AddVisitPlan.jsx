@@ -1,16 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Save } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { Button, DateField, FormField, Modal, SearchableCustomerSelect, SelectField, Stepper, TextArea } from '../ui';
+import { Button, DateField, FormField, Modal, SelectField, Stepper, TextArea } from '../ui';
 
 const DRAFT_KEY = 'marketing-visit-plan-draft';
-const DESTINATIONS = ['Existing Customer', 'New Organization', 'No Customer / General Visit'];
+const DESTINATIONS = ['New Organization', 'General Visit'];
 const productRelated = (purpose) => /(product|demo|quotation|sales)/i.test(purpose || '');
 const emptyPlan = (purposes) => ({
   visitDate: new Date().toISOString().slice(0, 10),
   expectedTime: '10:30 AM',
-  destinationType: 'Existing Customer',
+  destinationType: 'New Organization',
   customerId: '',
   customerName: '',
   organizationName: '',
@@ -29,8 +28,7 @@ const emptyPlan = (purposes) => ({
 });
 
 export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
-  const { customers, products, purposes, addVisitPlan, showToast } = useApp();
-  const navigate = useNavigate();
+  const { products, purposes, addVisitPlan, showToast } = useApp();
   const initialData = useMemo(() => emptyPlan(purposes), [purposes]);
   const [formData, setFormData] = useState(initialData);
   const [step, setStep] = useState(0);
@@ -60,24 +58,6 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
     setStep((current) => current + 1);
   };
 
-  const selectCustomer = (id) => {
-    const customer = customers.find((item) => String(item.id) === id);
-    if (!customer) return;
-    setError('');
-    setFormData((current) => ({
-      ...current,
-      customerId: customer.id,
-      customerName: customer.organizationName || customer.customerName || '',
-      organizationName: customer.organizationName || '',
-      organizationType: customer.organizationType || '',
-      contactPerson: customer.contactPerson || '',
-      mobileNumber: customer.mobileNumber || customer.mobile || '',
-      area: customer.area || customer.city || current.area,
-      district: customer.district || '',
-      city: customer.city || ''
-    }));
-  };
-
   const changeDestination = (destinationType) => {
     setError('');
     setFormData((current) => ({
@@ -86,9 +66,9 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
       customerId: destinationType === 'Existing Customer' ? current.customerId : '',
       customerName: destinationType === 'Existing Customer' ? current.customerName : '',
       organizationName: destinationType === 'New Organization' ? current.organizationName : '',
-      organizationType: destinationType === 'No Customer / General Visit' ? '' : current.organizationType,
-      contactPerson: destinationType === 'No Customer / General Visit' ? '' : current.contactPerson,
-      mobileNumber: destinationType === 'No Customer / General Visit' ? '' : current.mobileNumber
+      organizationType: destinationType === 'General Visit' ? '' : current.organizationType,
+      contactPerson: destinationType === 'General Visit' ? '' : current.contactPerson,
+      mobileNumber: destinationType === 'General Visit' ? '' : current.mobileNumber
     }));
   };
 
@@ -175,23 +155,18 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
       </div>}
 
       {step === 1 && <div className="ds-form-grid">
-        <SelectField className="ds-field--full" label="Visit Destination Type" value={formData.destinationType} onChange={(event) => changeDestination(event.target.value)}>
+        <SelectField className="ds-field--full" label="Visit Type" value={formData.destinationType} onChange={(event) => changeDestination(event.target.value)}>
           {DESTINATIONS.map((destination) => <option key={destination}>{destination}</option>)}
         </SelectField>
-        {formData.destinationType === 'Existing Customer' && <>
-          {customers.length
-            ? <SearchableCustomerSelect customers={customers} value={formData.customerId} onChange={selectCustomer} onAddCustomer={() => { onClose(); navigate('/marketing/customers?action=add-customer'); }} hint="Search existing customers. Add Customer remains optional." />
-            : <div className="ds-summary ds-field--full"><strong>No customers are available yet.</strong><span>Select New Organization or General Visit to continue, or add a customer when needed.</span></div>}
-          {formData.customerId && <div className="ds-summary ds-field--full"><strong>{formData.customerName}</strong><span>{formData.contactPerson || 'Contact not provided'} · {formData.mobileNumber || 'Mobile not provided'}</span><span>{formData.area || formData.city || 'Area not provided'}</span></div>}
-        </>}
         {formData.destinationType === 'New Organization' && <>
+          <div className="ds-summary ds-field--full"><strong>Organization / Person to Meet (Optional)</strong></div>
           <FormField label="Organization Name (Optional)" value={formData.organizationName} onChange={(event) => update('organizationName', event.target.value)} />
           <FormField label="Organization Type" value={formData.organizationType} onChange={(event) => update('organizationType', event.target.value)} />
           <FormField label="Who are you meeting?" hint="Contact Person" value={formData.contactPerson} onChange={(event) => update('contactPerson', event.target.value)} />
           <FormField label="Mobile Number" value={formData.mobileNumber} onChange={(event) => update('mobileNumber', event.target.value)} />
-          <div className="ds-summary ds-field--full"><span>This organization stays on this visit plan. It will not be added as a customer automatically.</span></div>
+          <div className="ds-summary ds-field--full"><span>This organization is stored only with this visit plan.</span></div>
         </>}
-        {formData.destinationType === 'No Customer / General Visit' && <div className="ds-summary ds-field--full"><strong>No customer is required.</strong><span>Use this for service, inspection, collection, area survey, and general Marketing visits.</span></div>}
+        {formData.destinationType === 'General Visit' && <div className="ds-summary ds-field--full"><strong>No organization is required.</strong><span>Use this for service, inspection, collection, area survey, and general Marketing visits.</span></div>}
       </div>}
 
       {step === 2 && <div className="ds-form-grid">
@@ -213,7 +188,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
       {step === 3 && <div className="ds-review"><h3>Review Visit Plan</h3><dl>
         <dt>Where</dt><dd>{formData.area} · {destinationName || 'Not provided'}</dd>
         <dt>When</dt><dd>{formData.visitDate} at {formData.expectedTime}</dd>
-        <dt>Whom</dt><dd>{formData.contactPerson || (formData.destinationType === 'No Customer / General Visit' ? 'General visit' : 'Not provided')}{formData.mobileNumber ? ` · ${formData.mobileNumber}` : ''}</dd>
+        <dt>Whom</dt><dd>{formData.contactPerson || (formData.destinationType === 'General Visit' ? 'General visit' : 'Not provided')}{formData.mobileNumber ? ` · ${formData.mobileNumber}` : ''}</dd>
         <dt>Why</dt><dd>{formData.visitPurpose}</dd>
         <dt>Products</dt><dd>{formData.selectedProducts.join(', ') || 'Custom / no configured product'}</dd>
         <dt>Requirement (Optional)</dt><dd>{formData.requirement || 'Not provided'}</dd>

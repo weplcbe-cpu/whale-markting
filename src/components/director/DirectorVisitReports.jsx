@@ -105,13 +105,12 @@ export const DirectorVisitReports = () => {
                   <th>Planned</th>
                   <th>Completed</th>
                   <th>Cancelled</th>
-                  <th>New Customers</th>
                   <th>Important Discussion</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {dailyReports.length === 0 && <tr><td colSpan="8"><div className="ds-empty"><h3>No daily reports have been submitted yet.</h3><p>Marketing daily summaries will appear here automatically.</p></div></td></tr>}
+                {dailyReports.length === 0 && <tr><td colSpan="7"><div className="ds-empty"><h3>No daily reports have been submitted yet.</h3><p>Marketing daily summaries will appear here automatically.</p></div></td></tr>}
                 {dailyReports.map(d => (
                   <tr key={d.id}>
                     <td><strong>{d.date}</strong></td>
@@ -119,7 +118,6 @@ export const DirectorVisitReports = () => {
                     <td>{d.plannedVisits}</td>
                     <td><strong style={{ color: 'var(--accent-emerald)' }}>{d.completedVisits}</strong></td>
                     <td><span style={{ color: 'var(--accent-rose)' }}>{d.cancelledVisits}</span></td>
-                    <td>{d.newCustomersAdded}</td>
                     <td style={{ maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {d.importantDiscussion}
                     </td>

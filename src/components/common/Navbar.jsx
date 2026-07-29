@@ -23,7 +23,6 @@ const portalTitleMap = {
 // Mapping for page titles based on active tab (including sub‑tabs)
 const pageTitleMap = {
   dashboard: 'Dashboard',
-  customers: 'Customers',
   visits: 'Visits & Schedule',
   reports: 'Reports',
   'follow-ups': 'Follow‑ups',
@@ -39,7 +38,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, customers, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -56,25 +55,21 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
     if (currentRole === 'Marketing Team') {
       if (text.includes('comment')) return '/marketing/director-comments';
       if (text.includes('tender')) return '/marketing/tenders';
-      if (text.includes('customer')) return '/marketing/customers';
       if (text.includes('report')) return '/marketing/reports';
       return '/marketing/visits';
     }
     if (currentRole === 'Admin') {
-      if (text.includes('customer')) return '/admin/customer-approvals';
       if (text.includes('user') || text.includes('employee')) return '/admin/users';
       return '/admin/reports';
     }
     if (text.includes('tender')) return '/director/tenders';
     if (text.includes('report')) return '/director/visit-reports';
-    if (text.includes('customer')) return '/director/customers';
     if (text.includes('comment')) return '/director/comments';
     if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';
     return '/director/notifications';
   };
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
-    ...customers.filter(item => `${item.organizationName || ''} ${item.district || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `customer-${item.id}`, label: item.organizationName, group: 'Customers', path: '/director/customers' })),
     ...visitPlans.filter(item => `${item.customerName || ''} ${item.area || item.district || ''} ${item.visitPurpose || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `plan-${item.id}`, label: `${item.customerName || item.area} · ${item.visitDate}`, group: 'Visit Plans', path: '/director/tour-plans' })),
     ...tenders.filter(item => `${item.tenderName || ''} ${item.tenderNumber || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `tender-${item.id}`, label: item.tenderName, group: 'Tenders', path: '/director/tenders' })),
     ...[...visitReports, ...dailyReports].filter(item => `${item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.employeeName} report`, group: 'Reports', path: '/director/visit-reports' }))
@@ -140,7 +135,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
           <input
             type="text"
             className="global-search-input"
-            placeholder="Search plans, customers..."
+            placeholder="Search plans, reports, tenders..."
             value={globalSearch}
             onChange={e => setGlobalSearch(e.target.value)}
           />

@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Clock, Save } from 'lucide-react';
 
 export const DailyReportSubmit = () => {
-  const { currentUser, visitPlans, customers, followUps, submitDailyReport, companyInfo } = useApp();
+  const { currentUser, visitPlans, followUps, submitDailyReport, companyInfo } = useApp();
 
   const empId = currentUser?.employeeId || 'EMP001';
   const todayStr = new Date().toISOString().split('T')[0];
@@ -13,7 +13,6 @@ export const DailyReportSubmit = () => {
   const plannedCount = todayVisits.length;
   const completedCount = todayVisits.filter(p => p.status === 'Completed').length;
   const cancelledCount = todayVisits.filter(p => p.status === 'Cancelled').length;
-  const newCustomersCount = customers.filter(c => c.createdBy === empId && c.createdDate === todayStr).length;
   const followupsCompletedCount = followUps.filter(f => f.employeeId === empId && f.status === 'Completed').length;
 
   const [formData, setFormData] = useState({
@@ -31,7 +30,6 @@ export const DailyReportSubmit = () => {
       plannedVisits: plannedCount,
       completedVisits: completedCount,
       cancelledVisits: cancelledCount,
-      newCustomersAdded: newCustomersCount,
       followUpsCompleted: followupsCompletedCount,
       importantDiscussion: formData.importantDiscussion,
       pendingActions: formData.pendingActions,
@@ -63,11 +61,6 @@ export const DailyReportSubmit = () => {
           <div style={{ padding: '10px', background: 'rgba(244, 63, 94, 0.12)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '0.72rem', color: '#fb7185' }}>Cancelled</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fb7185' }}>{cancelledCount}</div>
-          </div>
-
-          <div style={{ padding: '10px', background: 'rgba(2, 132, 199, 0.12)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.72rem', color: '#38bdf8' }}>New Cust</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#38bdf8' }}>{newCustomersCount}</div>
           </div>
 
           <div style={{ padding: '10px', background: 'rgba(139, 92, 246, 0.12)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>

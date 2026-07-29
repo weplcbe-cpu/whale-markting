@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { adminRoutes, directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
 import {
   LayoutDashboard,
-  Building2,
   Calendar,
   FileSpreadsheet,
   Clock,
@@ -33,7 +32,6 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   // Single-source 9-Item Marketing Sidebar Navigation (Zero Duplication)
   const marketingIcons = {
     dashboard: LayoutDashboard,
-    customers: Building2,
     visits: Calendar,
     reports: FileSpreadsheet,
     'follow-ups': Clock,
@@ -48,12 +46,12 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   }));
 
   // Single-source 8-Item Director Sidebar Navigation
-  const directorIcons = { dashboard: LayoutDashboard, team: Users, 'today-schedule': Clock, 'weekly-plans': Calendar, 'visit-plans': Calendar, 'visit-reports': FileSpreadsheet, 'daily-reports': FileSpreadsheet, customers: Building2, 'follow-ups': Clock, tenders: FileText, 'product-overview': Package, 'area-overview': Building2, performance: BarChart3, reports: FileSpreadsheet, comments: MessageSquare, notifications: MessageSquare, profile: User };
+  const directorIcons = { dashboard: LayoutDashboard, team: Users, 'today-schedule': Clock, 'weekly-plans': Calendar, 'visit-plans': Calendar, 'visit-reports': FileSpreadsheet, 'daily-reports': FileSpreadsheet, 'follow-ups': Clock, tenders: FileText, 'product-overview': Package, 'area-overview': BarChart3, performance: BarChart3, reports: FileSpreadsheet, comments: MessageSquare, notifications: MessageSquare, profile: User };
   const directorMenu = directorRoutes.filter(route => route.nav !== false).map(route => ({ ...route, icon: directorIcons[route.id], badge: route.id === 'notifications' ? unreadNotifsCount : undefined }));
   const directorGroups = directorNavigation.map((group) => ({ ...group, items: group.routeIds.map((id) => directorMenu.find((route) => route.id === id)).filter(Boolean) }));
 
   // Single-source 8-Item Admin Sidebar Navigation
-  const adminIcons = { dashboard: LayoutDashboard, users: Users, 'customer-approvals': Building2, products: Package, 'master-data': Database, reports: BarChart3, 'activity-logs': Clock, settings: User };
+  const adminIcons = { dashboard: LayoutDashboard, users: Users, products: Package, 'master-data': Database, reports: BarChart3, 'activity-logs': Clock, settings: User };
   const adminMenu = adminRoutes.map(route => ({ ...route, icon: adminIcons[route.id] }));
 
   const menuItems = currentRole === 'Admin'
