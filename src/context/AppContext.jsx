@@ -620,22 +620,41 @@ export const AppProvider = ({ children }) => {
   // Visit Plans
   // ---------------------------------------------------------------------
   const addVisitPlan = async (planData) => {
-    const row = objToSnakeRow({
-      ...planData,
-      employeeId: currentUser?.employeeId,
-      fullName: currentUser?.fullName || currentUser?.employeeName,
-      status: normalizePlanStatus(planData.status || 'Planned'),
-      rescheduleHistory: []
+    const submissionKey = planData.submissionKey || crypto.randomUUID();
+    const payload = {
+      visitDate: planData.visitDate,
+      expectedTime: planData.expectedTime,
+      destinationType: planData.destinationType,
+      customerId: planData.customerId || null,
+      customerName: planData.customerName || null,
+      organizationName: planData.organizationName || null,
+      organizationType: planData.organizationType || null,
+      contactPerson: planData.contactPerson || null,
+      mobileNumber: planData.mobileNumber || planData.mobile || null,
+      area: planData.area,
+      city: planData.city || null,
+      district: planData.district || null,
+      state: planData.state || null,
+      visitPurpose: planData.visitPurpose,
+      products: Array.isArray(planData.products) ? planData.products : [],
+      requirement: planData.requirement,
+      priority: planData.priority || 'Medium',
+      notes: planData.notes || null
+    };
+    const { data, error } = await supabase.rpc('submit_marketing_visit_plan', {
+      p_plan: payload,
+      p_submission_key: submissionKey
     });
-    const { data, error } = await supabase.from('visit_plans').insert(row).select().single();
     if (error) {
-      showToast('Failed to create visit plan', 'error');
-      return;
+      console.error('Visit plan submission failed:', error);
+      throw new Error(error.message || 'Failed to submit visit plan.');
     }
-    setVisitPlans(prev => [rowToCamel(data), ...prev]);
-    await refreshEntity('visit_plans');
-    logActivity(`Created visit plan for ${planData.customerName} on ${planData.visitDate}`, 'Visit Plan');
-    return normalizeVisitPlan(rowToCamel(data));
+    if (!data?.success || !data.plan) throw new Error('The database did not confirm the visit plan submission.');
+    const saved = normalizeVisitPlan(rowToCamel(data.plan));
+    setVisitPlans((previous) => previous.some((plan) => plan.id === saved.id) ? previous : [saved, ...previous]);
+    await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
+    logActivity(`Submitted visit plan for ${planData.area} on ${planData.visitDate} for Director approval`, 'Visit Plan');
+    return saved;
   };
 
   const toTourPlanRow = (plan, { planType, periodFrom, periodTo, status }) => objToSnakeRow({
@@ -788,6 +807,15 @@ export const AppProvider = ({ children }) => {
     await refreshEntity('visit_plans');
     logActivity(`Updated visit status to ${newStatus} for ${target.customerName}`, 'Visit Status');
     showToast(`Visit status updated to ${newStatus}`, 'info');
+  };
+
+  const markVisitPlanImportant = async (id, isImportant = true) => {
+    const { error } = await supabase.from('visit_plans').update({ is_important: isImportant }).eq('id', id);
+    if (error) throw error;
+    setVisitPlans((previous) => previous.map((plan) => plan.id === id ? { ...plan, isImportant } : plan));
+    await refreshEntity('visit_plans');
+    showToast(isImportant ? 'Visit plan marked important.' : 'Important mark removed.', 'success');
+    return true;
   };
 
   const updateTourPlanBatchStatus = async (batchId, newStatus, extra = {}) => {
@@ -1037,6 +1065,7 @@ export const AppProvider = ({ children }) => {
     addTourPlanBatch,
     deleteVisitPlanEntry,
     updateVisitPlanStatus,
+    markVisitPlanImportant,
     updateTourPlanBatchStatus,
     requestTourPlanChanges,
     reviewTourPlanBatch,

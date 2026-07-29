@@ -2,7 +2,8 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { getMarketingRouteById } from '../../routes';
-import { Calendar, Building2, Clock, CheckCircle2, UserPlus, PlusCircle, MessageSquare, ArrowRight, TrendingUp } from 'lucide-react';
+import { Building2, Calendar, CheckCircle2, Clock, UserPlus, PlusCircle, MessageSquare, ArrowRight, TrendingUp } from 'lucide-react';
+import { normalizePlanStatus } from '../../utils/planStatus';
 
 export const MarketingDashboard = () => {
   const { currentUser, visitPlans, customers, followUps, directorComments } = useApp();
@@ -20,9 +21,8 @@ export const MarketingDashboard = () => {
   });
 
   const myTodayVisits = visitPlans.filter(p => p.employeeId === empId && (p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]));
-  const myWeeklyPlans = visitPlans.filter(p => p.employeeId === empId);
   const myPendingFollowups = followUps.filter(f => f.employeeId === empId && f.status === 'Pending');
-  const myCompletedVisits = visitPlans.filter(p => p.employeeId === empId && p.status === 'Completed').length;
+  const myPendingApproval = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Pending Approval').length;
   const myCustomers = customers.filter(c => c.createdBy === empId).length;
 
   const myDirectorComments = directorComments.filter(c => c.targetEmployeeId === empId);
@@ -38,16 +38,16 @@ export const MarketingDashboard = () => {
 
         {/* Quick Action Buttons */}
         <div className="hero-actions">
-          <button className="btn btn-action" onClick={() => goTo('customers', '?action=add-customer')}>
-            <UserPlus size={18} /> + Add Customer
-          </button>
-
-          <button className="btn btn-secondary" onClick={() => goTo('visits', '?action=add-visit-plan')}>
+          <button className="btn btn-action" onClick={() => goTo('visits', '?action=add-visit-plan')}>
             <PlusCircle size={18} /> + Add Visit Plan
           </button>
 
           <button className="btn btn-secondary" onClick={() => goTo('reports')}>
             <Clock size={18} /> Submit Daily Report
+          </button>
+
+          <button className="btn btn-secondary" onClick={() => goTo('customers', '?action=add-customer')}>
+            <UserPlus size={18} /> Add Customer (Optional)
           </button>
         </div>
       </div>
@@ -68,11 +68,11 @@ export const MarketingDashboard = () => {
         <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper blue"><Calendar size={24} /></div>
           <div className="stat-content">
-            <div className="stat-value">{myWeeklyPlans.length}</div>
-            <div className="stat-label">This Week Plans</div>
+            <div className="stat-value">{myPendingApproval}</div>
+            <div className="stat-label">Pending Approval</div>
           </div>
           <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: 'var(--primary-blue)', fontWeight: 700 }}>
-            Scheduled
+            Director review
           </div>
         </div>
 
@@ -90,8 +90,8 @@ export const MarketingDashboard = () => {
         <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
-            <div className="stat-value">{myCompletedVisits}</div>
-            <div className="stat-label">Completed Visits</div>
+            <div className="stat-value">{myDirectorComments.length}</div>
+            <div className="stat-label">Director Comments</div>
           </div>
           <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>
             100% Verified
