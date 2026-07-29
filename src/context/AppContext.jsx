@@ -663,49 +663,41 @@ export const AppProvider = ({ children }) => {
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit entry was not found. Refresh and try again.');
     const status = normalizePlanStatus(target.status);
+    const rawStatus = String(target.status || '').trim().toLowerCase();
+    const legacyStatuses = new Set([
+      'approved',
+      'rejected',
+      'changes requested',
+      'pending approval',
+      'submitted for director approval'
+    ]);
     const role = normalizeRole(currentUser?.role);
-    if (role === 'Director' || (!['Admin', 'Marketing Team'].includes(role))) {
-      throw new Error('You do not have permission to delete this visit entry.');
+    if (role !== 'Marketing Team') {
+      throw new Error('Only the Marketing owner can delete this visit plan.');
     }
-    if (role !== 'Admin' && target.employeeId !== currentUser?.employeeId) {
+    if (target.employeeId !== currentUser?.employeeId) {
       throw new Error('You can only delete your own visit entries.');
     }
-    if (role !== 'Admin' && !['Draft', 'Rejected', 'Changes Requested'].includes(status)) {
-      throw new Error('Only Draft, Rejected, or Changes Requested entries can be deleted.');
-    }
-    // The existing RLS policy permits owned Draft and Changes Requested rows.
-    // Temporarily make an owned Rejected row deletable without changing RLS.
-    if (role !== 'Admin' && status === 'Rejected') {
-      const { error: prepareError } = await supabase
-        .from('visit_plans')
-        .update({ status: 'Draft' })
-        .eq('id', entryId)
-        .eq('employee_id', currentUser.employeeId);
-      if (prepareError) {
-        showToast('Unable to prepare the rejected visit plan for deletion.', 'error');
-        throw prepareError;
-      }
+    if (status !== 'Draft' && !legacyStatuses.has(rawStatus)) {
+      throw new Error('This visit plan status cannot be deleted.');
     }
     const { data: deletedRows, error } = await supabase
       .from('visit_plans')
       .delete()
       .eq('id', entryId)
+      .eq('employee_id', currentUser.employeeId)
       .select('id');
     if (error) {
-      if (role !== 'Admin' && status === 'Rejected') {
-        await supabase.from('visit_plans').update({ status: 'Rejected' }).eq('id', entryId);
-      }
-      showToast('Unable to delete the visit entry. Please try again.', 'error');
-      throw error;
-    }
-    if (!deletedRows?.length) {
-      if (role !== 'Admin' && status === 'Rejected') {
-        await supabase.from('visit_plans').update({ status: 'Rejected' }).eq('id', entryId);
-      }
-      const deleteError = new Error('The visit plan could not be deleted.');
+      const deleteError = new Error(error.message || 'The database rejected the delete request.');
       showToast(deleteError.message, 'error');
       throw deleteError;
     }
+    if (deletedRows?.length !== 1) {
+      const deleteError = new Error('The database security policy blocked deletion of this visit plan.');
+      showToast(deleteError.message, 'error');
+      throw deleteError;
+    }
+    setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
     await refreshEntity('visit_plans');
     logActivity(`Deleted visit entry ID ${entryId}`, 'Tour Plan');
     return true;

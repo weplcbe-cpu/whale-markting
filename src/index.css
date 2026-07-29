@@ -2225,6 +2225,24 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   overflow-x: hidden;
 }
 
+.field-visit-actions {
+  min-width: 160px;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 575px) {
+  .field-visit-actions {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (min-width: 576px) and (max-width: 1023px) {
   .ds-modal {
     width: calc(100vw - 24px);

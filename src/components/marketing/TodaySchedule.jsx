@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
-import { ModalPortal } from '../ui';
+import { ConfirmationDialog, ModalPortal } from '../ui';
+
+const LEGACY_STATUSES = new Set([
+  'approved',
+  'rejected',
+  'changes requested',
+  'pending approval',
+  'submitted for director approval'
+]);
 
 export const TodaySchedule = () => {
   const {
@@ -27,6 +35,7 @@ export const TodaySchedule = () => {
   const [rescheduleModal, setRescheduleModal] = useState(null);
   const [detailsModal, setDetailsModal] = useState(null);
   const [editModal, setEditModal] = useState(null);
+  const [deletingPlan, setDeletingPlan] = useState(null);
   const [busyAction, setBusyAction] = useState('');
 
   // Form states
@@ -105,12 +114,14 @@ export const TodaySchedule = () => {
     }
   };
 
-  const handleDelete = async (visit) => {
-    if (busyAction || !window.confirm('Permanently delete this visit plan? This cannot be undone.')) return;
+  const handleDelete = async () => {
+    if (busyAction || !deletingPlan) return;
+    const visit = deletingPlan;
     setBusyAction(`delete-${visit.id}`);
     try {
       await deleteVisitPlanEntry(visit.id);
       showToast('Visit plan permanently deleted.', 'success');
+      setDeletingPlan(null);
     } catch (error) {
       showToast(error?.message || 'Unable to delete the visit plan.', 'error');
     } finally {
@@ -132,7 +143,14 @@ export const TodaySchedule = () => {
 
   const renderActions = (visit) => {
     const status = normalizePlanStatus(visit.status);
+    const rawStatus = String(visit.status || '').trim().toLowerCase();
     const pending = busyAction.endsWith(visit.id);
+    if (LEGACY_STATUSES.has(rawStatus)) {
+      return <>
+        <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>
+        <button className="btn btn-danger btn-sm" disabled={pending || !visit.id} onClick={() => setDeletingPlan(visit)}><Trash2 size={14} /> Delete</button>
+      </>;
+    }
     if (['Completed', 'Cancelled'].includes(status)) {
       return <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>;
     }
@@ -161,7 +179,7 @@ export const TodaySchedule = () => {
     if (status === 'Draft') {
       return <>
         <button className="btn btn-secondary btn-sm" disabled={pending} onClick={() => openEditor(visit)}><Edit3 size={14} /> Edit</button>
-        <button className="btn btn-danger btn-sm" disabled={pending} onClick={() => handleDelete(visit)}><Trash2 size={14} /> Delete</button>
+        <button className="btn btn-danger btn-sm" disabled={pending || !visit.id} onClick={() => setDeletingPlan(visit)}><Trash2 size={14} /> Delete</button>
         <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => handleResubmit(visit)}><Send size={14} /> Submit Visit Plan</button>
       </>;
     }
@@ -204,7 +222,7 @@ export const TodaySchedule = () => {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '160px' }}>
+              <div className="field-visit-actions">
                 {renderActions(visit)}
               </div>
             </div>
@@ -250,6 +268,19 @@ export const TodaySchedule = () => {
           </div>
         </ModalPortal>
       )}
+
+      <ConfirmationDialog
+        open={Boolean(deletingPlan)}
+        title="Delete this visit plan permanently?"
+        message="This action cannot be undone."
+        confirmLabel="Delete Visit Plan"
+        danger
+        confirming={Boolean(deletingPlan && busyAction === `delete-${deletingPlan.id}`)}
+        onClose={() => {
+          if (!busyAction) setDeletingPlan(null);
+        }}
+        onConfirm={handleDelete}
+      />
 
       {/* Start Visit Modal */}
       {startVisitModal && (
