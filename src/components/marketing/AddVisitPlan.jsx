@@ -46,10 +46,8 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
 
   const validateStep = (targetStep = step) => {
     if (targetStep === 0 && (!formData.visitDate || !formData.expectedTime || !formData.area.trim())) return 'Enter the visit date, expected time, and area or city.';
-    if (targetStep === 1 && formData.destinationType === 'Existing Customer' && !formData.customerId) return 'Choose an existing customer, or select another destination type.';
-    if (targetStep === 1 && formData.destinationType === 'New Organization' && !formData.organizationName.trim()) return 'Enter the organization name.';
-    if (targetStep === 2 && (!formData.visitPurpose || !formData.requirement.trim())) return 'Enter the visit purpose and requirement or objective.';
-    if (targetStep === 2 && productRelated(formData.visitPurpose) && !formData.selectedProducts.length && !formData.requirement.trim()) return 'Select a product or describe the custom requirement.';
+    if (targetStep === 2 && !formData.visitPurpose) return 'Enter the visit purpose.';
+    if (targetStep === 2 && productRelated(formData.visitPurpose) && !formData.selectedProducts.length) return 'Select at least one product for this visit purpose.';
     return '';
   };
 
@@ -118,7 +116,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
       if (!saved) throw new Error('The visit plan was not saved.');
       localStorage.removeItem(DRAFT_KEY);
       submissionKey.current = crypto.randomUUID();
-      showToast?.('Visit plan submitted for Director approval.', 'success');
+      showToast?.('Visit Plan Submitted Successfully.', 'success');
       onClose();
     } catch (submissionError) {
       setError(submissionError?.message || 'Unable to submit the visit plan. Your draft has been preserved.');
@@ -163,10 +161,10 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
     {step > 0 && <Button variant="secondary" onClick={() => { setError(''); setStep(step - 1); }}>Back</Button>}
     {step < 3
       ? <Button onClick={next}>Continue</Button>
-      : <Button onClick={submit} loading={submitting} disabled={submitting}><Save size={16} /> Submit for Director Approval</Button>}
+      : <Button onClick={submit} loading={submitting} disabled={submitting}><Save size={16} /> Submit Visit Plan</Button>}
   </>;
 
-  return <Modal open={open} onClose={onClose} dirty={dirty} title="Create Visit Plan" subtitle="Tell the Director where you are going, whom you will meet, and why." footer={footer}>
+  return <Modal open={open} onClose={onClose} dirty={dirty} title="Create Visit Plan" subtitle="Enter where you are going, whom you will meet, and why." footer={footer}>
     <Stepper steps={['Date, time & area', 'Destination', 'Purpose & requirement', 'Review & submit']} current={step} />
     {error && <div className="form-error ds-field--full" role="alert">{error}</div>}
     <div key={step} className="ds-step-panel">
@@ -177,17 +175,17 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
       </div>}
 
       {step === 1 && <div className="ds-form-grid">
-        <SelectField className="ds-field--full" label="Visit Destination Type" required value={formData.destinationType} onChange={(event) => changeDestination(event.target.value)}>
+        <SelectField className="ds-field--full" label="Visit Destination Type" value={formData.destinationType} onChange={(event) => changeDestination(event.target.value)}>
           {DESTINATIONS.map((destination) => <option key={destination}>{destination}</option>)}
         </SelectField>
         {formData.destinationType === 'Existing Customer' && <>
           {customers.length
-            ? <SearchableCustomerSelect customers={customers} value={formData.customerId} onChange={selectCustomer} onAddCustomer={() => { onClose(); navigate('/marketing/customers?action=add-customer'); }} required hint="Search existing customers. Add Customer remains optional." />
+            ? <SearchableCustomerSelect customers={customers} value={formData.customerId} onChange={selectCustomer} onAddCustomer={() => { onClose(); navigate('/marketing/customers?action=add-customer'); }} hint="Search existing customers. Add Customer remains optional." />
             : <div className="ds-summary ds-field--full"><strong>No customers are available yet.</strong><span>Select New Organization or General Visit to continue, or add a customer when needed.</span></div>}
           {formData.customerId && <div className="ds-summary ds-field--full"><strong>{formData.customerName}</strong><span>{formData.contactPerson || 'Contact not provided'} · {formData.mobileNumber || 'Mobile not provided'}</span><span>{formData.area || formData.city || 'Area not provided'}</span></div>}
         </>}
         {formData.destinationType === 'New Organization' && <>
-          <FormField label="Organization Name" required value={formData.organizationName} onChange={(event) => update('organizationName', event.target.value)} />
+          <FormField label="Organization Name (Optional)" value={formData.organizationName} onChange={(event) => update('organizationName', event.target.value)} />
           <FormField label="Organization Type" value={formData.organizationType} onChange={(event) => update('organizationType', event.target.value)} />
           <FormField label="Who are you meeting?" hint="Contact Person" value={formData.contactPerson} onChange={(event) => update('contactPerson', event.target.value)} />
           <FormField label="Mobile Number" value={formData.mobileNumber} onChange={(event) => update('mobileNumber', event.target.value)} />
@@ -208,17 +206,17 @@ export const AddVisitPlan = ({ open = true, onClose = () => {} }) => {
             ? <div className="ds-choice-grid">{products.map((product) => <label className="ds-choice" key={product.id}><input type="checkbox" checked={formData.selectedProducts.includes(product.name)} onChange={() => toggleProduct(product.name)} /><span>{product.name}</span></label>)}</div>
             : <p className="ds-field-hint">No products are configured. Describe the custom requirement below.</p>}
         </fieldset>
-        <TextArea className="ds-field--full" label="Requirement / Objective" required rows={4} value={formData.requirement} onChange={(event) => update('requirement', event.target.value)} />
-        <TextArea className="ds-field--full" label="Notes" value={formData.notes} onChange={(event) => update('notes', event.target.value)} />
+        <TextArea className="ds-field--full" label="Requirement / Objective (Optional)" rows={4} value={formData.requirement} onChange={(event) => update('requirement', event.target.value)} />
+        <TextArea className="ds-field--full" label="Notes (Optional)" value={formData.notes} onChange={(event) => update('notes', event.target.value)} />
       </div>}
 
-      {step === 3 && <div className="ds-review"><h3>Review visit plan</h3><dl>
+      {step === 3 && <div className="ds-review"><h3>Review Visit Plan</h3><dl>
         <dt>Where</dt><dd>{formData.area} · {destinationName || 'Not provided'}</dd>
         <dt>When</dt><dd>{formData.visitDate} at {formData.expectedTime}</dd>
         <dt>Whom</dt><dd>{formData.contactPerson || (formData.destinationType === 'No Customer / General Visit' ? 'General visit' : 'Not provided')}{formData.mobileNumber ? ` · ${formData.mobileNumber}` : ''}</dd>
         <dt>Why</dt><dd>{formData.visitPurpose}</dd>
         <dt>Products</dt><dd>{formData.selectedProducts.join(', ') || 'Custom / no configured product'}</dd>
-        <dt>Requirement</dt><dd>{formData.requirement}</dd>
+        <dt>Requirement (Optional)</dt><dd>{formData.requirement || 'Not provided'}</dd>
         <dt>Priority</dt><dd>{formData.priority}</dd>
       </dl></div>}
     </div>
