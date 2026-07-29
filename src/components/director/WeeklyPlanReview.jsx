@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { FileSpreadsheet, X } from 'lucide-react';
+import { FileSpreadsheet, Phone, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getTourPlanBatchId, inferPlanType, normalizePlanStatus } from '../../utils/planStatus';
 
 const LIST_PATH = '/director/tour-plans';
 const displayDate = (value) => value ? value.split('-').reverse().join('-') : 'Not provided';
 const displayValue = (value) => value || 'Not provided';
-const destinationName = (entry) => entry.customerName || entry.organizationName || 'General visit';
+const destinationName = (entry) => entry.customerName || entry.organizationName || 'Customer not selected';
 
 export const WeeklyPlanReview = () => {
   const { batchId: selectedPlanBatchId } = useParams();
@@ -47,11 +47,12 @@ export const WeeklyPlanReview = () => {
     return () => { document.body.style.overflow = previousOverflow; };
   }, [selectedPlanBatchId]);
 
-  const employeeName = (batch) => batch?.fullName
+  const employeeName = (batch) => batch?.employeeName || batch?.fullName
     || users.find((user) => user.employeeId === batch?.employeeId)?.fullName
     || users.find((user) => user.employeeId === batch?.employeeId)?.username
     || batch?.employeeId
     || 'Unknown employee';
+  const employeeMobile = (batch) => users.find((user) => user.employeeId === batch?.employeeId)?.mobileNumber || users.find((user) => user.employeeId === batch?.employeeId)?.mobile;
   const listLocation = { pathname: LIST_PATH, search: location.search };
   const handleBack = () => navigate(listLocation);
   const openPlan = (batch) => {
@@ -111,12 +112,14 @@ export const WeeklyPlanReview = () => {
               <div><small>Priority</small><strong>{entry.priority || 'Medium'}</strong></div>
               <div><small>Notes</small><strong>{displayValue(entry.notes)}</strong></div>
               <div><small>Status</small><strong>{normalizePlanStatus(entry.status)}</strong></div>
+              <div><small>Submitted Date and Time</small><strong>{entry.submittedAt ? new Date(entry.submittedAt).toLocaleString() : 'Not provided'}</strong></div>
             </article>)}</div>
           </>}
         </div>
 
         <footer className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={handleBack}>Back</button>
+          {selectedPlan && employeeMobile(selectedPlan) && <button type="button" className="btn btn-primary" onClick={() => { window.location.href = `tel:${employeeMobile(selectedPlan)}`; }}><Phone size={16} /> Call Employee</button>}
         </footer>
       </section>
     </div>,

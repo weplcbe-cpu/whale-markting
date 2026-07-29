@@ -22,7 +22,7 @@ export const MarketingDashboard = () => {
 
   const myTodayVisits = visitPlans.filter(p => p.employeeId === empId && (p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]));
   const myPendingFollowups = followUps.filter(f => f.employeeId === empId && f.status === 'Pending');
-  const myPendingApproval = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Pending Approval').length;
+  const mySubmittedPlans = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Submitted').length;
   const myCustomers = customers.filter(c => c.createdBy === empId).length;
 
   const myDirectorComments = directorComments.filter(c => c.targetEmployeeId === empId);
@@ -68,11 +68,11 @@ export const MarketingDashboard = () => {
         <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper blue"><Calendar size={24} /></div>
           <div className="stat-content">
-            <div className="stat-value">{myPendingApproval}</div>
-            <div className="stat-label">Pending Approval</div>
+            <div className="stat-value">{mySubmittedPlans}</div>
+            <div className="stat-label">Submitted Plans</div>
           </div>
           <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: 'var(--primary-blue)', fontWeight: 700 }}>
-            Director review
+            Saved
           </div>
         </div>
 

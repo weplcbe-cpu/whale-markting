@@ -650,10 +650,11 @@ export const AppProvider = ({ children }) => {
       throw new Error(error.message || 'Failed to submit visit plan.');
     }
     if (!data?.success || !data.plan) throw new Error('The database did not confirm the visit plan submission.');
+    if (data.notificationError) console.error('Director visit plan notification failed:', data.notificationError);
     const saved = normalizeVisitPlan(rowToCamel(data.plan));
     setVisitPlans((previous) => previous.some((plan) => plan.id === saved.id) ? previous : [saved, ...previous]);
     await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
-    logActivity(`Submitted visit plan for ${planData.area} on ${planData.visitDate} for Director approval`, 'Visit Plan');
+    logActivity(`Submitted visit plan for ${planData.area} on ${planData.visitDate}`, 'Visit Plan');
     return saved;
   };
 
@@ -741,7 +742,7 @@ export const AppProvider = ({ children }) => {
   const addTourPlanBatch = async ({ rows, planType, periodFrom, periodTo }) => {
     const batchId = crypto.randomUUID();
     const submittedAt = new Date().toISOString();
-    const status = 'Pending Approval';
+    const status = 'Submitted';
     const payload = rows.map((plan) => objToSnakeRow({
       employeeId: currentUser?.employeeId,
       fullName: currentUser?.fullName || currentUser?.employeeName,
@@ -787,11 +788,11 @@ export const AppProvider = ({ children }) => {
 
     const directorIds = users.filter((user) => user.role === 'Director' && user.status === 'Active').map((user) => user.employeeId).filter(Boolean);
     if (directorIds.length) {
-      const notificationsToCreate = directorIds.map((userId) => ({ user_id: userId, title: `${planType} tour plan awaiting review`, message: `${currentUser?.fullName || currentUser?.employeeName || currentUser?.employeeId} submitted ${saved.length} plan entries.`, timestamp: new Date().toLocaleString(), is_read: false, type: 'plan' }));
+      const notificationsToCreate = directorIds.slice(0, 1).map((userId) => ({ user_id: userId, title: `${planType} tour plan submitted`, message: `${currentUser?.fullName || currentUser?.employeeName || currentUser?.employeeId} submitted ${saved.length} plan entries.`, timestamp: new Date().toLocaleString(), is_read: false, type: 'plan' }));
       const { error: notificationError } = await supabase.from('notifications').insert(notificationsToCreate);
       if (notificationError) console.error('Director plan notification failed:', notificationError);
     }
-    logActivity(`Submitted ${planType.toLowerCase()} tour plan with ${saved.length} entries for Director approval`, 'Tour Plan');
+    logActivity(`Submitted ${planType.toLowerCase()} tour plan with ${saved.length} entries`, 'Tour Plan');
     return { batchId, rows: saved };
   };
 

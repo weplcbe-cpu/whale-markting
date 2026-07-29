@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, CheckCircle2, Clock, FileText, Users } from 'lucide-react';
+import { Building2, Calendar, CheckCircle2, Clock, FileText, Phone, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Badge, Button, DataTable, EmptyState, PageHeader, SectionCard } from '../ui';
-import { getTourPlanBatchId, isPendingPlan, normalizePlanStatus } from '../../utils/planStatus';
+import { Badge, Button, DataTable, EmptyState, Modal, PageHeader, SectionCard } from '../ui';
+import { normalizePlanStatus } from '../../utils/planStatus';
 
 const dateValue = (value) => value ? String(value).slice(0, 10) : '';
 
@@ -11,6 +11,7 @@ export const DirectorDashboard = () => {
   const navigate = useNavigate();
   const { currentUser, users, visitPlans, visitReports, dailyReports, followUps, tenders, activityLogs, lastUpdated, dataLoading } = useApp();
   const [period, setPeriod] = useState('Today');
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const now = new Date();
   const todayValue = now.toISOString().slice(0, 10);
 
@@ -34,14 +35,18 @@ export const DirectorDashboard = () => {
   const scopedPlans = visitPlans.filter((plan) => inPeriod(plan.visitDate));
   const completedPlans = scopedPlans.filter((plan) => normalizePlanStatus(plan.status) === 'Completed');
   const pendingPlans = scopedPlans.filter((plan) => !['Completed', 'Cancelled', 'Rejected'].includes(normalizePlanStatus(plan.status)));
+  const submittedPlans = scopedPlans
+    .filter((plan) => ['Submitted', 'Planned', 'Started', 'Completed', 'Rescheduled', 'Approved'].includes(normalizePlanStatus(plan.status)))
+    .sort((a, b) => String(b.submittedAt || b.createdAt).localeCompare(String(a.submittedAt || a.createdAt)));
   const scopedFollowUps = followUps.filter((item) => inPeriod(item.followUpDate));
   const pendingFollowUps = scopedFollowUps.filter((item) => item.status !== 'Completed');
   const scopedReports = dailyReports.filter((report) => inPeriod(report.date || report.reportDate || report.createdAt));
   const pendingReports = scopedReports.filter((report) => !['Approved', 'Completed'].includes(report.status));
   const scopedTenders = tenders.filter((tender) => inPeriod(tender.closingDate || tender.createdAt));
   const tenderOpportunities = scopedTenders.filter((tender) => !['Won', 'Lost'].includes(tender.status));
-  const pendingBatches = useMemo(() => [...new Map(visitPlans.filter(isPendingPlan).map((plan) => [getTourPlanBatchId(plan), plan]).filter(([batchId]) => batchId)).values()], [visitPlans]);
-  const nameFor = (employeeId, fallback) => fallback || marketing.find((user) => user.employeeId === employeeId)?.fullName || marketing.find((user) => user.employeeId === employeeId)?.username || employeeId || 'Not provided';
+  const employeeFor = (employeeId) => marketing.find((user) => user.employeeId === employeeId);
+  const nameFor = (employeeId, fallback) => fallback || employeeFor(employeeId)?.fullName || employeeFor(employeeId)?.username || employeeId || 'Not provided';
+  const destinationFor = (plan) => plan.customerName || plan.organizationName || 'Customer not selected';
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   const formattedDate = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -50,18 +55,11 @@ export const DirectorDashboard = () => {
     [`${period} Visits`, scopedPlans.length, Calendar, period === 'Today' ? '/director/today-schedule' : '/director/visit-plans'],
     ['Completed Visits', completedPlans.length, CheckCircle2, '/director/visit-reports'],
     ['Pending Visits', pendingPlans.length, Clock, '/director/visit-plans'],
-    ['Submitted Plans', pendingBatches.length, FileText, '/director/tour-plans'],
+    ['Submitted Plans', submittedPlans.length, FileText, '/director/visit-plans'],
     ['Pending Follow-ups', pendingFollowUps.length, Clock, '/director/follow-ups'],
     ['Pending Reports', pendingReports.length, FileText, '/director/daily-reports'],
     ['Tender Opportunities', tenderOpportunities.length, Building2, '/director/tenders']
   ];
-
-  const pendingActions = [
-    ...pendingBatches.map((plan) => ({ id: `plan-${getTourPlanBatchId(plan)}`, type: `${plan.planType || 'Tour'} Plan`, record: nameFor(plan.employeeId, plan.fullName), status: 'Pending Approval', path: `/director/tour-plans/${getTourPlanBatchId(plan)}` })),
-    ...pendingReports.map((report) => ({ id: `report-${report.id}`, type: 'Daily Report', record: nameFor(report.employeeId, report.fullName || report.employeeName), status: report.status || 'Pending', path: '/director/daily-reports' })),
-    ...pendingFollowUps.filter((item) => dateValue(item.followUpDate) < todayValue).map((item) => ({ id: `followup-${item.id}`, type: 'Overdue Follow-up', record: item.customerName || nameFor(item.employeeId), status: item.priority || 'Overdue', path: '/director/follow-ups' })),
-    ...tenderOpportunities.map((tender) => ({ id: `tender-${tender.id}`, type: 'Tender', record: tender.tenderName || tender.tenderNumber, status: tender.status || 'Open', path: '/director/tenders' }))
-  ].slice(0, 5);
 
   const teamRows = marketing.slice(0, 5).map((employee) => {
     const plans = scopedPlans.filter((plan) => plan.employeeId === employee.employeeId);
@@ -76,7 +74,40 @@ export const DirectorDashboard = () => {
     <div className="director-period-filter" aria-label="Dashboard date range">{['Today', 'This Week', 'This Month'].map((item) => <Button key={item} variant={period === item ? 'primary' : 'secondary'} onClick={() => setPeriod(item)}>{item}</Button>)}</div>
     <div className="stat-grid">{cards.map(([label, value, Icon, path]) => <button type="button" className="stat-card" key={label} onClick={() => navigate(path)}><div className="stat-icon-wrapper blue"><Icon size={22} /></div><div className="stat-content"><div className="stat-value">{value}</div><div className="stat-label">{label}</div></div></button>)}</div>
 
-    <SectionCard title="Submitted Plans and Updates" description="Open Marketing submissions in view-only mode" actions={<Button variant="secondary" onClick={() => navigate('/director/tour-plans')}>View All</Button>}><DataTable rows={pendingActions} columns={[{ key: 'type', label: 'Type' }, { key: 'record', label: 'Plan / Report / Follow-up / Tender' }, { key: 'status', label: 'Status', render: (row) => <Badge tone="warning">{row.status}</Badge> }, { key: 'action', label: 'Details', render: (row) => <Button variant="secondary" onClick={() => navigate(row.path)}>View Details</Button> }]} empty={<EmptyState icon={CheckCircle2} title="No submitted plans or updates" description="New Marketing submissions will appear here." />} /></SectionCard>
+    <SectionCard title="Submitted Plans and Updates" description={`Submitted Marketing visit plans for ${period.toLowerCase()}`} actions={<Button variant="secondary" onClick={() => navigate('/director/visit-plans')}>View All</Button>}><DataTable rows={submittedPlans.slice(0, 5)} columns={[
+      { key: 'employee', label: 'Employee', render: (row) => <><strong>{nameFor(row.employeeId, row.employeeName || row.fullName)}</strong><small>{row.employeeId || 'Not provided'}</small></> },
+      { key: 'date', label: 'Visit Date', render: (row) => row.visitDate || 'Not provided' },
+      { key: 'time', label: 'Expected Time', render: (row) => row.expectedTime || 'Not provided' },
+      { key: 'area', label: 'Area / City', render: (row) => row.area || row.city || row.district || 'Not provided' },
+      { key: 'destination', label: 'Customer / Organization', render: destinationFor },
+      { key: 'purpose', label: 'Visit Purpose', render: (row) => row.visitPurpose || 'Not provided' },
+      { key: 'products', label: 'Products', render: (row) => row.products?.length ? row.products.join(', ') : 'Not provided' },
+      { key: 'requirement', label: 'Requirement', render: (row) => row.requirement || 'Not provided' },
+      { key: 'priority', label: 'Priority', render: (row) => row.priority || 'Medium' },
+      { key: 'submitted', label: 'Submitted Time', render: (row) => row.submittedAt ? new Date(row.submittedAt).toLocaleString() : 'Not provided' },
+      { key: 'status', label: 'Status', render: (row) => <Badge tone="success">{normalizePlanStatus(row.status)}</Badge> },
+      { key: 'details', label: 'Details', render: (row) => <Button variant="secondary" onClick={() => setSelectedPlan(row)}>View Details</Button> }
+    ]} empty={<EmptyState icon={CheckCircle2} title="No submitted visit plans yet." />} /></SectionCard>
+
+    <Modal open={Boolean(selectedPlan)} onClose={() => setSelectedPlan(null)} title="Visit Plan Details" footer={<><Button variant="secondary" onClick={() => setSelectedPlan(null)}>Close</Button>{employeeFor(selectedPlan?.employeeId)?.mobileNumber && <Button onClick={() => { window.location.href = `tel:${employeeFor(selectedPlan.employeeId).mobileNumber}`; }}><Phone size={16} /> Call Employee</Button>}</>}>
+      {selectedPlan && <div className="director-detail-grid">{Object.entries({
+        'Employee Name': nameFor(selectedPlan.employeeId, selectedPlan.employeeName || selectedPlan.fullName),
+        'Employee ID': selectedPlan.employeeId,
+        'Visit Date': selectedPlan.visitDate,
+        Time: selectedPlan.expectedTime,
+        'Area / City': selectedPlan.area || selectedPlan.city || selectedPlan.district,
+        'Customer / Organization': destinationFor(selectedPlan),
+        'Contact Person': selectedPlan.contactPerson,
+        'Mobile Number': selectedPlan.mobileNumber,
+        Purpose: selectedPlan.visitPurpose,
+        Products: selectedPlan.products?.length ? selectedPlan.products.join(', ') : null,
+        Requirement: selectedPlan.requirement,
+        Priority: selectedPlan.priority,
+        Notes: selectedPlan.notes,
+        'Current Status': normalizePlanStatus(selectedPlan.status),
+        'Submitted Date and Time': selectedPlan.submittedAt ? new Date(selectedPlan.submittedAt).toLocaleString() : null
+      }).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value || 'Not provided'}</strong></div>)}</div>}
+    </Modal>
 
     <SectionCard title="Today Team Schedule" actions={<Button variant="secondary" onClick={() => navigate('/director/today-schedule')}>View All</Button>}><DataTable rows={visitPlans.filter((plan) => plan.visitDate === todayValue).slice(0, 5)} columns={[{ key: 'employee', label: 'Employee', render: (row) => nameFor(row.employeeId, row.fullName) }, { key: 'time', label: 'Time', render: (row) => row.expectedTime || 'Not provided' }, { key: 'area', label: 'Area', render: (row) => row.area || row.city || row.district || 'Not provided' }, { key: 'customer', label: 'Customer / Organization', render: (row) => row.customerName || row.organizationName || 'General visit' }, { key: 'purpose', label: 'Purpose', render: (row) => row.visitPurpose || 'Not provided' }, { key: 'requirement', label: 'Requirement', render: (row) => row.requirement || 'Not provided' }, { key: 'priority', label: 'Priority', render: (row) => row.priority || 'Medium' }, { key: 'status', label: 'Status', render: (row) => <Badge>{normalizePlanStatus(row.status)}</Badge> }]} empty={<EmptyState icon={Calendar} title="No visits scheduled today" />} /></SectionCard>
 

@@ -1,10 +1,10 @@
 const PLAN_STATUS_MAP = {
-  submitted: 'Pending Approval',
-  'submitted for approval': 'Pending Approval',
-  'submitted for director approval': 'Pending Approval',
-  pending: 'Pending Approval',
-  'pending approval': 'Pending Approval',
-  pendingapproval: 'Pending Approval',
+  submitted: 'Submitted',
+  'submitted for approval': 'Submitted',
+  'submitted for director approval': 'Submitted',
+  pending: 'Submitted',
+  'pending approval': 'Submitted',
+  pendingapproval: 'Submitted',
   approved: 'Approved',
   rejected: 'Rejected',
   'changes requested': 'Changes Requested',
@@ -29,7 +29,9 @@ export const inferPlanType = (plan) => {
   return (to - from) / 86400000 > 7 ? 'Monthly' : 'Weekly';
 };
 
-export const isPendingPlan = (plan) => normalizePlanStatus(plan?.status) === 'Pending Approval';
+export const isSubmittedPlan = (plan) => normalizePlanStatus(plan?.status) === 'Submitted';
+
+export const isPendingPlan = isSubmittedPlan;
 
 export const getTourPlanBatchId = (plan) =>
   plan?.planBatchId ??
