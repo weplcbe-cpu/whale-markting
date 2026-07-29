@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { isDatabaseVisitPlanId } from '../../utils/visitPlanDraftCache';
 import { ConfirmationDialog, ModalPortal } from '../ui';
 
 const LEGACY_STATUSES = new Set([
@@ -123,7 +124,7 @@ export const TodaySchedule = () => {
       showToast('Visit plan permanently deleted.', 'success');
       setDeletingPlan(null);
     } catch (error) {
-      showToast(error?.message || 'Unable to delete the visit plan.', 'error');
+      showToast(error?.message || 'Unable to delete this visit plan.', 'error');
     } finally {
       setBusyAction('');
     }
@@ -143,23 +144,47 @@ export const TodaySchedule = () => {
 
   const renderActions = (visit) => {
     const status = normalizePlanStatus(visit.status);
-    const rawStatus = String(visit.status || '').trim().toLowerCase();
+    const rawStatus = String(visit.rawStatus || visit.status || '').trim().toLowerCase();
     const pending = busyAction.endsWith(visit.id);
+    const isMarketingOwner =
+      ['Marketing', 'Marketing Team'].includes(currentUser?.role) &&
+      visit.employeeId === currentUser?.employeeId;
+    const canDelete =
+      isMarketingOwner &&
+      isDatabaseVisitPlanId(visit.id) &&
+      (
+        ['Draft', 'Submitted', 'Rescheduled', 'Cancelled'].includes(status) ||
+        LEGACY_STATUSES.has(rawStatus)
+      );
+    const deleteButton = canDelete ? (
+      <button className="btn btn-danger btn-sm" disabled={pending} onClick={() => setDeletingPlan(visit)}>
+        <Trash2 size={14} /> Delete
+      </button>
+    ) : null;
+    const detailsButton = (
+      <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}>
+        <Eye size={14} /> View Details
+      </button>
+    );
     if (LEGACY_STATUSES.has(rawStatus)) {
       return <>
-        <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>
-        <button className="btn btn-danger btn-sm" disabled={pending || !visit.id} onClick={() => setDeletingPlan(visit)}><Trash2 size={14} /> Delete</button>
+        {detailsButton}
+        {deleteButton}
       </>;
     }
-    if (['Completed', 'Cancelled'].includes(status)) {
-      return <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>;
+    if (status === 'Completed') {
+      return detailsButton;
+    }
+    if (status === 'Cancelled') {
+      return <>{detailsButton}{deleteButton}</>;
     }
     if (status === 'Submitted') {
       return <>
         <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}><Play size={16} /> Start Visit</button>
         <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
         <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>
+        {detailsButton}
+        {deleteButton}
       </>;
     }
     if (status === 'Started') {
@@ -167,6 +192,7 @@ export const TodaySchedule = () => {
         <button className="btn btn-success" onClick={() => setCompleteModal(visit)}><CheckCircle2 size={16} /> Complete Visit</button>
         <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
         <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+        {detailsButton}
       </>;
     }
     if (status === 'Rescheduled') {
@@ -174,16 +200,18 @@ export const TodaySchedule = () => {
         <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Edit Date/Time</button>
         <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}><Play size={16} /> Start Visit</button>
         <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+        {detailsButton}
+        {deleteButton}
       </>;
     }
     if (status === 'Draft') {
       return <>
         <button className="btn btn-secondary btn-sm" disabled={pending} onClick={() => openEditor(visit)}><Edit3 size={14} /> Edit</button>
-        <button className="btn btn-danger btn-sm" disabled={pending || !visit.id} onClick={() => setDeletingPlan(visit)}><Trash2 size={14} /> Delete</button>
+        {deleteButton}
         <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => handleResubmit(visit)}><Send size={14} /> Submit Visit Plan</button>
       </>;
     }
-    return <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}><Eye size={14} /> View Details</button>;
+    return detailsButton;
   };
 
   return (

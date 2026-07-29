@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
-import { removeVisitPlanFromDraftCaches } from '../utils/visitPlanDraftCache';
+import { isDatabaseVisitPlanId, removeVisitPlanFromDraftCaches } from '../utils/visitPlanDraftCache';
 
 const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
@@ -660,7 +660,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteVisitPlanEntry = async (entryId) => {
-    if (!entryId) throw new Error('Visit entry ID is missing.');
+    if (!isDatabaseVisitPlanId(entryId)) throw new Error('Unable to delete this visit plan.');
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit entry was not found. Refresh and try again.');
     const status = normalizePlanStatus(target.status);
@@ -672,14 +672,15 @@ export const AppProvider = ({ children }) => {
       'pending approval',
       'submitted for director approval'
     ]);
+    const deletableStatuses = new Set(['Draft', 'Submitted', 'Rescheduled', 'Cancelled']);
     const role = normalizeRole(currentUser?.role);
     if (role !== 'Marketing Team') {
-      throw new Error('Only the Marketing owner can delete this visit plan.');
+      throw new Error('You do not have permission to delete this visit plan.');
     }
     if (target.employeeId !== currentUser?.employeeId) {
-      throw new Error('You can only delete your own visit entries.');
+      throw new Error('You do not have permission to delete this visit plan.');
     }
-    if (status !== 'Draft' && !legacyStatuses.has(rawStatus)) {
+    if (!deletableStatuses.has(status) && !legacyStatuses.has(rawStatus)) {
       throw new Error('This visit plan status cannot be deleted.');
     }
     const { data: deletedRow, error } = await supabase
@@ -691,13 +692,16 @@ export const AppProvider = ({ children }) => {
       .single();
     if (error) {
       const noRowDeleted = error.code === 'PGRST116';
-      const deleteError = new Error(noRowDeleted
-        ? 'Visit plan was not deleted. The record may be protected or unavailable.'
-        : error.message || 'The database rejected the delete request.');
+      const permissionDenied = error.code === '42501' || /permission|row-level security|rls/i.test(error.message || '');
+      const deleteError = new Error(permissionDenied
+        ? 'You do not have permission to delete this visit plan.'
+        : noRowDeleted
+          ? 'Unable to delete this visit plan.'
+          : 'Unable to delete this visit plan.');
       throw deleteError;
     }
     if (deletedRow?.id !== entryId) {
-      const deleteError = new Error('Visit plan was not deleted. The record may be protected or unavailable.');
+      const deleteError = new Error('Unable to delete this visit plan.');
       throw deleteError;
     }
     setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
