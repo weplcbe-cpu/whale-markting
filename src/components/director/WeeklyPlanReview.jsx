@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FileSpreadsheet, Phone, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getTourPlanBatchId, inferPlanType, normalizePlanStatus } from '../../utils/planStatus';
+import { useModalLayer } from '../ui/modalLayer';
 
 const LIST_PATH = '/director/tour-plans';
 const displayDate = (value) => value ? value.split('-').reverse().join('-') : 'Not provided';
@@ -39,13 +40,7 @@ export const WeeklyPlanReview = () => {
     () => groupedPlans.find((plan) => getTourPlanBatchId(plan) === selectedPlanBatchId) || null,
     [groupedPlans, selectedPlanBatchId]
   );
-
-  useEffect(() => {
-    if (!selectedPlanBatchId) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [selectedPlanBatchId]);
+  useModalLayer(Boolean(selectedPlanBatchId));
 
   const employeeName = (batch) => batch?.employeeName || batch?.fullName
     || users.find((user) => user.employeeId === batch?.employeeId)?.fullName

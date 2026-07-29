@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { FileText, MessageSquare, Eye, Clock, X } from 'lucide-react';
+import { ModalPortal } from '../ui';
 
 export const DirectorVisitReports = () => {
   const { visitReports, dailyReports, addDirectorComment } = useApp();
@@ -136,7 +137,7 @@ export const DirectorVisitReports = () => {
 
       {/* Inspect Modal */}
       {selectedReport && (
-        <div className="modal-overlay" onClick={() => setSelectedReport(null)}>
+        <ModalPortal onClose={() => setSelectedReport(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Visit Report Inspection - {selectedReport.customerName}</h3>
@@ -182,7 +183,7 @@ export const DirectorVisitReports = () => {
               </form>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

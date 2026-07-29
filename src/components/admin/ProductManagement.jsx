@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Plus, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { ModalPortal } from '../ui';
 
 export const ProductManagement = () => {
   const { products, addProduct, toggleProductStatus } = useApp();
@@ -58,7 +59,7 @@ export const ProductManagement = () => {
       </div>
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <ModalPortal onClose={() => setIsModalOpen(false)} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className="modal-header">
               <h3>Add Product to Catalog</h3>
@@ -112,7 +113,7 @@ export const ProductManagement = () => {
               </div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

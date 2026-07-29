@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, AlertCircle, MapPin, Radar, TrendingUp } from 'lucide-react';
+import { ModalPortal } from '../ui';
 
 export const LoginPage = () => {
   const { login } = useApp();
@@ -179,7 +180,7 @@ export const LoginPage = () => {
 
       {/* Forgot Password Modal */}
       {forgotModalOpen && (
-        <div className="modal-overlay" onClick={() => setForgotModalOpen(false)}>
+        <ModalPortal onClose={() => setForgotModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
               <h3>Reset Password</h3>
@@ -197,7 +198,7 @@ export const LoginPage = () => {
               <button className="btn btn-secondary" onClick={() => setForgotModalOpen(false)}>Close</button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

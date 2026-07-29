@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { ModalPortal } from '../ui';
 
 export const TodaySchedule = () => {
   const {
@@ -212,7 +213,7 @@ export const TodaySchedule = () => {
       </div>
 
       {detailsModal && (
-        <div className="modal-overlay" onClick={() => setDetailsModal(null)}>
+        <ModalPortal onClose={() => setDetailsModal(null)}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header"><h3>Visit Plan Details</h3><button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(null)}><X size={16} /></button></div>
             <div className="modal-body" style={{ display: 'grid', gap: '10px' }}>
@@ -228,11 +229,11 @@ export const TodaySchedule = () => {
             </div>
             <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setDetailsModal(null)}>Close</button></div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {editModal && (
-        <div className="modal-overlay" onClick={() => setEditModal(null)}>
+        <ModalPortal onClose={() => setEditModal(null)} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header"><h3>Edit Visit Plan</h3></div>
             <form onSubmit={handleEdit}>
@@ -247,12 +248,12 @@ export const TodaySchedule = () => {
               <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setEditModal(null)}>Cancel</button><button type="submit" className="btn btn-primary" disabled={Boolean(busyAction)}>Save Changes</button></div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Start Visit Modal */}
       {startVisitModal && (
-        <div className="modal-overlay" onClick={() => setStartVisitModal(null)}>
+        <ModalPortal onClose={() => setStartVisitModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
               <h3>Start Field Visit</h3>
@@ -265,12 +266,12 @@ export const TodaySchedule = () => {
               <button className="btn btn-primary" onClick={() => handleConfirmStart(startVisitModal)}>Confirm Start</button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Cancel Visit Modal */}
       {cancelModal && (
-        <div className="modal-overlay" onClick={() => setCancelModal(null)}>
+        <ModalPortal onClose={() => setCancelModal(null)} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className="modal-header">
               <h3>Cancel Visit - {cancelModal.customerName}</h3>
@@ -295,12 +296,12 @@ export const TodaySchedule = () => {
               </div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Reschedule Visit Modal */}
       {rescheduleModal && (
-        <div className="modal-overlay" onClick={() => setRescheduleModal(null)}>
+        <ModalPortal onClose={() => setRescheduleModal(null)} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
             <div className="modal-header">
               <h3>Reschedule Visit</h3>
@@ -346,12 +347,12 @@ export const TodaySchedule = () => {
               </div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Complete Visit Outcome Modal */}
       {completeModal && (
-        <div className="modal-overlay" onClick={() => setCompleteModal(null)}>
+        <ModalPortal onClose={() => setCompleteModal(null)} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px' }}>
             <div className="modal-header">
               <h3>Complete Visit Outcome Form</h3>
@@ -467,7 +468,7 @@ export const TodaySchedule = () => {
               </div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

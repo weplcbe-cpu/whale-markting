@@ -1,6 +1,67 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Check, Inbox, LoaderCircle, X } from 'lucide-react';
+import { useModalLayer } from './modalLayer';
+
+export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
+  const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  useModalLayer(open);
+  useEffect(() => {
+    if (!open) return undefined;
+    previousFocusRef.current = document.activeElement;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && closeOnEscape) {
+        event.preventDefault();
+        onClose?.();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = [...(dialogRef.current?.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || [])];
+      if (!focusable.length) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.requestAnimationFrame(() => {
+      (dialogRef.current?.querySelector('input, select, textarea, button') || dialogRef.current)?.focus?.();
+    });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [closeOnEscape, onClose, open]);
+  if (!open) return null;
+  const dialog = React.cloneElement(React.Children.only(children), {
+    ref: dialogRef,
+    role: children.props.role || 'dialog',
+    'aria-modal': children.props['aria-modal'] || 'true',
+    tabIndex: children.props.tabIndex ?? -1
+  });
+  return createPortal(
+    <div
+      className={`modal-overlay ${className}`}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (closeOnBackdrop && event.target === event.currentTarget) onClose?.();
+      }}
+    >
+      {dialog}
+    </div>,
+    document.body
+  );
+};
 
 const FieldLabel = ({ htmlFor, label, required }) => <label htmlFor={htmlFor}>{label}{required && <span className="ds-required" aria-hidden="true"> *</span>}</label>;
 
@@ -56,23 +117,29 @@ export const ErrorBanner = ({ children, action }) => <div className="ds-error" r
 export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty = false, closeLabel = 'Close dialog', size = 'md' }) => {
   const titleId = useId();
   const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  useModalLayer(open);
   useEffect(() => {
     if (!open) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    previousFocusRef.current = document.activeElement;
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') { event.preventDefault(); if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); return; }
       if (event.key === 'Tab') { const focusable = [...(dialogRef.current?.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || [])]; if (!focusable.length) return; const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }
     };
     window.addEventListener('keydown', handleKeyDown);
     window.requestAnimationFrame(() => dialogRef.current?.querySelector('input, select, textarea, button')?.focus());
-    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', handleKeyDown); };
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus?.();
+    };
   }, [dirty, onClose, open]);
 
   if (!open) return null;
   const requestClose = () => { if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); };
   return createPortal(
-    <div className="ds-modal-overlay" role="presentation">
+    <div className="ds-modal-overlay" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget && !dirty) requestClose();
+    }}>
       <section ref={dialogRef} className={`ds-modal ds-modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="ds-modal__header"><div><h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="ds-icon-button" onClick={requestClose} aria-label={closeLabel}><X size={20} /></button></header>
         <div className="ds-modal__body">{children}</div>

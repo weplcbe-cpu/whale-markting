@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Calendar, List, Eye, Target, X, Building2 } from 'lucide-react';
+import { ModalPortal } from '../ui';
 
 export const MyPlans = () => {
   const { currentUser, visitPlans } = useApp();
@@ -140,7 +141,7 @@ export const MyPlans = () => {
 
       {/* Plan Details Modal */}
       {selectedPlanModal && (
-        <div className="modal-overlay" onClick={() => setSelectedPlanModal(null)}>
+        <ModalPortal onClose={() => setSelectedPlanModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -166,9 +167,16 @@ export const MyPlans = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>CUSTOMER / ORGANIZATION</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>AREA / CITY</label>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-dark)', marginTop: '2px' }}>
+                  {selectedPlanModal.area || selectedPlanModal.city || 'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ORGANIZATION / PERSON</label>
                 <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-dark)', marginTop: '2px' }}>
-                  {selectedPlanModal.customerName}
+                  {selectedPlanModal.customerName || selectedPlanModal.organizationName || selectedPlanModal.contactPerson || 'Not provided'}
                 </div>
               </div>
 
@@ -209,6 +217,20 @@ export const MyPlans = () => {
                 </div>
               </div>
 
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>REQUIREMENT</label>
+                <div style={{ fontSize: '0.95rem', color: 'var(--primary-dark)', marginTop: '2px' }}>
+                  {selectedPlanModal.requirement || 'Not provided'}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>NOTES</label>
+                <div style={{ fontSize: '0.95rem', color: 'var(--primary-dark)', marginTop: '2px' }}>
+                  {selectedPlanModal.notes || 'Not provided'}
+                </div>
+              </div>
+
               {selectedPlanModal.outcomeNotes && (
                 <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '14px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid #10b981' }}>
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669' }}>Completed Outcome Notes:</div>
@@ -225,7 +247,7 @@ export const MyPlans = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

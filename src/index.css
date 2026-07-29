@@ -1417,29 +1417,42 @@ body {
 /* Modals */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  box-sizing: border-box;
   background: rgba(39, 24, 126, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 1200;
+  overflow: hidden;
+  overscroll-behavior: none;
+  z-index: 2000;
 }
 
 .modal-content {
   background: #ffffff;
   border: 1px solid var(--border-glow);
   border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 680px;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: min(900px, calc(100vw - 32px));
+  max-width: 900px;
+  max-height: calc(100dvh - 32px);
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
   box-shadow: var(--shadow-lg);
   animation: modalPop 0.2s ease-out;
+}
+
+.modal-content *,
+.user-modal *,
+.ds-modal * {
+  box-sizing: border-box;
 }
 
 @keyframes modalPop {
@@ -1448,6 +1461,7 @@ body {
 }
 
 .modal-header {
+  flex: 0 0 auto;
   padding: 18px 24px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -1535,7 +1549,7 @@ body {
   width: 100vw;
   height: 100dvh;
   box-sizing: border-box;
-  z-index: 99999;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1612,10 +1626,16 @@ body {
 }
 
 .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .modal-footer {
+  flex: 0 0 auto;
   padding: 16px 24px;
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -1627,7 +1647,7 @@ body {
 
 /* Director tour-plan review: the portal owns the viewport and only its body scrolls. */
 .tour-plan-review-overlay {
-  z-index: 99999;
+  z-index: 2000;
   overflow: hidden;
 }
 
@@ -1774,7 +1794,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 2000;
+  z-index: 4000;
 }
 
 .toast {
@@ -1982,6 +2002,38 @@ body {
 }
 
 @media (max-width: 575px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .modal-content {
+    width: 100vw !important;
+    height: 100dvh;
+    max-width: none !important;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .modal-header {
+    padding: max(14px, env(safe-area-inset-top)) 16px 14px;
+  }
+
+  .modal-body {
+    padding: 18px 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+  }
+
   .user-modal-overlay {
     padding: 0;
     align-items: stretch;
@@ -2016,6 +2068,21 @@ body {
 
   .user-modal__footer .btn {
     flex: 1;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 1023px) {
+  .modal-overlay,
+  .user-modal-overlay,
+  .ds-modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-content,
+  .user-modal,
+  .ds-modal {
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px);
   }
 }
 
@@ -2141,3 +2208,26 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
 .director-analytics-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.analytics-formula-info{color:var(--primary-blue);font-size:.82rem;font-weight:700;cursor:help}@media(max-width:575px){.director-analytics-tabs{display:grid;grid-template-columns:1fr}.director-analytics-tabs .ds-button{justify-content:flex-start}}
 
 @media print{.sidebar,.top-navbar,.mobile-bottom-nav,.ds-page-actions,.director-filter-bar{display:none!important}.content-area,.main-view-wrapper{margin:0!important;padding:0!important;overflow:visible!important}.ds-page{color:#111!important}.ds-table-wrap{overflow:visible!important;box-shadow:none!important}}
+
+/* Shared viewport modal layer: authoritative sizing and stacking overrides. */
+.ds-modal-overlay {
+  z-index: 2000;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.ds-modal {
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+}
+
+.ds-modal__body {
+  overflow-x: hidden;
+}
+
+@media (min-width: 576px) and (max-width: 1023px) {
+  .ds-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+}

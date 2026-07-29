@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle } from 'lucide-react';
+import { ModalPortal } from '../ui';
+import { useModalLayer } from '../ui/modalLayer';
 
 const UNKNOWN_ADD_USER_ERROR = 'Unable to create user. Please check the Edge Function logs and try again.';
 
@@ -49,6 +51,7 @@ export const UserManagement = () => {
 
   const isFormDirty = isAddModalOpen && initialFormDataRef.current !== null &&
     JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  useModalLayer(isAddModalOpen);
 
   useEffect(() => {
     if (!isAddModalOpen) return undefined;
@@ -80,16 +83,6 @@ export const UserManagement = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isAddModalOpen, isFormDirty]);
-
-  useEffect(() => {
-    if (!isAddModalOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isAddModalOpen]);
 
   const closeModal = () => {
     setShowDiscardConfirm(false);
@@ -452,7 +445,7 @@ export const UserManagement = () => {
 
       {/* Delete User Confirmation Modal */}
       {deletingUser && (
-        <div className="modal-overlay" onClick={() => setDeletingUser(null)}>
+        <ModalPortal onClose={() => setDeletingUser(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
             <div className="modal-header">
               <h3>Delete User</h3>
@@ -478,7 +471,7 @@ export const UserManagement = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );
