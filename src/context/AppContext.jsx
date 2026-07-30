@@ -129,6 +129,7 @@ export const AppProvider = ({ children }) => {
   const [visitReports, setVisitReports] = useState([]);
   const [dailyReports, setDailyReports] = useState([]);
   const [followUps, setFollowUps] = useState([]);
+  const [employeeVisitPlaces, setEmployeeVisitPlaces] = useState([]);
   const [directorComments, setDirectorComments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -294,6 +295,7 @@ export const AppProvider = ({ children }) => {
       ['visitReports', supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false })],
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
+      ['employeeVisitPlaces', supabase.from('employee_visit_places').select('*').eq('is_active', true).order('place_name')],
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -327,6 +329,7 @@ export const AppProvider = ({ children }) => {
     setVisitReports(rowsToCamel(results.visitReports));
     setDailyReports(rowsToCamel(results.dailyReports));
     setFollowUps(rowsToCamel(results.followUps));
+    setEmployeeVisitPlaces(rowsToCamel(results.employeeVisitPlaces));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
@@ -344,6 +347,7 @@ export const AppProvider = ({ children }) => {
       visit_reports: [() => supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }), setVisitReports],
       daily_reports: [() => supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }), setDailyReports],
       follow_ups: [() => supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false }), setFollowUps],
+      employee_visit_places: [() => supabase.from('employee_visit_places').select('*').eq('is_active', true).order('place_name'), setEmployeeVisitPlaces],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -375,7 +379,7 @@ export const AppProvider = ({ children }) => {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
-      setFollowUps([]); setDirectorComments([]); setNotifications([]);
+      setFollowUps([]); setEmployeeVisitPlaces([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -387,7 +391,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;
-    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'director_comments', 'notifications', 'activity_logs'];
+    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places', 'director_comments', 'notifications', 'activity_logs'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
     tables.forEach((table) => {
@@ -459,6 +463,26 @@ export const AppProvider = ({ children }) => {
   // privileges and go through Supabase Edge Functions (service_role key
   // never reaches the browser). See supabase/functions/.
   // ---------------------------------------------------------------------
+  const syncEmployeeVisitPlaces = async (employeeId, places = []) => {
+    const normalizedPlaces = [...new Set(places.map((place) => String(place).trim()).filter(Boolean))];
+    const { error: deleteError } = await supabase
+      .from('employee_visit_places')
+      .delete()
+      .eq('employee_id', employeeId);
+    if (deleteError) throw deleteError;
+    if (normalizedPlaces.length) {
+      const { error: insertError } = await supabase
+        .from('employee_visit_places')
+        .insert(normalizedPlaces.map((placeName) => ({
+          employee_id: employeeId,
+          place_name: placeName,
+          is_active: true,
+        })));
+      if (insertError) throw insertError;
+    }
+    await refreshEntity('employee_visit_places');
+  };
+
   const addUser = async (userData) => {
     const {
       data: { session },
@@ -512,6 +536,11 @@ export const AppProvider = ({ children }) => {
       throw new Error(message);
     }
 
+    await syncEmployeeVisitPlaces(
+      data?.user?.employee_id || userData.employeeId.trim(),
+      normalizedRole === 'Marketing' ? userData.assignedVisitPlaces : [],
+    );
+
     logActivity(`Added new user: ${userData.employeeName} (${userData.role})`, 'User Management');
     showToast(`User ${userData.employeeName} created successfully`, 'success');
     await loadAllData();
@@ -519,12 +548,20 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateUser = async (id, updatedFields) => {
-    const { error } = await supabase.from('profiles').update(objToSnakeRow(updatedFields)).eq('id', id);
+    const { assignedVisitPlaces = [], ...profileUpdates } = updatedFields;
+    const { error } = await supabase.from('profiles').update(objToSnakeRow(profileUpdates)).eq('id', id);
     if (error) {
       showToast('Failed to update user', 'error');
       return;
     }
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedFields } : u));
+    const target = users.find((user) => user.id === id);
+    if (target?.employeeId) {
+      await syncEmployeeVisitPlaces(
+        target.employeeId,
+        normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
+      );
+    }
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...profileUpdates } : u));
     logActivity(`Updated user details for ID ${id}`, 'User Management');
     showToast('User updated successfully', 'success');
   };
@@ -1114,6 +1151,7 @@ export const AppProvider = ({ children }) => {
     visitReports,
     dailyReports,
     followUps,
+    employeeVisitPlaces,
     directorComments,
     notifications,
     activityLogs,

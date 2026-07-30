@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { Bell, Calendar, Clock, Download, FileText, MapPin, Package, Phone, Printer, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, SectionCard, SelectField, TextArea } from '../ui';
@@ -15,6 +15,7 @@ const statusTone = (status) => ['Submitted', 'Completed', 'Approved', 'Won'].inc
 
 export const DirectorOperations = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { currentUser, users, products, visitPlans, visitReports, dailyReports, followUps, notifications, addDirectorComment, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('All');
@@ -32,6 +33,35 @@ export const DirectorOperations = () => {
   const commentButton = (row, module) => <Button variant="secondary" onClick={() => setCommentTarget({ ...row, module })}>Comment</Button>;
   const detailModal = <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.title || 'Details'} footer={<><Button variant="secondary" onClick={() => setSelected(null)}>Close</Button>{selected?.employeePhone && <Button onClick={() => { window.location.href = `tel:${selected.employeePhone}`; }}><Phone size={16} /> Call Employee</Button>}</>}>{selected && <div className="director-detail-grid">{Object.entries(selected.details).map(([label, value]) => <div key={label}><small>{label}</small><strong>{Array.isArray(value) ? value.join(', ') : text(value)}</strong></div>)}</div>}</Modal>;
   const commentModal = <Modal open={Boolean(commentTarget)} onClose={() => setCommentTarget(null)} title="Add Director Comment" subtitle={commentTarget?.module} footer={<><Button variant="secondary" onClick={() => setCommentTarget(null)}>Cancel</Button><Button onClick={addComment} disabled={!comment.trim()}>Send Comment</Button></>}><TextArea label="Comment" required value={comment} onChange={(event) => setComment(event.target.value)} /></Modal>;
+
+  useEffect(() => {
+    if (location.pathname !== '/director/visit-plans') return;
+    const planId = searchParams.get('planId');
+    const row = visitPlans.find((plan) => String(plan.id) === planId);
+    if (!row) return;
+    const employee = users.find((user) => user.employeeId === row.employeeId);
+    setSelected({
+      title: 'Visit Plan Details',
+      employeePhone: employee?.mobileNumber || employee?.mobile,
+      details: {
+        'Employee Name': row.employeeName || row.fullName || employee?.fullName || employee?.username || row.employeeId || 'Not provided',
+        'Employee ID': row.employeeId,
+        'Visit Date': row.visitDate,
+        Time: row.expectedTime,
+        'Area / City': row.area || row.city || row.district,
+        'Customer / Organization': row.customerName || row.organizationName || 'Customer not selected',
+        'Contact Person': row.contactPerson,
+        'Mobile Number': row.mobileNumber,
+        Purpose: row.visitPurpose,
+        Products: row.products,
+        Requirement: row.requirement,
+        Priority: row.priority,
+        Notes: row.notes,
+        'Current Status': normalizePlanStatus(row.status),
+        'Submitted Date and Time': row.submittedAt ? new Date(row.submittedAt).toLocaleString() : null,
+      },
+    });
+  }, [location.pathname, searchParams, users, visitPlans]);
 
   const filterBar = <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Submitted</option><option>Planned</option><option>Started</option><option>Completed</option><option>Cancelled</option><option>Changes Requested</option></SelectField></div>;
 

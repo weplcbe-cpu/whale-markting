@@ -67,6 +67,9 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
       if (text.includes('user') || text.includes('employee')) return '/admin/users';
       return '/admin/reports';
     }
+    if (text.includes('new visit plan submitted')) {
+      return `/director/visit-plans${notification.referenceId ? `?planId=${encodeURIComponent(notification.referenceId)}` : ''}`;
+    }
     if (text.includes('report')) return '/director/visit-reports';
     if (text.includes('comment')) return '/director/comments';
     if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';

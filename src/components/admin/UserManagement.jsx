@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Plus } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { useModalLayer } from '../ui/modalLayer';
 
@@ -14,7 +14,7 @@ const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
 };
 
 export const UserManagement = () => {
-  const { users, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
+  const { users, employeeVisitPlaces, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   
@@ -24,6 +24,7 @@ export const UserManagement = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [placeInput, setPlaceInput] = useState('');
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const initialFormDataRef = useRef(null);
   const submitLockRef = useRef(false);
@@ -38,7 +39,8 @@ export const UserManagement = () => {
     username: '',
     password: '',
     department: 'Marketing',
-    designation: 'Marketing Executive'
+    designation: 'Marketing Executive',
+    assignedVisitPlaces: []
   });
 
   const filteredUsers = users.filter(u => {
@@ -103,6 +105,17 @@ export const UserManagement = () => {
     setFormData((current) => ({ ...current, [field]: value }));
     if (formError) setFormError('');
   };
+  const availablePlaceNames = [...new Set(employeeVisitPlaces.map((item) => item.placeName))].sort();
+  const addAssignedPlace = () => {
+    const place = placeInput.trim();
+    if (!place || formData.assignedVisitPlaces.includes(place)) return;
+    updateFormField('assignedVisitPlaces', [...formData.assignedVisitPlaces, place]);
+    setPlaceInput('');
+  };
+  const removeAssignedPlace = (place) => updateFormField(
+    'assignedVisitPlaces',
+    formData.assignedVisitPlaces.filter((item) => item !== place),
+  );
 
   const handleOpenAdd = () => {
     setFormError('');
@@ -115,7 +128,8 @@ export const UserManagement = () => {
       username: '',
       password: '',
       department: 'Marketing',
-      designation: 'Marketing Executive'
+      designation: 'Marketing Executive',
+      assignedVisitPlaces: []
     };
     setFormData(nextFormData);
     initialFormDataRef.current = nextFormData;
@@ -135,7 +149,10 @@ export const UserManagement = () => {
       username: user.username,
       password: '',
       department: user.department || 'Marketing',
-      designation: user.designation || 'Executive'
+      designation: user.designation || 'Executive',
+      assignedVisitPlaces: employeeVisitPlaces
+        .filter((item) => item.employeeId === user.employeeId && item.isActive !== false)
+        .map((item) => item.placeName)
     };
     setFormData(nextFormData);
     initialFormDataRef.current = nextFormData;
@@ -146,6 +163,11 @@ export const UserManagement = () => {
     e.preventDefault();
     if (submitLockRef.current) return;
     setFormError('');
+
+    if (formData.role === 'Marketing Team' && !formData.assignedVisitPlaces.length) {
+      setFormError('Assign at least one visit place for a Marketing user.');
+      return;
+    }
 
     if (editingUser) {
       // `profiles` has no `password` column — passwords live in Supabase Auth
@@ -169,7 +191,6 @@ export const UserManagement = () => {
       setFormError('Password must be at least 6 characters.');
       return;
     }
-
     submitLockRef.current = true;
     setIsSubmitting(true);
     try {
@@ -336,6 +357,40 @@ export const UserManagement = () => {
                     onChange={(e) => updateFormField('employeeName', e.target.value)}
                   />
                 </div>
+
+                {formData.role === 'Marketing Team' && (
+                  <div className="form-group user-places-field">
+                    <label className="form-label">Assigned Visit Places *</label>
+                    <div className="user-places-input">
+                      <input
+                        type="search"
+                        className="form-input"
+                        list="visit-place-suggestions"
+                        placeholder="Search or enter a place"
+                        value={placeInput}
+                        onChange={(event) => setPlaceInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            addAssignedPlace();
+                          }
+                        }}
+                      />
+                      <button type="button" className="btn btn-secondary" onClick={addAssignedPlace}><Plus size={16} /> Add</button>
+                      <datalist id="visit-place-suggestions">
+                        {availablePlaceNames.map((place) => <option value={place} key={place} />)}
+                      </datalist>
+                    </div>
+                    <div className="user-places-chips">
+                      {formData.assignedVisitPlaces.map((place) => (
+                        <button type="button" key={place} onClick={() => removeAssignedPlace(place)} title={`Remove ${place}`}>
+                          {place} <X size={14} />
+                        </button>
+                      ))}
+                    </div>
+                    {!formData.assignedVisitPlaces.length && <small>Assign one or more places before saving this Marketing user.</small>}
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Employee ID *</label>

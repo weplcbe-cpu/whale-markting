@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Check, Inbox, LoaderCircle, X } from 'lucide-react';
+import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
 import { useModalLayer } from './modalLayer';
 
 export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
@@ -150,8 +150,6 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
 };
 
 export const Drawer = (props) => <Modal {...props} size="drawer" />;
-
-export const Stepper = ({ steps, current }) => { const progress = Math.round(((current + 1) / steps.length) * 100); return <div className="ds-progress"><div className="ds-progress__meta"><strong>Step {current + 1} of {steps.length}</strong><span>{progress}%</span></div><div className="ds-progress__bar"><span style={{ width: `${progress}%` }} /></div><ol className="ds-stepper" aria-label={`Step ${current + 1} of ${steps.length}`}>{steps.map((step, index) => <li key={step} className={index < current ? 'complete' : index === current ? 'current' : 'pending'}><span>{index < current ? <Check size={18} /> : index + 1}</span><strong>{step}</strong></li>)}</ol></div>; };
 
 export const DataTable = ({ columns, rows, rowKey = 'id', empty, caption }) => rows.length === 0 ? (empty || <EmptyState />) : (
   <div className="ds-table-wrap"><table className="ds-table">{caption && <caption className="sr-only">{caption}</caption>}<thead><tr>{columns.map(column => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row[rowKey]}>{columns.map(column => <td key={column.key} data-label={column.label}>{column.render ? column.render(row) : row[column.key]}</td>)}</tr>)}</tbody></table></div>
