@@ -56,7 +56,6 @@ export const TodaySchedule = () => {
     isFollowUpRequired: true,
     followUpDate: '2026-07-25',
     isQuotationRequired: false,
-    isTenderRelated: false,
     finalStatus: 'Completed'
   });
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, CheckCircle2, Clock, FileText, Phone, Users } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, FileText, Phone, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, Modal, PageHeader, SectionCard } from '../ui';
 import { normalizePlanStatus } from '../../utils/planStatus';
@@ -9,7 +9,7 @@ const dateValue = (value) => value ? String(value).slice(0, 10) : '';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
-  const { currentUser, users, visitPlans, visitReports, dailyReports, followUps, tenders, activityLogs, lastUpdated, dataLoading } = useApp();
+  const { currentUser, users, visitPlans, visitReports, dailyReports, followUps, activityLogs, lastUpdated, dataLoading } = useApp();
   const [period, setPeriod] = useState('Today');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const now = new Date();
@@ -42,8 +42,6 @@ export const DirectorDashboard = () => {
   const pendingFollowUps = scopedFollowUps.filter((item) => item.status !== 'Completed');
   const scopedReports = dailyReports.filter((report) => inPeriod(report.date || report.reportDate || report.createdAt));
   const pendingReports = scopedReports.filter((report) => !['Approved', 'Completed'].includes(report.status));
-  const scopedTenders = tenders.filter((tender) => inPeriod(tender.closingDate || tender.createdAt));
-  const tenderOpportunities = scopedTenders.filter((tender) => !['Won', 'Lost'].includes(tender.status));
   const employeeFor = (employeeId) => marketing.find((user) => user.employeeId === employeeId);
   const nameFor = (employeeId, fallback) => fallback || employeeFor(employeeId)?.fullName || employeeFor(employeeId)?.username || employeeId || 'Not provided';
   const destinationFor = (plan) => plan.customerName || plan.organizationName || 'Organization not provided';
@@ -57,8 +55,7 @@ export const DirectorDashboard = () => {
     ['Pending Visits', pendingPlans.length, Clock, '/director/visit-plans'],
     ['Submitted Plans', submittedPlans.length, FileText, '/director/visit-plans'],
     ['Pending Follow-ups', pendingFollowUps.length, Clock, '/director/follow-ups'],
-    ['Pending Reports', pendingReports.length, FileText, '/director/daily-reports'],
-    ['Tender Opportunities', tenderOpportunities.length, Building2, '/director/tenders']
+    ['Pending Reports', pendingReports.length, FileText, '/director/daily-reports']
   ];
 
   const teamRows = marketing.slice(0, 5).map((employee) => {
@@ -113,7 +110,7 @@ export const DirectorDashboard = () => {
 
     <SectionCard title="Marketing Team" actions={<Button variant="secondary" onClick={() => navigate('/director/team')}>View All</Button>}><DataTable rows={teamRows} columns={[{ key: 'employee', label: 'Employee', render: (row) => <><strong>{row.employee}</strong><small>{row.employeeId}</small></> }, { key: 'visits', label: 'Visits' }, { key: 'completed', label: 'Completed' }, { key: 'pending', label: 'Pending' }, { key: 'action', label: 'Action', render: () => <Button variant="secondary" onClick={() => navigate('/director/team')}>View</Button> }]} empty={<EmptyState icon={Users} title="No active Marketing employees" />} /></SectionCard>
 
-    <div className="director-dashboard-columns"><SectionCard title="Pending Follow-ups" actions={<Button variant="secondary" onClick={() => navigate('/director/follow-ups')}>View All</Button>}>{pendingFollowUps.slice(0, 5).map((item) => <div className="director-summary-row" key={item.id}><span><strong>{nameFor(item.employeeId, item.fullName || item.employeeName)}</strong><small>{item.customerName || 'Not provided'} · {item.followUpDate || 'No due date'}</small></span><Badge tone="warning">{item.priority || 'Pending'}</Badge></div>)}{!pendingFollowUps.length && <EmptyState icon={Clock} title="No pending follow-ups" />}</SectionCard><SectionCard title="Tender Opportunities" actions={<Button variant="secondary" onClick={() => navigate('/director/tenders')}>View All</Button>}>{tenderOpportunities.slice(0, 5).map((item) => <div className="director-summary-row" key={item.id}><span><strong>{item.tenderName || item.tenderNumber || 'Not provided'}</strong><small>{item.department || 'Not provided'} · {item.closingDate || 'No closing date'}</small></span><Badge>{item.status || 'Open'}</Badge></div>)}{!tenderOpportunities.length && <EmptyState icon={FileText} title="No tender opportunities" />}</SectionCard></div>
+    <SectionCard title="Pending Follow-ups" actions={<Button variant="secondary" onClick={() => navigate('/director/follow-ups')}>View All</Button>}>{pendingFollowUps.slice(0, 5).map((item) => <div className="director-summary-row" key={item.id}><span><strong>{nameFor(item.employeeId, item.fullName || item.employeeName)}</strong><small>{item.customerName || 'Not provided'} · {item.followUpDate || 'No due date'}</small></span><Badge tone="warning">{item.priority || 'Pending'}</Badge></div>)}{!pendingFollowUps.length && <EmptyState icon={Clock} title="No pending follow-ups" />}</SectionCard>
 
     <div className="director-dashboard-columns"><SectionCard title="Recent Reports" actions={<Button variant="secondary" onClick={() => navigate('/director/visit-reports')}>View All</Button>}>{recentReports.map((item) => <div className="director-summary-row" key={`${item.reportType}-${item.id}`}><span><strong>{nameFor(item.employeeId, item.fullName || item.employeeName)}</strong><small>{item.date || item.visitDate || 'No date'} · {item.reportType}</small></span><Badge>{item.status || 'Submitted'}</Badge></div>)}{!recentReports.length && <EmptyState icon={FileText} title="No recent reports" />}</SectionCard><SectionCard title="Recent Activity" actions={<Button variant="secondary" onClick={() => navigate('/director/notifications')}>View Updates</Button>}>{activityLogs.slice(0, 5).map((item) => <div className="director-summary-row" key={item.id}><span><strong>{item.action || item.description || 'Portal activity'}</strong><small>{item.module || 'Activity'} · {item.timestamp || item.createdAt || 'Recently'}</small></span></div>)}{!activityLogs.length && <EmptyState icon={Clock} title="No recent activity" />}</SectionCard></div>
   </div>;

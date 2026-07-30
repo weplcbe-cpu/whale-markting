@@ -8,7 +8,7 @@ Use only temporary `*.test@kaiserwhale.com` accounts and `TEST_` / `E2E_` record
 - [ ] Open every sidebar item; verify the heading and URL.
 - [ ] Use every dashboard shortcut and card; verify the intended destination.
 - [ ] Open Settings, profile, notification panel, and logout controls.
-- [ ] Search a customer, plan, tender, report, and employee where permitted; select each result.
+- [ ] Search a customer, plan, report, and employee where permitted; select each result.
 - [ ] Open a notification; verify unread count decreases and the destination is correct.
 - [ ] Refresh one direct page URL, then use Back and Forward.
 - [ ] Paste each permitted direct URL into a new tab; verify it renders.
@@ -19,7 +19,7 @@ Use only temporary `*.test@kaiserwhale.com` accounts and `TEST_` / `E2E_` record
 
 - [ ] Login → Dashboard → Customers → create/open `TEST_` customer.
 - [ ] Visits → create `TEST_` visit plan → save draft → submit tour plan → My Plans; record status.
-- [ ] Add `TEST_` follow-up and `TEST_` tender.
+- [ ] Add a `TEST_` follow-up.
 - [ ] Submit `TEST_` daily report.
 - [ ] Open Director Comments and notification destination.
 - [ ] Logout; verify `/marketing/*` cannot be viewed while signed out.
@@ -30,7 +30,7 @@ Use only temporary `*.test@kaiserwhale.com` accounts and `TEST_` / `E2E_` record
 - [ ] Today Schedule → Tour Plans Review → open the submitted `TEST_` plan.
 - [ ] Refresh its detail URL → Back → Forward.
 - [ ] Approve without a comment; verify it leaves the pending list and Marketing receives a notification.
-- [ ] Open Visit Reports, Daily Reports, Customers, Follow-ups, Tenders, Product/Area/Performance Analytics, Comments, and Notifications.
+- [ ] Open Visit Reports, Daily Reports, Customers, Follow-ups, Product/Area/Performance Analytics, Comments, and Notifications.
 - [ ] Logout; verify `/director/*` cannot be viewed while signed out.
 
 ## Admin: `admin.test@kaiserwhale.com`

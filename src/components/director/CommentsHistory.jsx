@@ -4,11 +4,11 @@ import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, SelectField, TextArea } from '../ui';
 
 const COMMENT_TYPES = ['General Comment', 'Need More Details', 'High Priority', 'Follow-up Required', 'Correction Required'];
-const TARGET_TYPES = ['Visit Plan', 'Tour Plan', 'Visit Report', 'Daily Report', 'Follow-up', 'Tender'];
+const TARGET_TYPES = ['Visit Plan', 'Tour Plan', 'Visit Report', 'Daily Report', 'Follow-up'];
 
 export const CommentsHistory = () => {
   const {
-    directorComments, users, visitPlans, visitReports, dailyReports, followUps, tenders,
+    directorComments, users, visitPlans, visitReports, dailyReports, followUps,
     addDirectorComment, refreshEntity, lastUpdated,
   } = useApp();
   const [search, setSearch] = useState('');
@@ -31,8 +31,8 @@ export const CommentsHistory = () => {
     if (form.targetType === 'Visit Report') return visitReports.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `${item.submittedAt || item.visitDate || 'Visit Report'} · ${item.customerName || 'Report'}` }));
     if (form.targetType === 'Daily Report') return dailyReports.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `Daily Report · ${item.date || item.submittedAt || ''}` }));
     if (form.targetType === 'Follow-up') return followUps.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `${item.followUpDate || ''} · ${item.customerName || item.purpose || 'Follow-up'}` }));
-    return tenders.filter((item) => !item.assignedEmployeeId || item.assignedEmployeeId === employeeId).map((item) => ({ id: item.id, title: item.tenderName || item.tenderNumber || 'Tender' }));
-  }, [dailyReports, followUps, form.employeeId, form.targetType, tenders, visitPlans, visitReports]);
+    return [];
+  }, [dailyReports, followUps, form.employeeId, form.targetType, visitPlans, visitReports]);
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value, ...(['employeeId', 'targetType'].includes(field) ? { targetId: '' } : {}) }));
   const submit = async (event) => {
     event.preventDefault();
@@ -63,7 +63,7 @@ export const CommentsHistory = () => {
     <PageHeader title="Director Feedback" description={`Communication shared with Marketing. Last updated ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Not available'}.`} actions={<Button onClick={() => setNewComment(true)}>Add Feedback</Button>} />
     <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search feedback" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Target type" value={module} onChange={(event) => setModule(event.target.value)}><option>All</option>{TARGET_TYPES.map((item) => <option key={item}>{item}</option>)}</SelectField></div>
     <DataTable rows={comments} columns={columns} empty={<EmptyState icon={MessageSquare} title="No Director feedback found" description="Clear filters, refresh, or add feedback for a Marketing record." action={<Button onClick={() => refreshEntity('director_comments')}>Retry</Button>} />} />
-    <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title="Feedback Details" subtitle={selected?.targetType} footer={<Button variant="secondary" onClick={() => setSelected(null)}>Close</Button>}>{selected && <div className="director-feedback-detail"><div><small>Employee</small><strong>{selected.targetEmployeeName}</strong></div><div><small>Feedback Type</small><strong>{selected.commentType}</strong></div><div><small>Related Record</small><strong>{selected.targetTitle}</strong></div><p>{selected.message}</p></div>}</Modal>
+    <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title="Feedback Details" subtitle={selected?.targetType} footer={<Button variant="secondary" onClick={() => setSelected(null)}>Close</Button>}>{selected && <div className="director-feedback-detail"><div><small>Employee</small><strong>{selected.targetEmployeeName}</strong></div><div><small>Feedback Type</small><strong>{selected.commentType}</strong></div><div><small>Related Record</small><strong>{selected.targetTitle}</strong></div><p>{selected.message}</p>{selected.targetType === 'Tender' && <div className="ds-error">This related record is no longer available.</div>}</div>}</Modal>
     <Modal open={newComment} onClose={() => setNewComment(false)} title="Add Director Feedback" footer={<><Button variant="secondary" onClick={() => setNewComment(false)}>Cancel</Button><Button type="submit" form="director-feedback-form">Send Feedback</Button></>}>
       <form id="director-feedback-form" onSubmit={submit} className="ds-form-grid">
         <SelectField className="ds-field--full" label="Marketing Employee" required value={form.employeeId} onChange={(event) => update('employeeId', event.target.value)}><option value="">Select employee</option>{marketing.map((employee) => <option key={employee.id} value={employee.employeeId}>{employee.fullName || employee.employeeName}</option>)}</SelectField>

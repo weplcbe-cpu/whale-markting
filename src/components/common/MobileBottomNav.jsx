@@ -43,7 +43,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
             <span>Add Plan</span>
           </button>
 
-          <button className={`mobile-nav-item ${location.pathname === getMarketingRouteById('follow-ups').path ? 'active' : ''}`} onClick={() => goToMarketing('follow-ups')}><FileText size={20} /><span>Follow-ups</span></button>
+          <button className={`mobile-nav-item ${location.pathname === getMarketingRouteById('reports').path ? 'active' : ''}`} onClick={() => goToMarketing('reports')}><FileText size={20} /><span>Reports</span></button>
         </>
       ) : isDirector ? (
         <>

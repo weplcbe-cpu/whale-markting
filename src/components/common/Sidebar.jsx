@@ -8,7 +8,6 @@ import {
   Calendar,
   FileSpreadsheet,
   Clock,
-  FileText,
   MessageSquare,
   User,
   Users,
@@ -39,7 +38,6 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
     visits: Calendar,
     reports: FileSpreadsheet,
     'follow-ups': Clock,
-    tenders: FileText,
     'director-comments': MessageSquare,
     profile: User,
   };
@@ -50,7 +48,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   }));
 
   // Single-source 8-Item Director Sidebar Navigation
-  const directorIcons = { dashboard: LayoutDashboard, team: Users, 'today-schedule': Clock, 'weekly-plans': Calendar, 'visit-plans': Calendar, 'visit-reports': FileSpreadsheet, 'daily-reports': FileSpreadsheet, 'follow-ups': Clock, tenders: FileText, 'product-overview': Package, 'area-overview': BarChart3, performance: BarChart3, reports: FileSpreadsheet, comments: MessageSquare, notifications: MessageSquare, profile: User };
+  const directorIcons = { dashboard: LayoutDashboard, team: Users, 'today-schedule': Clock, 'weekly-plans': Calendar, 'visit-plans': Calendar, 'visit-reports': FileSpreadsheet, 'daily-reports': FileSpreadsheet, 'follow-ups': Clock, 'product-overview': Package, 'area-overview': BarChart3, performance: BarChart3, reports: FileSpreadsheet, comments: MessageSquare, notifications: MessageSquare, profile: User };
   const directorMenu = directorRoutes.filter(route => route.nav !== false).map(route => ({ ...route, icon: directorIcons[route.id], badge: route.id === 'notifications' ? unreadNotifsCount : undefined }));
   const directorGroups = directorNavigation.map((group) => ({ ...group, items: group.routeIds.map((id) => directorMenu.find((route) => route.id === id)).filter(Boolean) }));
 

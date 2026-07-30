@@ -28,7 +28,6 @@ const pageTitleMap = {
   visits: 'Visits & Schedule',
   reports: 'Reports',
   'follow-ups': 'Follow‑ups',
-  tenders: 'Tenders',
   'director-comments': 'Director Comments',
   profile: 'Profile',
   // Visits hub sub‑tabs
@@ -40,7 +39,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, visitPlans, tenders, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -50,7 +49,10 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   // Filter notifications relevant to this user
   const userNotifs = notifications.filter(
     n => !n.userId || n.userId === currentUser?.employeeId
-  ).filter((notification) => currentRole !== 'Marketing Team' || !isLegacyApprovalNotification(notification));
+  ).filter((notification) => {
+    const text = `${notification.type || ''} ${notification.title || ''} ${notification.message || ''}`.toLowerCase();
+    return !text.includes('tender') && (currentRole !== 'Marketing Team' || !isLegacyApprovalNotification(notification));
+  });
   const unreadCount = userNotifs.filter(n => !n.isRead).length;
   const notificationPath = (notification) => {
     const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase();
@@ -58,7 +60,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
       if (text.includes('comment') || text.includes('director_feedback') || text.includes('director feedback')) {
         return `/marketing/director-comments${notification.referenceId ? `?feedbackId=${encodeURIComponent(notification.referenceId)}` : ''}`;
       }
-      if (text.includes('tender')) return '/marketing/tenders';
       if (text.includes('report')) return '/marketing/reports';
       return '/marketing/visits';
     }
@@ -66,7 +67,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
       if (text.includes('user') || text.includes('employee')) return '/admin/users';
       return '/admin/reports';
     }
-    if (text.includes('tender')) return '/director/tenders';
     if (text.includes('report')) return '/director/visit-reports';
     if (text.includes('comment')) return '/director/comments';
     if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';
@@ -75,7 +75,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
     ...visitPlans.filter(item => `${item.customerName || ''} ${item.area || item.district || ''} ${item.visitPurpose || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `plan-${item.id}`, label: `${item.customerName || item.area} · ${item.visitDate}`, group: 'Visit Plans', path: '/director/tour-plans' })),
-    ...tenders.filter(item => `${item.tenderName || ''} ${item.tenderNumber || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `tender-${item.id}`, label: item.tenderName, group: 'Tenders', path: '/director/tenders' })),
     ...[...visitReports, ...dailyReports].filter(item => `${item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.employeeName} report`, group: 'Reports', path: '/director/visit-reports' }))
   ];
 
@@ -140,7 +139,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
           <input
             type="text"
             className="global-search-input"
-            placeholder="Search plans, reports, tenders..."
+            placeholder="Search plans and reports..."
             value={globalSearch}
             onChange={e => setGlobalSearch(e.target.value)}
           />

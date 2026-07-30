@@ -19,7 +19,6 @@ const normalizeTargetType = (value) => {
     'Visit Reports': 'Visit Report',
     'Daily Reports': 'Daily Report',
     'Follow-ups': 'Follow-up',
-    Tenders: 'Tender',
   };
   return aliases[type] || type;
 };
@@ -86,8 +85,6 @@ export const directorFeedbackRoute = (feedback) => {
       return `/marketing/reports?view=daily&reportId=${id}`;
     case 'Follow-up':
       return `/marketing/follow-ups?followUpId=${id}`;
-    case 'Tender':
-      return `/marketing/tenders?tenderId=${id}`;
     default:
       return null;
   }

@@ -43,8 +43,6 @@ const requiredProductPurposes = new Set([
   "Quotation Discussion",
   "New Requirement",
   "Recycler Hiring",
-  "Tender Meeting",
-  "Tender Submission",
 ]);
 const optionalProductPurposes = [
   "Service Visit",

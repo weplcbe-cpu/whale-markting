@@ -22,7 +22,6 @@ Static verification date: 2026-07-28. This report verifies configured route reso
 | `/marketing/visits` | VisitsPlanningHub | Sidebar, visit cards, Add Plan |
 | `/marketing/reports` | DailyReportSubmit | Sidebar, dashboard |
 | `/marketing/follow-ups` | FollowUpManagement | Sidebar, dashboard |
-| `/marketing/tenders` | TenderManagement | Sidebar |
 | `/marketing/director-comments` | DirectorCommentsFeed | Sidebar, notification |
 | `/marketing/profile` | ProfilePage | Sidebar, Settings |
 
@@ -33,7 +32,7 @@ Static verification date: 2026-07-28. This report verifies configured route reso
 | Dashboard/team | `/director`, `/director/team` | DirectorDashboard, TeamOverview |
 | Planning | `/director/today-schedule`, `/director/tour-plans`, `/director/tour-plans/:batchId`, `/director/visit-plans` | DirectorOperations, WeeklyPlanReview |
 | Reports | `/director/visit-reports`, `/director/daily-reports`, `/director/reports` | DirectorVisitReports, DirectorOperations |
-| Operations | `/director/customers`, `/director/follow-ups`, `/director/tenders` | CustomersOverview, DirectorOperations, TenderMonitoring |
+| Operations | `/director/customers`, `/director/follow-ups` | CustomersOverview, DirectorOperations |
 | Analytics | `/director/analytics/products`, `/director/analytics/areas`, `/director/analytics/performance` | DirectorOperations, PerformanceAnalytics |
 | Communication/profile | `/director/comments`, `/director/notifications`, `/director/profile` | CommentsHistory, DirectorOperations, ProfilePage |
 

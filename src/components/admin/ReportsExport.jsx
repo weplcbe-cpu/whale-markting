@@ -4,7 +4,7 @@ import { Download, Printer, BarChart3 } from 'lucide-react';
 import { CompanyLogo } from '../common/CompanyLogo';
 
 export const ReportsExport = () => {
-  const { visitPlans, dailyReports, tenders, showToast } = useApp();
+  const { visitPlans, dailyReports, showToast } = useApp();
   const [reportType, setReportType] = useState('daily');
   const [dateFilter, setDateFilter] = useState('This Month');
 
@@ -19,9 +19,6 @@ export const ReportsExport = () => {
     } else if (reportType === 'visit') {
       headers = ['ID', 'Date', 'Employee', 'Customer / Organization', 'Purpose', 'Product', 'Status'];
       rows = visitPlans.map(p => [p.id, p.visitDate, `"${p.employeeName}"`, `"${p.customerName || p.organizationName || ''}"`, `"${p.visitPurpose}"`, `"${Array.isArray(p.products) ? p.products.join('; ') : p.products}"`, p.status]);
-    } else if (reportType === 'tender') {
-      headers = ['ID', 'Tender Name', 'Department', 'Value', 'Closing Date', 'Assigned To', 'Status'];
-      rows = tenders.map(t => [t.id, `"${t.tenderName}"`, `"${t.department}"`, `"${t.tenderValue}"`, t.closingDate, `"${t.assignedEmployeeName}"`, t.status]);
     }
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -51,7 +48,6 @@ export const ReportsExport = () => {
           >
             <option value="daily">Daily Summary Report</option>
             <option value="visit">Visit Plan & Field Report</option>
-            <option value="tender">Tender Opportunities Report</option>
           </select>
 
           <select
@@ -88,7 +84,6 @@ export const ReportsExport = () => {
             <BarChart3 size={18} color="var(--accent-cyan)" />
             {reportType === 'daily' && 'Daily Team Activity Report'}
             {reportType === 'visit' && 'Field Visit Performance Report'}
-            {reportType === 'tender' && 'Tender Opportunities & Funnel Report'}
           </h3>
         </div>
 

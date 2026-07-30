@@ -23,7 +23,7 @@ Static scan result: 243 declared interactive action bindings (`button`, shared `
 | Create/update/delete user | UserManagement | `addUser`, `updateUser`, `toggleUserStatus`, `deleteUser` | form state and toast errors |
 | Customer approval | CustomerApprovals | `approveCustomer`, `rejectCustomer` | modal close/action error toast |
 | Planning/review | AddVisitPlan, WeeklyPlanningSheet, WeeklyPlanReview | plan create/submit/review/status functions | submit validation; server error toast/throw |
-| Reports/follow-ups/tenders | Marketing workflow pages | submit/add context functions | form validation and toast error paths |
+| Reports/follow-ups | Marketing workflow pages | submit/add context functions | form validation and toast error paths |
 | Director details/comments | Director Operations/Reports | local modal state, `addDirectorComment` | close/cancel/outside close; toast errors |
 | System settings | SystemSettings | `updateCompanyInfo` | saving state now blocks duplicate submit |
 

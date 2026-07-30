@@ -1,9 +1,9 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Users, Calendar, CheckCircle2, Clock, FileText, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Users, Calendar, CheckCircle2, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export const AdminDashboard = ({ setActiveTab }) => {
-  const { users, visitPlans, followUps, tenders, activityLogs } = useApp();
+  const { users, visitPlans, followUps, activityLogs } = useApp();
 
   const totalMarketingTeam = users.filter(u => u.role === 'Marketing Team' && u.status === 'Active').length;
 
@@ -12,7 +12,6 @@ export const AdminDashboard = ({ setActiveTab }) => {
   const completedVisits = todayVisits.filter(p => p.status === 'Completed').length;
   const pendingVisits = todayVisits.filter(p => p.status === 'Planned' || p.status === 'Started' || p.status === 'Pending').length;
   const pendingFollowups = followUps.filter(f => f.status === 'Pending').length;
-  const tenderOpportunities = tenders.length;
 
   return (
     <div>
@@ -60,13 +59,6 @@ export const AdminDashboard = ({ setActiveTab }) => {
         </div>
 
 
-        <div className="stat-card" onClick={() => setActiveTab('reports')}>
-          <div className="stat-icon-wrapper amber"><FileText size={24} /></div>
-          <div className="stat-content">
-            <div className="stat-value">{tenderOpportunities}</div>
-            <div className="stat-label">Tender Opportunities</div>
-          </div>
-        </div>
       </div>
 
       {/* Main Grid: Today's Overview & System Activity */}

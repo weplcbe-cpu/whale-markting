@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { directorFeedbackRoute } from '../../utils/directorFeedback';
 import { Badge, Button, EmptyState, Modal, PageHeader } from '../ui';
 
-const FILTERS = ['All', 'Unread', 'Read', 'Visit Plans', 'Tour Plans', 'Reports', 'Follow-ups', 'Tenders'];
+const FILTERS = ['All', 'Unread', 'Read', 'Visit Plans', 'Tour Plans', 'Reports', 'Follow-ups'];
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
   : 'Date unavailable';
@@ -18,7 +18,6 @@ export const DirectorCommentsFeed = () => {
     visitReports,
     dailyReports,
     followUps,
-    tenders,
     markDirectorFeedbackRead,
     refreshEntity,
     dataLoading,
@@ -53,7 +52,6 @@ export const DirectorCommentsFeed = () => {
     if (item.targetType === 'Visit Report') return visitReports.some((row) => row.id === item.targetId);
     if (item.targetType === 'Daily Report') return dailyReports.some((row) => row.id === item.targetId);
     if (item.targetType === 'Follow-up') return followUps.some((row) => row.id === item.targetId);
-    if (item.targetType === 'Tender') return tenders.some((row) => row.id === item.targetId);
     return false;
   };
   const filtered = feedback.filter((item) => {
@@ -63,7 +61,6 @@ export const DirectorCommentsFeed = () => {
     if (filter === 'Tour Plans') return item.targetType === 'Tour Plan';
     if (filter === 'Reports') return ['Visit Report', 'Daily Report'].includes(item.targetType);
     if (filter === 'Follow-ups') return item.targetType === 'Follow-up';
-    if (filter === 'Tenders') return item.targetType === 'Tender';
     return true;
   });
   const openDetails = (item) => {

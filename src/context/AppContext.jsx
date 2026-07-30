@@ -129,7 +129,6 @@ export const AppProvider = ({ children }) => {
   const [visitReports, setVisitReports] = useState([]);
   const [dailyReports, setDailyReports] = useState([]);
   const [followUps, setFollowUps] = useState([]);
-  const [tenders, setTenders] = useState([]);
   const [directorComments, setDirectorComments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -295,7 +294,6 @@ export const AppProvider = ({ children }) => {
       ['visitReports', supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false })],
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
-      ['tenders', supabase.from('tenders').select('*')],
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -329,7 +327,6 @@ export const AppProvider = ({ children }) => {
     setVisitReports(rowsToCamel(results.visitReports));
     setDailyReports(rowsToCamel(results.dailyReports));
     setFollowUps(rowsToCamel(results.followUps));
-    setTenders(rowsToCamel(results.tenders));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
@@ -347,7 +344,6 @@ export const AppProvider = ({ children }) => {
       visit_reports: [() => supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }), setVisitReports],
       daily_reports: [() => supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }), setDailyReports],
       follow_ups: [() => supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false }), setFollowUps],
-      tenders: [() => supabase.from('tenders').select('*'), setTenders],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -379,7 +375,7 @@ export const AppProvider = ({ children }) => {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
-      setFollowUps([]); setTenders([]); setDirectorComments([]); setNotifications([]);
+      setFollowUps([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -391,7 +387,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;
-    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'tenders', 'director_comments', 'notifications', 'activity_logs'];
+    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'director_comments', 'notifications', 'activity_logs'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
     tables.forEach((table) => {
@@ -673,7 +669,6 @@ export const AppProvider = ({ children }) => {
     products: Array.isArray(plan.products) ? plan.products : [],
     requirement: plan.requirement || null,
     priority: plan.priority || 'Medium',
-    isTenderRelated: Boolean(plan.isTenderRelated),
     notes: plan.notes || null,
     planType,
     periodFrom,
@@ -851,7 +846,6 @@ export const AppProvider = ({ children }) => {
       products: Array.isArray(plan.products) ? plan.products : [],
       requirement: plan.requirement || null,
       priority: plan.priority || 'Medium',
-      isTenderRelated: Boolean(plan.isTenderRelated),
       notes: plan.notes || null,
       batchId,
       planType,
@@ -970,7 +964,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // ---------------------------------------------------------------------
-  // Visit Reports / Daily Reports / Follow-ups / Tenders / Director Comments
+  // Visit Reports / Daily Reports / Follow-ups / Director Comments
   // ---------------------------------------------------------------------
   const submitVisitReport = async (reportData) => {
     const row = objToSnakeRow({
@@ -1050,25 +1044,6 @@ export const AppProvider = ({ children }) => {
     showToast('Follow-up scheduled', 'success');
   };
 
-  const addTender = async (tendData) => {
-    const row = objToSnakeRow({
-      assignedEmployeeId: currentUser?.employeeId,
-      assignedEmployeeName: currentUser?.employeeName,
-      status: 'New Enquiry',
-      documents: [],
-      ...tendData
-    });
-    const { data, error } = await supabase.from('tenders').insert(row).select().single();
-    if (error) {
-      showToast('Failed to add tender', 'error');
-      return;
-    }
-    setTenders(prev => [rowToCamel(data), ...prev]);
-    await refreshEntity('tenders');
-    logActivity(`Added new tender enquiry: ${tendData.tenderName}`, 'Tender Management');
-    showToast('Tender enquiry added', 'success');
-  };
-
   const addDirectorComment = async (commentData) => {
     const submissionKey = commentData.submissionKey || crypto.randomUUID();
     const { data, error } = await supabase.rpc('create_director_feedback', {
@@ -1139,7 +1114,6 @@ export const AppProvider = ({ children }) => {
     visitReports,
     dailyReports,
     followUps,
-    tenders,
     directorComments,
     notifications,
     activityLogs,
@@ -1174,7 +1148,6 @@ export const AppProvider = ({ children }) => {
     submitDailyReport,
     toggleDailyReportLock,
     addFollowUp,
-    addTender,
     addDirectorComment,
     markDirectorFeedbackRead,
     markNotificationRead

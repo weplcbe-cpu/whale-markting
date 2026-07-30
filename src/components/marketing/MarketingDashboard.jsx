@@ -50,7 +50,6 @@ export const MarketingDashboard = () => {
           </button>
 
           <button className="btn btn-secondary" onClick={() => goTo('follow-ups')}><Clock size={18} /> Add Follow-up</button>
-          <button className="btn btn-secondary" onClick={() => goTo('tenders')}><PlusCircle size={18} /> Add Tender</button>
         </div>
       </div>
 

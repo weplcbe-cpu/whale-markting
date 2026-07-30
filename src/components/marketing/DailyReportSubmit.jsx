@@ -104,7 +104,7 @@ export const DailyReportSubmit = () => {
             <textarea
               className="form-textarea"
               rows={2}
-              placeholder="Detail pending quotation submissions or tender queries..."
+              placeholder="Detail pending quotation submissions or customer queries..."
               value={formData.pendingActions}
               onChange={(e) => setFormData({ ...formData, pendingActions: e.target.value })}
             />

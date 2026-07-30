@@ -10,7 +10,7 @@
 | Submit tour plan | Weekly/NextMonth sheet → `addTourPlanBatch` | `visit_plans.insert` | refreshes plans; inserts Director plan notification; activity log |
 | Submit visit report | report form → `submitVisitReport` | `visit_reports.insert`; optional plan status update | refreshes report/plan; activity log |
 | Submit daily report | DailyReportSubmit → `submitDailyReport` | `daily_reports.insert` | refreshes reports; activity log |
-| Add follow-up/tender | management page → `addFollowUp` / `addTender` | `follow_ups.insert` / `tenders.insert` | entity refresh, activity log, toast |
+| Add follow-up | FollowUpManagement → `addFollowUp` | `follow_ups.insert` | entity refresh, activity log, toast |
 
 ## Director review workflow — PASS (static trace)
 
