@@ -160,7 +160,7 @@ export const DirectorDashboard = () => {
   return (
     <div className="marketing-dashboard director-dashboard">
       {/* 1. Simple Welcome Banner (No Duplicate Action Buttons) */}
-      <div className="hero-welcome-card">
+      <div className="hero-welcome-card director-hero">
         <div className="hero-text">
           <h2>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
           <p>📅 {formattedDate} &nbsp;•&nbsp; Monitor your marketing team and field activities.</p>
@@ -168,7 +168,7 @@ export const DirectorDashboard = () => {
       </div>
 
       {/* 2. 4 Compact White KPI Stat Cards */}
-      <div className="stat-grid dashboard-summary-grid">
+      <div className="stat-grid dashboard-summary-grid director-kpi-row">
         <div className="stat-card" onClick={() => navigate('/director/team')}>
           <div className="stat-icon-wrapper blue"><Users size={24} /></div>
           <div className="stat-content">
@@ -214,13 +214,13 @@ export const DirectorDashboard = () => {
         </div>
       </div>
 
-      {/* 3. Main Content: Today's Team Field Schedule & Recent Team Updates */}
-      <div className="dashboard-main-grid" style={{ marginBottom: '16px' }}>
+      {/* 3. All four cards in a single 2-column × 2-row grid */}
+      <div className="director-cards-grid">
         {/* Today's Team Field Schedule */}
-        <div className="card dashboard-schedule-card" style={{ minHeight: '180px', overflow: 'hidden' }}>
-          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
+        <div className="card director-fit-card">
+          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
-              <Calendar size={20} color="var(--primary-blue)" /> Today's Team Field Schedule
+              <Calendar size={18} color="var(--primary-blue)" /> Today's Team Field Schedule
             </h3>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/today-schedule')}>
               View All <ArrowRight size={14} />
@@ -228,36 +228,36 @@ export const DirectorDashboard = () => {
           </div>
 
           {todayScheduledVisits.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
-              <Calendar size={18} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No team field visits scheduled for today.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
+              <Calendar size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No team field visits scheduled for today.</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {todayScheduledVisits.slice(0, 4).map((plan) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {todayScheduledVisits.slice(0, 3).map((plan) => (
                 <div
                   key={plan.id}
                   style={{
-                    padding: '10px 12px',
+                    padding: '7px 10px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '10px',
+                    gap: '8px',
                   }}
                 >
-                  <div>
-                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.9rem', display: 'block' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.84rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {plan.customerName || plan.area || 'Client Visit'}
                     </strong>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      <User size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <User size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '3px' }} />
                       {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Territory'}
                     </span>
                   </div>
-                  <span className={`badge badge-${String(plan.status || 'planned').toLowerCase()}`}>
+                  <span className={`badge badge-${String(plan.status || 'planned').toLowerCase()}`} style={{ fontSize: '0.68rem', flexShrink: 0 }}>
                     {plan.status || 'Planned'}
                   </span>
                 </div>
@@ -266,11 +266,11 @@ export const DirectorDashboard = () => {
           )}
         </div>
 
-        {/* Recent Team Updates (Vertical Activity Timeline UI) */}
-        <div className="card dashboard-feedback-card" style={{ minHeight: '180px', overflow: 'hidden' }}>
-          <div className="card-header-clean" style={{ marginBottom: '16px' }}>
+        {/* Recent Team Updates (Vertical Activity Timeline) */}
+        <div className="card director-fit-card">
+          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
-              <MessageSquare size={20} color="var(--primary-blue)" /> Recent Team Updates
+              <MessageSquare size={18} color="var(--primary-blue)" /> Recent Team Updates
             </h3>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/notifications')}>
               View All <ArrowRight size={14} />
@@ -278,9 +278,9 @@ export const DirectorDashboard = () => {
           </div>
 
           {recentUpdatesList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '24px 8px', color: 'var(--text-muted)' }}>
-              <MessageSquare size={18} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No recent team updates.</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
+              <MessageSquare size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No recent team updates.</span>
             </div>
           ) : (
             <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -303,122 +303,43 @@ export const DirectorDashboard = () => {
                     style={{
                       display: 'flex',
                       alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '10px 0',
+                      gap: '10px',
+                      padding: '7px 0',
                       borderBottom: isLast ? 'none' : '1px solid var(--border-color, #f1f5f9)',
                       position: 'relative',
                     }}
                   >
-                    {/* LEFT: Timeline node + vertical connector line */}
-                    <div
-                      className="timeline-left"
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        flexShrink: 0,
-                        position: 'relative',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '50%',
-                          backgroundColor: '#E0F2FE',
-                          color: '#0284C7',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          zIndex: 2,
-                        }}
-                      >
-                        <MessageSquare size={13} />
+                    {/* Timeline node */}
+                    <div className="timeline-left" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, position: 'relative' }}>
+                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                        <MessageSquare size={11} />
                       </div>
                       {!isLast && (
-                        <div
-                          style={{
-                            width: '2px',
-                            position: 'absolute',
-                            top: '26px',
-                            bottom: '-10px',
-                            backgroundColor: '#E2E8F0',
-                            zIndex: 1,
-                          }}
-                        />
+                        <div style={{ width: '2px', position: 'absolute', top: '22px', bottom: '-7px', backgroundColor: '#E2E8F0', zIndex: 1 }} />
                       )}
                     </div>
 
-                    {/* CENTER: Title + Employee Name & Organization */}
-                    <div
-                      className="timeline-center"
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '2px',
-                      }}
-                    >
-                      <strong
-                        style={{
-                          color: 'var(--primary-dark, #0F172A)',
-                          fontSize: '0.86rem',
-                          fontWeight: 700,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.3,
-                        }}
-                      >
+                    {/* Title + Employee */}
+                    <div className="timeline-center" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <strong style={{ color: 'var(--primary-dark, #0F172A)', fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
                         {update.title || update.type || 'Team Activity Update'}
                       </strong>
-                      <span
-                        style={{
-                          fontSize: '0.78rem',
-                          color: 'var(--text-muted, #64748B)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {update.employeeName || update.senderName || 'Team Member'}
                         {update.organization ? ` • ${update.organization}` : ''}
                       </span>
                     </div>
 
-                    {/* RIGHT: Formatted Date & Time */}
+                    {/* Date & Time */}
                     {(dateDisplay || timeDisplay) && (
-                      <div
-                        className="timeline-right"
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'flex-end',
-                          flexShrink: 0,
-                          lineHeight: 1.25,
-                        }}
-                      >
+                      <div className="timeline-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, lineHeight: 1.25 }}>
                         {dateDisplay && (
-                          <span
-                            style={{
-                              fontSize: '0.76rem',
-                              fontWeight: 600,
-                              color: 'var(--primary-dark, #0F172A)',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                          <span style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--primary-dark, #0F172A)', whiteSpace: 'nowrap' }}>
                             {dateDisplay}
                           </span>
                         )}
                         {timeDisplay && (
-                          <span
-                            style={{
-                              fontSize: '0.73rem',
-                              color: 'var(--text-muted, #64748B)',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #64748B)', whiteSpace: 'nowrap' }}>
                             {timeDisplay}
                           </span>
                         )}
@@ -430,15 +351,12 @@ export const DirectorDashboard = () => {
             </div>
           )}
         </div>
-      </div>
 
-      {/* 4. Second Row: Pending Reports & Follow-ups Due */}
-      <div className="dashboard-main-grid">
         {/* Pending Reports */}
-        <div className="card" style={{ minHeight: '160px' }}>
-          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
+        <div className="card director-fit-card">
+          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
-              <FileText size={20} color="var(--primary-blue)" /> Pending Reports
+              <FileText size={18} color="var(--primary-blue)" /> Pending Reports
             </h3>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/daily-reports')}>
               View All <ArrowRight size={14} />
@@ -446,17 +364,17 @@ export const DirectorDashboard = () => {
           </div>
 
           {pendingReportsList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
-              <FileText size={18} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No pending reports for review.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
+              <FileText size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No pending reports for review.</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {pendingReportsList.slice(0, 3).map((r) => (
                 <div
                   key={r.id}
                   style={{
-                    padding: '8px 12px',
+                    padding: '7px 10px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
@@ -465,10 +383,10 @@ export const DirectorDashboard = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                     {r.employeeName || 'Rep Report'} • {formatSafeDate(r.reportDate || r.visitDate || r.submittedAt)}
                   </span>
-                  <span className="badge badge-planned" style={{ fontSize: '0.72rem' }}>Pending Review</span>
+                  <span className="badge badge-planned" style={{ fontSize: '0.7rem', flexShrink: 0 }}>Pending Review</span>
                 </div>
               ))}
             </div>
@@ -476,10 +394,10 @@ export const DirectorDashboard = () => {
         </div>
 
         {/* Follow-ups Due */}
-        <div className="card" style={{ minHeight: '160px' }}>
-          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
+        <div className="card director-fit-card">
+          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
-              <Clock size={20} color="var(--primary-blue)" /> Follow-ups Due
+              <Clock size={18} color="var(--primary-blue)" /> Follow-ups Due
             </h3>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/follow-ups')}>
               View All <ArrowRight size={14} />
@@ -487,17 +405,17 @@ export const DirectorDashboard = () => {
           </div>
 
           {pendingFollowUpsList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
-              <Clock size={18} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No follow-ups due.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
+              <Clock size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No follow-ups due.</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {pendingFollowUpsList.slice(0, 3).map((f) => (
                 <div
                   key={f.id}
                   style={{
-                    padding: '8px 12px',
+                    padding: '7px 10px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
@@ -506,10 +424,10 @@ export const DirectorDashboard = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                     {f.customerName || 'Client Follow-up'} • {formatSafeDate(f.followUpDate || f.dueDate)}
                   </span>
-                  <span className="badge badge-started" style={{ fontSize: '0.72rem' }}>Action Due</span>
+                  <span className="badge badge-started" style={{ fontSize: '0.7rem', flexShrink: 0 }}>Action Due</span>
                 </div>
               ))}
             </div>

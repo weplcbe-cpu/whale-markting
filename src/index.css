@@ -1,6 +1,10 @@
 :root {
-  --font-primary: Inter, Arial, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: var(--font-primary);
+  --font-body: Calibri, "Segoe UI", Arial, sans-serif;
+  --font-heading: "Swis721 BlkCn BT", "Arial Narrow", Impact, sans-serif;
+
+  /* Backward-compatible aliases */
+  --font-primary: var(--font-body);
+  --font-display: var(--font-heading);
   --mobile-nav-height: 64px;
 
   /* Whale Enterprise semantic color system */
@@ -146,7 +150,7 @@ html, body, #root {
 }
 
 body {
-  font-family: var(--font-primary);
+  font-family: var(--font-body);
   background-color: var(--bg-main);
   background-image: 
     radial-gradient(circle at 10% 10%, rgba(174, 184, 254, 0.25), transparent 45%),
@@ -157,8 +161,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button, input, select, textarea, a {
-  font-family: inherit;
+button, input, select, textarea, a, table {
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6,
+.page-title,
+.section-title,
+.card-title,
+.card-title-clean,
+.stat-value,
+.modal-title,
+.dashboard-greeting,
+.navbar-title,
+.kw-login-left-heading,
+.kw-login-card-title,
+.hero-text h2,
+.plan-customer-title,
+.modal-header h3,
+.user-modal__header h2,
+.ds-page-header h2,
+.ds-section-card__header h3,
+.ds-modal__header h2,
+.ds-empty h3 {
+  font-family: var(--font-heading);
 }
 
 /* App Container - Locked 100vh */
@@ -564,7 +590,7 @@ button, input, select, textarea, a {
   color: #fff;
   font-size: 0.95rem;
   font-weight: 700;
-  font-family: Arial, system-ui, sans-serif;
+  font-family: var(--font-heading);
   letter-spacing: 0.02em;
   display: flex;
   align-items: center;
@@ -2762,7 +2788,7 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   max-width: 1440px;
   margin: 0 auto;
   padding: 8px 4px 40px 4px;
-  font-family: var(--font-primary, 'Inter', system-ui, sans-serif);
+  font-family: var(--font-body);
 }
 
 /* Hero & Header Section */
@@ -3361,10 +3387,143 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
    DIRECTOR DASHBOARD STYLES
    ========================================== */
 
+/* Director Dashboard: full-height no-scroll desktop layout */
 .director-dashboard {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 12px;
+}
+
+/* Compact hero banner for Director */
+.director-dashboard .director-hero {
+  padding: 16px 22px;
+  margin-bottom: 0;
+}
+
+.director-dashboard .director-hero .hero-text h2 {
+  font-size: 1.35rem;
+}
+
+.director-dashboard .director-hero .hero-text p {
+  font-size: 0.82rem;
+}
+
+/* Compact KPI row */
+.director-dashboard .director-kpi-row {
+  margin-bottom: 0;
+  gap: 12px;
+}
+
+.director-dashboard .director-kpi-row .stat-card {
+  padding: 14px 16px;
+}
+
+.director-dashboard .director-kpi-row .stat-value {
+  font-size: 1.4rem;
+}
+
+/* 2-column × 2-row cards grid fills remaining space */
+.director-cards-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.director-fit-card {
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+}
+
+.director-fit-card .card-header-clean {
+  flex-shrink: 0;
+}
+
+/* Disable the main-view-wrapper scrollbar for director-dashboard */
+.main-view-wrapper:has(.director-dashboard) {
+  overflow-y: hidden !important;
+  padding-right: 0;
+}
+
+/* Compact spacing for smaller desktops (1366x768 and below) */
+@media (max-height: 800px) {
+  .director-dashboard {
+    gap: 8px;
+  }
+
+  .director-dashboard .director-hero {
+    padding: 12px 18px;
+  }
+
+  .director-dashboard .director-hero .hero-text h2 {
+    font-size: 1.15rem;
+  }
+
+  .director-dashboard .director-hero .hero-text p {
+    font-size: 0.78rem;
+  }
+
+  .director-dashboard .director-kpi-row {
+    gap: 8px;
+  }
+
+  .director-dashboard .director-kpi-row .stat-card {
+    padding: 10px 12px;
+  }
+
+  .director-dashboard .director-kpi-row .stat-value {
+    font-size: 1.15rem;
+  }
+
+  .director-dashboard .director-kpi-row .stat-label {
+    font-size: 0.72rem;
+  }
+
+  .director-cards-grid {
+    gap: 8px;
+  }
+
+  .director-fit-card {
+    padding: 12px 14px;
+  }
+
+  .director-fit-card .card-title-clean {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet / mobile: allow vertical scroll */
+@media (max-width: 900px) {
+  .director-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    gap: 14px;
+  }
+
+  .director-cards-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    overflow: visible;
+  }
+
+  .director-fit-card {
+    overflow: visible;
+    min-height: auto;
+  }
+
+  .main-view-wrapper:has(.director-dashboard) {
+    overflow-y: auto !important;
+    padding-right: 6px;
+  }
 }
 
 @media (max-width: 575px) {
@@ -3374,7 +3533,7 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   .timeline-right {
     align-items: flex-start !important;
     width: 100%;
-    margin-left: 38px;
+    margin-left: 32px;
     margin-top: 2px;
     flex-direction: row !important;
     gap: 8px;
@@ -3392,7 +3551,7 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   padding: clamp(6px, 1vh, 10px) 0 clamp(6px, 1vh, 8px) 0;
   gap: clamp(8px, 1.2vh, 12px);
   box-sizing: border-box;
-  font-family: var(--font-primary, 'Inter', system-ui, sans-serif);
+  font-family: var(--font-body);
   color: #0F172A;
   overflow: hidden;
 }
