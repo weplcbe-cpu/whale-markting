@@ -3361,9 +3361,9 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
    DIRECTOR CONTROL CENTER 12-TILE STYLES
    ========================================== */
 
-/* ==========================================
-   DIRECTOR CONTROL CENTER 12-TILE STYLES
-   ========================================== */
+.main-layout:has(.dcc-container) {
+  padding-inline: 0 !important;
+}
 
 .dcc-container {
   display: flex;
@@ -3371,7 +3371,7 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   height: calc(100vh - 72px);
   max-height: calc(100dvh - 72px);
   width: calc(100% - 48px);
-  max-width: 1680px;
+  max-width: 1872px;
   margin-inline: auto;
   padding: clamp(6px, 1vh, 12px) 0 clamp(8px, 1.2vh, 16px) 0;
   gap: clamp(8px, 1.2vh, 14px);
@@ -3383,8 +3383,8 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
 
 @media (min-width: 1800px) {
   .dcc-container {
-    width: calc(100% - 64px);
-    max-width: 1760px;
+    width: calc(100% - 56px);
+    max-width: 1864px;
   }
 }
 
