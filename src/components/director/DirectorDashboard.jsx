@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { formatSafeDate } from '../../utils/dateUtils';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
@@ -30,12 +31,7 @@ export const DirectorDashboard = () => {
   const todayValue = useMemo(() => now.toISOString().slice(0, 10), [now]);
 
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
-  const formattedDate = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const formattedDate = formatSafeDate(now);
 
   // Metrics
   const marketingTeamCount = useMemo(() => {
@@ -59,8 +55,19 @@ export const DirectorDashboard = () => {
     [followUps]
   );
 
+  // Deduplicated Recent Team Updates (max 4 distinct items with valid dates)
   const recentUpdatesList = useMemo(() => {
-    return notifications.slice(0, 4);
+    const seen = new Set();
+    const result = [];
+    for (const notif of notifications) {
+      const key = `${notif.title || notif.type}-${notif.message || notif.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(notif);
+      }
+      if (result.length >= 4) break;
+    }
+    return result;
   }, [notifications]);
 
   if (dataLoading && !lastUpdated) {
@@ -78,24 +85,11 @@ export const DirectorDashboard = () => {
 
   return (
     <div className="marketing-dashboard director-dashboard">
-      {/* 1. Gradient Welcome Banner */}
+      {/* 1. Simple Welcome Banner (No Duplicate Action Buttons) */}
       <div className="hero-welcome-card">
         <div className="hero-text">
           <h2>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
           <p>📅 {formattedDate} &nbsp;•&nbsp; Monitor your marketing team and field activities.</p>
-        </div>
-
-        {/* Quick Action Buttons */}
-        <div className="hero-actions">
-          <button className="btn btn-action" type="button" onClick={() => navigate('/director/team')}>
-            <Users size={18} /> View Marketing Team
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={() => navigate('/director/today-schedule')}>
-            <Calendar size={18} /> Today Schedule
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={() => navigate('/director/daily-reports')}>
-            <FileText size={18} /> View Reports
-          </button>
         </div>
       </div>
 
@@ -147,10 +141,10 @@ export const DirectorDashboard = () => {
       </div>
 
       {/* 3. Main Content: Today's Team Field Schedule & Recent Team Updates */}
-      <div className="dashboard-main-grid" style={{ marginBottom: '18px' }}>
+      <div className="dashboard-main-grid" style={{ marginBottom: '16px' }}>
         {/* Today's Team Field Schedule */}
-        <div className="card dashboard-schedule-card">
-          <div className="card-header-clean">
+        <div className="card dashboard-schedule-card" style={{ minHeight: '180px', maxHeight: '230px', overflow: 'hidden' }}>
+          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
             <h3 className="card-title-clean">
               <Calendar size={20} color="var(--primary-blue)" /> Today's Team Field Schedule
             </h3>
@@ -160,29 +154,32 @@ export const DirectorDashboard = () => {
           </div>
 
           {todayScheduledVisits.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No team field visits scheduled for today.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
+              <Calendar size={18} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No team field visits scheduled for today.</span>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {todayScheduledVisits.slice(0, 4).map((plan) => (
                 <div
                   key={plan.id}
                   style={{
-                    padding: '12px 14px',
+                    padding: '10px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '12px',
+                    gap: '10px',
                   }}
                 >
                   <div>
-                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.92rem', display: 'block' }}>
+                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.9rem', display: 'block' }}>
                       {plan.customerName || plan.area || 'Client Visit'}
                     </strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      <User size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <User size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
                       {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Territory'}
                     </span>
                   </div>
@@ -196,8 +193,8 @@ export const DirectorDashboard = () => {
         </div>
 
         {/* Recent Team Updates */}
-        <div className="card dashboard-feedback-card">
-          <div className="card-header-clean">
+        <div className="card dashboard-feedback-card" style={{ minHeight: '180px', maxHeight: '230px', overflow: 'hidden' }}>
+          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
             <h3 className="card-title-clean">
               <MessageSquare size={20} color="var(--primary-blue)" /> Recent Team Updates
             </h3>
@@ -207,27 +204,36 @@ export const DirectorDashboard = () => {
           </div>
 
           {recentUpdatesList.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No recent team activity updates.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
+              <MessageSquare size={18} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No recent team activity updates.</span>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recentUpdatesList.map((notif) => (
                 <div
                   key={notif.id}
                   style={{
-                    padding: '12px 14px',
+                    padding: '8px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
                   }}
                 >
-                  <strong style={{ color: 'var(--primary-dark)', fontSize: '0.88rem' }}>
-                    {notif.title || notif.type || 'Team Activity Update'}
-                  </strong>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {notif.message || 'New update submitted'}
+                  <div>
+                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.86rem', display: 'block' }}>
+                      {notif.title || notif.type || 'Team Activity Update'}
+                    </strong>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {notif.employeeName || notif.senderName || 'Team Member'} {notif.area ? `• ${notif.area}` : ''}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {formatSafeDate(notif.created_at || notif.timestamp || notif.date)}
                   </span>
                 </div>
               ))}
@@ -239,8 +245,8 @@ export const DirectorDashboard = () => {
       {/* 4. Second Row: Pending Reports & Follow-ups Due */}
       <div className="dashboard-main-grid">
         {/* Pending Reports */}
-        <div className="card">
-          <div className="card-header-clean">
+        <div className="card" style={{ minHeight: '160px' }}>
+          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
             <h3 className="card-title-clean">
               <FileText size={20} color="var(--primary-blue)" /> Pending Reports
             </h3>
@@ -250,14 +256,17 @@ export const DirectorDashboard = () => {
           </div>
 
           {pendingReportsList.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No pending reports for review.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
+              <FileText size={18} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No pending reports for review.</span>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {pendingReportsList.slice(0, 3).map((r) => (
                 <div
                   key={r.id}
                   style={{
-                    padding: '10px 14px',
+                    padding: '8px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
@@ -266,10 +275,10 @@ export const DirectorDashboard = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
-                    {r.employeeName || 'Rep Report'} • {r.reportDate || r.visitDate || 'Today'}
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                    {r.employeeName || 'Rep Report'} • {formatSafeDate(r.reportDate || r.visitDate || r.submittedAt)}
                   </span>
-                  <span className="badge badge-planned" style={{ fontSize: '0.74rem' }}>Pending Review</span>
+                  <span className="badge badge-planned" style={{ fontSize: '0.72rem' }}>Pending Review</span>
                 </div>
               ))}
             </div>
@@ -277,8 +286,8 @@ export const DirectorDashboard = () => {
         </div>
 
         {/* Follow-ups Due */}
-        <div className="card">
-          <div className="card-header-clean">
+        <div className="card" style={{ minHeight: '160px' }}>
+          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
             <h3 className="card-title-clean">
               <Clock size={20} color="var(--primary-blue)" /> Follow-ups Due
             </h3>
@@ -288,14 +297,17 @@ export const DirectorDashboard = () => {
           </div>
 
           {pendingFollowUpsList.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No follow-ups due.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
+              <Clock size={18} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No follow-ups due.</span>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {pendingFollowUpsList.slice(0, 3).map((f) => (
                 <div
                   key={f.id}
                   style={{
-                    padding: '10px 14px',
+                    padding: '8px 12px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--color-surface-muted, #f8fafc)',
                     border: '1px solid var(--border-color)',
@@ -304,10 +316,10 @@ export const DirectorDashboard = () => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
-                    {f.customerName || 'Client Follow-up'} • {f.followUpDate || 'Due'}
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                    {f.customerName || 'Client Follow-up'} • {formatSafeDate(f.followUpDate || f.dueDate)}
                   </span>
-                  <span className="badge badge-started" style={{ fontSize: '0.74rem' }}>Action Due</span>
+                  <span className="badge badge-started" style={{ fontSize: '0.72rem' }}>Action Due</span>
                 </div>
               ))}
             </div>
