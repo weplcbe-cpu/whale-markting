@@ -11,7 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatSafeDate } from '../../utils/dateUtils';
+import { formatSafeDate, formatUpdateDate } from '../../utils/dateUtils';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export const DirectorDashboard = () => {
     dailyReports = [],
     followUps = [],
     notifications = [],
+    directorComments = [],
     dataLoading,
     lastUpdated,
   } = useApp();
@@ -55,20 +56,93 @@ export const DirectorDashboard = () => {
     [followUps]
   );
 
-  // Deduplicated Recent Team Updates (max 4 distinct items with valid dates)
+  // Normalized & Deduplicated Recent Team Updates (from 5 update sources)
   const recentUpdatesList = useMemo(() => {
+    const list = [];
+
+    // 1. Notifications
+    (notifications || []).forEach((n) => {
+      list.push({
+        id: `notif-${n.id || Math.random()}`,
+        title: n.title || n.type || 'Notification Update',
+        employeeName: n.employeeName || n.senderName || n.userLabel || 'Marketing Rep',
+        organization: n.area || n.district || '',
+        createdAt: n.createdAt || n.created_at || n.timestamp,
+        ...n,
+      });
+    });
+
+    // 2. Visit Plans
+    (visitPlans || []).forEach((p) => {
+      list.push({
+        id: `plan-${p.id}`,
+        title: `Visit Plan: ${p.area || p.customerName || 'Field Visit'}`,
+        employeeName: p.employeeName || 'Marketing Rep',
+        organization: p.customerName || p.area || p.district || '',
+        createdAt: p.submittedAt || p.submitted_at || p.createdAt || p.created_at || p.visitDate || p.visit_date,
+        ...p,
+      });
+    });
+
+    // 3. Daily & Visit Reports
+    [...(dailyReports || []), ...(visitReports || [])].forEach((r) => {
+      list.push({
+        id: `report-${r.id}`,
+        title: `Daily Report Submitted`,
+        employeeName: r.employeeName || 'Marketing Rep',
+        organization: r.area || r.district || '',
+        createdAt: r.submittedAt || r.submitted_at || r.reportDate || r.report_date || r.visitDate || r.createdAt,
+        ...r,
+      });
+    });
+
+    // 4. Follow-ups
+    (followUps || []).forEach((f) => {
+      list.push({
+        id: `fol-${f.id}`,
+        title: `Follow-up: ${f.customerName || 'Client Follow-up'}`,
+        employeeName: f.employeeName || 'Marketing Rep',
+        organization: f.customerName || f.area || '',
+        createdAt: f.updatedAt || f.updated_at || f.createdAt || f.created_at || f.followUpDate || f.follow_up_date,
+        ...f,
+      });
+    });
+
+    // 5. Director Comments
+    (directorComments || []).forEach((c) => {
+      list.push({
+        id: `comment-${c.id}`,
+        title: `Director Comment: ${c.targetType || 'Feedback'}`,
+        employeeName: c.authorName || c.employeeName || 'Director',
+        organization: c.area || c.comment || '',
+        createdAt: c.createdAt || c.created_at || c.timestamp,
+        ...c,
+      });
+    });
+
+    // Sort descending by timestamp
+    list.sort((a, b) => {
+      const candidateA = a.createdAt || a.created_at || a.submittedAt || a.submitted_at || a.visitDate || a.reportDate || a.followUpDate || a.timestamp;
+      const candidateB = b.createdAt || b.created_at || b.submittedAt || b.submitted_at || b.visitDate || b.reportDate || b.followUpDate || b.timestamp;
+      const timeA = candidateA ? new Date(candidateA).getTime() : 0;
+      const timeB = candidateB ? new Date(candidateB).getTime() : 0;
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    });
+
+    // Deduplicate
     const seen = new Set();
-    const result = [];
-    for (const notif of notifications) {
-      const key = `${notif.title || notif.type}-${notif.message || notif.id}`;
+    const unique = [];
+    for (const item of list) {
+      const key = `${item.title}-${item.employeeName}-${item.createdAt}`;
       if (!seen.has(key)) {
         seen.add(key);
-        result.push(notif);
+        unique.push(item);
       }
-      if (result.length >= 4) break;
+      if (unique.length >= 4) break;
     }
-    return result;
-  }, [notifications]);
+
+    return unique;
+  }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
 
   if (dataLoading && !lastUpdated) {
     return (
@@ -210,33 +284,38 @@ export const DirectorDashboard = () => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {recentUpdatesList.map((notif) => (
-                <div
-                  key={notif.id}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-muted, #f8fafc)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                  }}
-                >
-                  <div>
-                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.86rem', display: 'block' }}>
-                      {notif.title || notif.type || 'Team Activity Update'}
-                    </strong>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {notif.employeeName || notif.senderName || 'Team Member'} {notif.area ? `• ${notif.area}` : ''}
-                    </span>
+              {recentUpdatesList.map((update) => {
+                const dateStr = formatUpdateDate(update);
+                return (
+                  <div
+                    key={update.id}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-surface-muted, #f8fafc)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                    }}
+                  >
+                    <div>
+                      <strong style={{ color: 'var(--primary-dark)', fontSize: '0.86rem', display: 'block' }}>
+                        {update.title || update.type || 'Team Activity Update'}
+                      </strong>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {update.employeeName || update.senderName || 'Team Member'} {update.organization ? `• ${update.organization}` : ''}
+                      </span>
+                    </div>
+                    {dateStr ? (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {dateStr}
+                      </span>
+                    ) : null}
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    {formatSafeDate(notif.created_at || notif.timestamp || notif.date)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

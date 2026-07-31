@@ -47,3 +47,91 @@ export const formatSafeDate = (inputDate) => {
     return 'Date unavailable';
   }
 };
+
+/**
+ * Safely resolves the first valid timestamp from an update item and formats it as:
+ * "31 Jul 2026, 10:45 AM" or "31 Jul 2026".
+ * If no valid timestamp exists, returns null (hides date instead of displaying fallback text).
+ */
+export const formatUpdateDate = (update) => {
+  if (!update) return null;
+
+  // Extract candidate timestamp fields in order of priority (both camelCase and snake_case)
+  const candidate =
+    update.createdAt ||
+    update.created_at ||
+    update.updatedAt ||
+    update.updated_at ||
+    update.submittedAt ||
+    update.submitted_at ||
+    update.visitDate ||
+    update.visit_date ||
+    update.reportDate ||
+    update.report_date ||
+    update.followUpDate ||
+    update.follow_up_date ||
+    update.timestamp ||
+    update.date ||
+    (typeof update === 'string' || typeof update === 'number' || update instanceof Date ? update : null);
+
+  if (!candidate) return null;
+
+  try {
+    let dateObj;
+
+    if (candidate instanceof Date) {
+      dateObj = candidate;
+    } else if (typeof candidate === 'number') {
+      dateObj = new Date(candidate);
+    } else if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (!trimmed) return null;
+
+      dateObj = new Date(trimmed);
+
+      if (isNaN(dateObj.getTime())) {
+        const datePart = trimmed.split(/[\sT]+/)[0];
+        const parts = datePart.split(/[-/]/);
+        if (parts.length === 3) {
+          if (parts[0].length <= 2 && parts[2].length === 4) {
+            dateObj = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+          } else if (parts[0].length === 4) {
+            dateObj = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+          }
+        }
+      }
+    }
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return null;
+    }
+
+    const year = dateObj.getFullYear();
+    if (year < 2000 || year > 2100) {
+      return null;
+    }
+
+    const formattedDate = dateObj.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const hours = dateObj.getHours();
+    const minutes = dateObj.getMinutes();
+    const seconds = dateObj.getSeconds();
+
+    if (hours !== 0 || minutes !== 0 || seconds !== 0) {
+      const formattedTime = dateObj.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+      return `${formattedDate}, ${formattedTime}`;
+    }
+
+    return formattedDate;
+  } catch {
+    return null;
+  }
+};
