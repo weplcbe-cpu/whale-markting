@@ -20,7 +20,7 @@ export const MarketingDashboard = () => {
     year: 'numeric'
   });
 
-  const myTodayVisits = visitPlans.filter(p => p.employeeId === empId && (p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]));
+  const myTodayVisits = visitPlans.filter(p => p.employeeId === empId && p.visitDate === new Date().toISOString().split('T')[0]);
   const myPendingFollowups = followUps.filter(f => f.employeeId === empId && f.status === 'Pending');
   const mySubmittedPlans = visitPlans.filter(p => p.employeeId === empId && normalizePlanStatus(p.status) === 'Submitted').length;
 

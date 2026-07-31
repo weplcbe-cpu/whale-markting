@@ -159,37 +159,6 @@ export function AppContent() {
     </Routes>
   );
 
-  // Consolidated route definitions are imported from routes.js
-  const _renderContent = () => {
-    const match = routes.find(r => r.role === currentRole && r.id === activeTab);
-    const Component = match ? getLazyComponent(match) : null;
-    if (Component) {
-      return (
-        <Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}>
-          <Component setActiveTab={setActiveTab} />
-        </Suspense>
-      );
-    }
-    // Fallback to default dashboard for the role
-    const defaultRoute = routes.find(r => r.role === currentRole && r.id === 'dashboard');
-    const DefaultComponent = defaultRoute ? getLazyComponent(defaultRoute) : null;
-    if (DefaultComponent) {
-      return (
-        <Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}>
-          <DefaultComponent setActiveTab={setActiveTab} />
-        </Suspense>
-      );
-    }
-    // No route exists at all for this role — never silently render nothing.
-    console.error(`No route found for role "${currentRole}" and tab "${activeTab}"`);
-    return (
-      <div className="app-loading-screen app-error-screen">
-        <CompanyLogo className="app-loading-logo" />
-        <p>No dashboard is configured for your account role ({currentRole || 'unknown'}).</p>
-        <p className="app-error-detail">Contact your Admin to verify your account setup.</p>
-      </div>
-    );
-  };
 
   return (
     <div className="app-container">

@@ -8,7 +8,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
   const totalMarketingTeam = users.filter(u => u.role === 'Marketing Team' && u.status === 'Active').length;
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayVisits = visitPlans.filter(p => p.visitDate === todayStr || p.visitDate === '2026-07-21');
+  const todayVisits = visitPlans.filter(p => p.visitDate === todayStr);
   const completedVisits = todayVisits.filter(p => p.status === 'Completed').length;
   const pendingVisits = todayVisits.filter(p => p.status === 'Planned' || p.status === 'Started' || p.status === 'Pending').length;
   const pendingFollowups = followUps.filter(f => f.status === 'Pending').length;

@@ -12,7 +12,7 @@ export const DailyReportSubmit = () => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   // System Automatic Calculations
-  const todayVisits = visitPlans.filter(p => p.employeeId === empId && (p.visitDate === todayStr || p.visitDate === '2026-07-21'));
+  const todayVisits = visitPlans.filter(p => p.employeeId === empId && p.visitDate === todayStr);
   const plannedCount = todayVisits.length;
   const completedCount = todayVisits.filter(p => p.status === 'Completed').length;
   const cancelledCount = todayVisits.filter(p => p.status === 'Cancelled').length;

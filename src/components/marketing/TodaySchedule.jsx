@@ -54,7 +54,7 @@ export const TodaySchedule = () => {
     requirementDetails: '',
     nextAction: '',
     isFollowUpRequired: true,
-    followUpDate: '2026-07-25',
+    followUpDate: new Date().toISOString().split('T')[0],
     isQuotationRequired: false,
     finalStatus: 'Completed'
   });

@@ -20,7 +20,7 @@ export const MyPlans = () => {
   }, [empId, searchParams, visitPlans]);
 
   if (filterView === 'Today') {
-    myPlans = myPlans.filter(p => p.visitDate === '2026-07-21' || p.visitDate === new Date().toISOString().split('T')[0]);
+    myPlans = myPlans.filter(p => p.visitDate === new Date().toISOString().split('T')[0]);
   }
 
   return (

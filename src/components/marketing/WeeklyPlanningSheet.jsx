@@ -53,9 +53,22 @@ const optionalProductPurposes = [
   "Site Inspection",
   "Other",
 ];
+const getDefaultWeekRange = () => {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMon = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diffToMon));
+  const nextMonday = new Date(monday);
+  nextMonday.setDate(monday.getDate() + 7);
+  return {
+    weekFrom: monday.toISOString().split("T")[0],
+    weekTo: nextMonday.toISOString().split("T")[0],
+  };
+};
+
 const blankRow = () => ({
   id: `weekly-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-  visitDate: "",
+  visitDate: new Date().toISOString().split("T")[0],
   expectedTime: "10:00 AM",
   area: "",
   state: "Tamil Nadu",
@@ -325,14 +338,12 @@ export const WeeklyPlanningSheet = () => {
     dataLoading,
     showToast,
   } = useApp();
+  const defaultWeekRange = useMemo(() => getDefaultWeekRange(), []);
   const saved = useMemo(() => {
-    return readVisitPlanDraft(WEEKLY_VISIT_PLAN_DRAFT_KEY, {
-      weekFrom: "2026-08-03",
-      weekTo: "2026-08-10",
-    });
-  }, []);
-  const [weekFrom, setWeekFrom] = useState(saved?.weekFrom || "2026-08-03");
-  const [weekTo, setWeekTo] = useState(saved?.weekTo || "2026-08-10");
+    return readVisitPlanDraft(WEEKLY_VISIT_PLAN_DRAFT_KEY, defaultWeekRange);
+  }, [defaultWeekRange]);
+  const [weekFrom, setWeekFrom] = useState(saved?.weekFrom || defaultWeekRange.weekFrom);
+  const [weekTo, setWeekTo] = useState(saved?.weekTo || defaultWeekRange.weekTo);
   const [status, setStatus] = useState("Draft");
   const [rows, setRows] = useState(() =>
     (saved?.rows || []).map(normalizeRow),

@@ -24,11 +24,18 @@ const toMonthlyRow = (plan) => ({
   plannedDate: plan.visitDate || '',
   status: plan.status || 'Draft'
 });
+const getDefaultMonthRange = () => {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+  return {
+    monthFrom: nextMonth.toISOString().split('T')[0],
+    monthTo: lastDayOfNextMonth.toISOString().split('T')[0]
+  };
+};
+
 const readDraft = () => {
-  return readVisitPlanDraft(MONTHLY_VISIT_PLAN_DRAFT_KEY, {
-    monthFrom: '2026-08-01',
-    monthTo: '2026-08-31',
-  });
+  return readVisitPlanDraft(MONTHLY_VISIT_PLAN_DRAFT_KEY, getDefaultMonthRange());
 };
 const localDraftRows = (entries) => entries.filter(isUnsavedVisitPlanDraft);
 const persistDraftRows = (entries, monthFrom, monthTo) => {

@@ -50,5 +50,3 @@ export const adminRoutes = [
   { role: 'Admin', id: 'reports', path: '/admin/reports', label: 'Reports & Export', component: () => import('./components/admin/ReportsExport') },
   { role: 'Admin', id: 'settings', path: '/admin/settings', label: 'System Settings', component: () => import('./components/admin/SystemSettings') },
 ];
-
-export const routes = adminRoutes;
