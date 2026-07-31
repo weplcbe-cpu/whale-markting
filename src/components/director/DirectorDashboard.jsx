@@ -5,6 +5,7 @@ import {
   Bell,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -91,14 +92,26 @@ export const DirectorDashboard = () => {
     [notifications]
   );
 
-  // 12 Tiles Definition
+  // Initials for Profile Avatar
+  const userInitials = useMemo(() => {
+    if (!currentUser?.fullName) return 'D';
+    return currentUser.fullName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+  }, [currentUser]);
+
+  // 12 Tiles Definition with Soft Pastel Styling
   const tiles = useMemo(() => [
     {
       id: 'team',
       title: 'Marketing Team',
       icon: Users,
       badge: `${marketingTeamCount} Reps`,
-      badgeColor: '#06B6D4',
+      badgeColor: '#0284C7',
+      bgLight: '#E0F2FE',
       description: 'Directory, territories & rep status',
       path: '/director/team',
       group: 1,
@@ -108,7 +121,8 @@ export const DirectorDashboard = () => {
       title: 'Today Schedule',
       icon: Clock,
       badge: `${todayScheduledVisitsCount} Today`,
-      badgeColor: '#3B82F6',
+      badgeColor: '#2563EB',
+      bgLight: '#DBEAFE',
       description: 'Real-time field visit tracking',
       path: '/director/today-schedule',
       group: 1,
@@ -118,7 +132,8 @@ export const DirectorDashboard = () => {
       title: 'Visit Plans',
       icon: Calendar,
       badge: `${submittedPlansCount} Submitted`,
-      badgeColor: '#6366F1',
+      badgeColor: '#7C3AED',
+      bgLight: '#ECE9FE',
       description: 'Review field visit plan submissions',
       path: '/director/visit-plans',
       group: 1,
@@ -128,7 +143,8 @@ export const DirectorDashboard = () => {
       title: 'Visit Reports',
       icon: CheckCircle2,
       badge: `${completedPlansCount} Verified`,
-      badgeColor: '#10B981',
+      badgeColor: '#16A34A',
+      bgLight: '#DCFCE7',
       description: 'Completed visit logs & proof',
       path: '/director/visit-reports',
       group: 1,
@@ -138,7 +154,8 @@ export const DirectorDashboard = () => {
       title: 'Daily Reports',
       icon: FileText,
       badge: `${pendingReportsCount} Pending`,
-      badgeColor: '#8B5CF6',
+      badgeColor: '#9333EA',
+      bgLight: '#F3E8FF',
       description: 'Daily activity summaries',
       path: '/director/daily-reports',
       group: 1,
@@ -148,7 +165,8 @@ export const DirectorDashboard = () => {
       title: 'Follow-ups',
       icon: AlertCircle,
       badge: `${pendingFollowUpsCount} Due`,
-      badgeColor: '#F43F5E',
+      badgeColor: '#E11D48',
+      bgLight: '#FFE4E6',
       description: 'Open client follow-up actions',
       path: '/director/follow-ups',
       group: 1,
@@ -158,7 +176,8 @@ export const DirectorDashboard = () => {
       title: 'Product Overview',
       icon: Package,
       badge: 'Catalog',
-      badgeColor: '#0EA5E9',
+      badgeColor: '#0284C7',
+      bgLight: '#E0F2FE',
       description: 'Product demand & tag insights',
       path: '/director/analytics/products',
       group: 2,
@@ -168,7 +187,8 @@ export const DirectorDashboard = () => {
       title: 'Area Overview',
       icon: MapPin,
       badge: 'Territories',
-      badgeColor: '#F59E0B',
+      badgeColor: '#D97706',
+      bgLight: '#FEF3C7',
       description: 'Geographic visit analytics',
       path: '/director/analytics/areas',
       group: 2,
@@ -178,7 +198,8 @@ export const DirectorDashboard = () => {
       title: 'Performance',
       icon: TrendingUp,
       badge: 'Analytics',
-      badgeColor: '#10B981',
+      badgeColor: '#16A34A',
+      bgLight: '#DCFCE7',
       description: 'Team performance metrics',
       path: '/director/analytics/performance',
       group: 2,
@@ -188,7 +209,8 @@ export const DirectorDashboard = () => {
       title: 'Comments',
       icon: MessageSquare,
       badge: 'Feed',
-      badgeColor: '#6366F1',
+      badgeColor: '#7C3AED',
+      bgLight: '#ECE9FE',
       description: 'Director notes & rep feedback',
       path: '/director/comments',
       group: 2,
@@ -198,7 +220,8 @@ export const DirectorDashboard = () => {
       title: 'Notifications',
       icon: Bell,
       badge: `${unreadNotifsCount} Unread`,
-      badgeColor: '#3B82F6',
+      badgeColor: '#2563EB',
+      bgLight: '#DBEAFE',
       description: 'System alerts & activity stream',
       path: '/director/notifications',
       group: 2,
@@ -208,7 +231,8 @@ export const DirectorDashboard = () => {
       title: 'Profile',
       icon: User,
       badge: 'Account',
-      badgeColor: '#64748B',
+      badgeColor: '#475569',
+      bgLight: '#F1F5F9',
       description: 'Director settings & credentials',
       path: '/director/profile',
       group: 2,
@@ -234,11 +258,11 @@ export const DirectorDashboard = () => {
     return (
       <div className="dcc-container">
         <div className="director-dashboard-skeleton" aria-label="Loading Director Control Center">
-          <div className="ds-skeleton" style={{ height: '70px', borderRadius: '16px' }} />
-          <div className="ds-skeleton" style={{ height: '40px', borderRadius: '12px' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+          <div className="ds-skeleton" style={{ height: '70px', borderRadius: '18px' }} />
+          <div className="ds-skeleton" style={{ height: '76px', borderRadius: '18px' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
             {Array.from({ length: 12 }, (_, idx) => (
-              <div className="ds-skeleton" key={idx} style={{ height: '110px', borderRadius: '14px' }} />
+              <div className="ds-skeleton" key={idx} style={{ height: '120px', borderRadius: '18px' }} />
             ))}
           </div>
         </div>
@@ -248,7 +272,7 @@ export const DirectorDashboard = () => {
 
   return (
     <div className="dcc-container">
-      {/* 1. Top Control Center Header */}
+      {/* 1. White Rounded Control Center Top Header */}
       <header className="dcc-header">
         <div className="dcc-header-left">
           <CompanyLogo className="dcc-logo" />
@@ -261,9 +285,9 @@ export const DirectorDashboard = () => {
         </div>
 
         <div className="dcc-header-right">
-          {/* Live Sync Badge */}
-          <span className="dd-sync-badge">
-            <span className="dd-sync-dot" /> Live ({lastUpdated ? lastUpdated.toLocaleTimeString() : 'Syncing'})
+          {/* Live Status Pill */}
+          <span className="dcc-live-pill">
+            <span className="dcc-live-dot" /> Live ({lastUpdated ? lastUpdated.toLocaleTimeString() : 'Syncing'})
           </span>
 
           {/* Theme Toggle */}
@@ -289,16 +313,20 @@ export const DirectorDashboard = () => {
             {unreadNotifsCount > 0 && <span className="dcc-notif-badge">{unreadNotifsCount}</span>}
           </button>
 
-          {/* Profile Menu Trigger */}
+          {/* White Profile Card Trigger */}
           <div style={{ position: 'relative' }}>
             <button
               type="button"
-              className="dcc-profile-trigger"
+              className="dcc-profile-card-trigger"
               onClick={() => setShowProfileMenu((prev) => !prev)}
               aria-label="Director Profile Menu"
             >
-              <User size={16} />
-              <span>{currentUser?.fullName || 'Director'}</span>
+              <div className="dcc-avatar-circle">{userInitials}</div>
+              <div className="dcc-profile-info">
+                <span className="dcc-profile-name">{currentUser?.fullName || 'Director'}</span>
+                <span className="dcc-profile-role">Executive Director</span>
+              </div>
+              <ChevronDown size={14} color="#64748B" />
             </button>
 
             {showProfileMenu && (
@@ -322,26 +350,60 @@ export const DirectorDashboard = () => {
         </div>
       </header>
 
-      {/* 2. Compact Glass Summary Strip */}
+      {/* 2. White Rounded Executive Summary Strip */}
       <div className="dcc-summary-strip">
+        {/* Marketing Team Item */}
         <div className="dcc-summary-item">
-          <span>Marketing Team</span>
-          <strong>{marketingTeamCount} Reps</strong>
+          <div className="dcc-summary-icon" style={{ backgroundColor: '#E0F2FE', color: '#0284C7' }}>
+            <Users size={18} />
+          </div>
+          <div className="dcc-summary-details">
+            <span className="dcc-summary-label">MARKETING TEAM</span>
+            <strong className="dcc-summary-count">{marketingTeamCount} Reps</strong>
+            <span className="dcc-summary-status" style={{ color: '#16A34A' }}>Active Field Force</span>
+          </div>
         </div>
+
         <div className="dcc-summary-divider" />
+
+        {/* Today's Visits Item */}
         <div className="dcc-summary-item">
-          <span>Today's Visits</span>
-          <strong style={{ color: '#38BDF8' }}>{todayScheduledVisitsCount} Scheduled</strong>
+          <div className="dcc-summary-icon" style={{ backgroundColor: '#DBEAFE', color: '#2563EB' }}>
+            <Clock size={18} />
+          </div>
+          <div className="dcc-summary-details">
+            <span className="dcc-summary-label">TODAY'S VISITS</span>
+            <strong className="dcc-summary-count" style={{ color: '#2563EB' }}>{todayScheduledVisitsCount} Scheduled</strong>
+            <span className="dcc-summary-status" style={{ color: '#2563EB' }}>Real-time Operations</span>
+          </div>
         </div>
+
         <div className="dcc-summary-divider" />
+
+        {/* Pending Reports Item */}
         <div className="dcc-summary-item">
-          <span>Pending Reports</span>
-          <strong style={{ color: '#A78BFA' }}>{pendingReportsCount} Pending</strong>
+          <div className="dcc-summary-icon" style={{ backgroundColor: '#F3E8FF', color: '#9333EA' }}>
+            <FileText size={18} />
+          </div>
+          <div className="dcc-summary-details">
+            <span className="dcc-summary-label">PENDING REPORTS</span>
+            <strong className="dcc-summary-count" style={{ color: '#9333EA' }}>{pendingReportsCount} Pending</strong>
+            <span className="dcc-summary-status" style={{ color: '#9333EA' }}>Awaiting Review</span>
+          </div>
         </div>
+
         <div className="dcc-summary-divider" />
+
+        {/* Pending Follow-ups Item */}
         <div className="dcc-summary-item">
-          <span>Pending Follow-ups</span>
-          <strong style={{ color: '#FB7185' }}>{pendingFollowUpsCount} Due</strong>
+          <div className="dcc-summary-icon" style={{ backgroundColor: '#FFE4E6', color: '#E11D48' }}>
+            <AlertCircle size={18} />
+          </div>
+          <div className="dcc-summary-details">
+            <span className="dcc-summary-label">PENDING FOLLOW-UPS</span>
+            <strong className="dcc-summary-count" style={{ color: '#E11D48' }}>{pendingFollowUpsCount} Due</strong>
+            <span className="dcc-summary-status" style={{ color: '#E11D48' }}>Action Required</span>
+          </div>
         </div>
       </div>
 
@@ -371,7 +433,7 @@ export const DirectorDashboard = () => {
         </button>
       </div>
 
-      {/* 3. Navigation Tile Grid (12 Tiles, 4x3 desktop grid) */}
+      {/* 3. White Tile Grid (12 Cards, 4x3 desktop layout) */}
       <div className="dcc-tile-grid">
         {tiles.map((tile) => {
           const Icon = tile.icon;
@@ -388,14 +450,14 @@ export const DirectorDashboard = () => {
               aria-label={`${tile.title} - ${tile.description}`}
             >
               <div className="dcc-tile-top">
-                <div className="dcc-tile-icon" style={{ color: tile.badgeColor }}>
-                  <Icon size={22} />
+                <div className="dcc-tile-icon-box" style={{ backgroundColor: tile.bgLight, color: tile.badgeColor }}>
+                  <Icon size={20} />
                 </div>
                 <span
                   className="dcc-tile-badge"
                   style={{
-                    backgroundColor: `${tile.badgeColor}20`,
-                    borderColor: `${tile.badgeColor}40`,
+                    backgroundColor: `${tile.badgeColor}12`,
+                    borderColor: `${tile.badgeColor}30`,
                     color: tile.badgeColor,
                   }}
                 >
@@ -415,11 +477,25 @@ export const DirectorDashboard = () => {
           );
         })}
       </div>
+
+      {/* 4. Enterprise Clean Footer */}
+      <footer className="dcc-footer">
+        <div className="dcc-footer-left">
+          © 2026 Kaiser Whale Healthcare. All rights reserved.
+        </div>
+        <div className="dcc-footer-center">
+          <span className="dcc-footer-emblem">Kaiser Whale Enterprise Control Center</span>
+        </div>
+        <div className="dcc-footer-right">
+          System Status: <span style={{ color: '#16A34A', fontWeight: 600 }}>Operational</span> • v2.4
+        </div>
+      </footer>
     </div>
   );
 };
 
 export default DirectorDashboard;
+
 
 
 
