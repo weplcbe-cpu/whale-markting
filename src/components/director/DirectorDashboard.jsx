@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertCircle,
   ArrowRight,
   Calendar,
-  CheckCircle2,
   Clock,
   FileText,
   MessageSquare,
