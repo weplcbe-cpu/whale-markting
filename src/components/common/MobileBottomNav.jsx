@@ -5,13 +5,14 @@ import { getDirectorRouteById, getMarketingRouteById } from '../../routes';
 import { LayoutDashboard, Calendar, PlusCircle, FileText, Menu } from 'lucide-react';
 
 export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
-  const { currentRole, currentUser, directorComments } = useApp();
+  const { currentRole } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
-  const isMarketing = currentRole === 'Marketing Team';
-  const isDirector = currentRole === 'Director';
-  const goToMarketing = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
-  const unreadFeedbackCount = directorComments.filter((item) => !item.isRead && item.employeeId === currentUser?.employeeId).length;
+
+  // Hide bottom nav for Director role (control center tile navigation is used)
+  if (currentRole === 'Director') {
+    return null;
+  }
 
   return (
     <div className="mobile-bottom-nav">

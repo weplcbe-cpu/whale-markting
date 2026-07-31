@@ -163,13 +163,15 @@ export function AppContent() {
   return (
     <div className="app-container">
       <div className="main-layout">
-        {/* Role Specific Streamlined Sidebar */}
-        <Sidebar
-          activeTab={currentTab}
-          setActiveTab={selectAdminTab}
-          isMobileOpen={isMobileSidebarOpen}
-          toggleSidebar={toggleSidebar}
-        />
+        {/* Role Specific Streamlined Sidebar (Removed for Director) */}
+        {!isDirectorUser && (
+          <Sidebar
+            activeTab={currentTab}
+            setActiveTab={selectAdminTab}
+            isMobileOpen={isMobileSidebarOpen}
+            toggleSidebar={toggleSidebar}
+          />
+        )}
 
         <div className="content-area">
           {/* Top Navbar */}

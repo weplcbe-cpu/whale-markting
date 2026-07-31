@@ -25,6 +25,11 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   const navigate = useNavigate();
   const [expandedDirectorGroups, setExpandedDirectorGroups] = useState(new Set());
 
+  // Remove sidebar completely for Director role
+  if (currentRole === 'Director') {
+    return null;
+  }
+
   const unreadNotifsCount = notifications.filter(
     n => !n.isRead && (!n.userId || n.userId === currentUser?.employeeId)
   ).length;
