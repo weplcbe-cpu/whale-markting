@@ -94,10 +94,6 @@ export const DirectorDashboard = () => {
   // Scoped Data
   const scopedPlans = useMemo(() => visitPlans.filter((plan) => inPeriod(plan.visitDate)), [visitPlans, inPeriod]);
   const completedPlans = useMemo(() => scopedPlans.filter((plan) => normalizePlanStatus(plan.status) === 'Completed'), [scopedPlans]);
-  const pendingApprovals = useMemo(
-    () => scopedPlans.filter((plan) => ['Submitted', 'Planned'].includes(normalizePlanStatus(plan.status))),
-    [scopedPlans]
-  );
   const todayScheduledVisits = useMemo(() => visitPlans.filter((plan) => plan.visitDate === todayValue), [visitPlans, todayValue]);
   const scopedFollowUps = useMemo(() => followUps.filter((item) => inPeriod(item.followUpDate)), [followUps, inPeriod]);
   const pendingFollowUps = useMemo(() => scopedFollowUps.filter((item) => item.status !== 'Completed'), [scopedFollowUps]);
@@ -532,22 +528,6 @@ export const DirectorDashboard = () => {
           )}
         </div>
       </div>
-                  <div className="dd-activity-content">
-                    <p>{item.title}</p>
-                    <time>{item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN') : 'Recently'}</time>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="dd-empty-box">
-                <div className="dd-empty-icon"><Clock size={24} /></div>
-                <h4>No recent activity</h4>
-                <p>Recent field updates will appear here in real time.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Live Team Section */}
       <div className="dd-card">
@@ -674,6 +654,82 @@ export const DirectorDashboard = () => {
               <p>Product tags will populate as visit plans are submitted.</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Comments & Notifications (Section 7) + Recent Activity Timeline (Section 9) */}
+      <div className="dd-grid-two-col">
+        {/* Section 7: Comments and Notifications */}
+        <div className="dd-card">
+          <div className="dd-card-header">
+            <div className="dd-card-title">
+              <Bell size={20} style={{ color: '#3B5BDB' }} />
+              <h2>Comments & Notifications</h2>
+              <span>{notifications.filter((n) => !n.is_read && !n.isRead).length} unread</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/director/notifications')}>
+                Notifications
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/director/comments')}>
+                Comments
+              </Button>
+            </div>
+          </div>
+
+          <div className="dd-activity-stream">
+            {notifications.length > 0 ? (
+              notifications.slice(0, 4).map((n) => (
+                <div key={n.id} className="dd-activity-item">
+                  <div className="dd-activity-bullet">
+                    <Bell size={16} />
+                  </div>
+                  <div className="dd-activity-content">
+                    <p>{n.title || n.message}</p>
+                    <time>{n.created_at || n.createdAt || n.timestamp ? new Date(n.created_at || n.createdAt || n.timestamp).toLocaleString('en-IN') : 'Recently'}</time>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="dd-empty-box">
+                <div className="dd-empty-icon"><Bell size={24} /></div>
+                <h4>No unread notifications</h4>
+                <p>Recent field notifications and comments will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Section 9: Recent Activity Timeline */}
+        <div className="dd-card">
+          <div className="dd-card-header">
+            <div className="dd-card-title">
+              <Sparkles size={20} style={{ color: '#4F46E5' }} />
+              <h2>Recent Activity Timeline</h2>
+            </div>
+          </div>
+
+          <div className="dd-activity-stream">
+            {activityTimeline.length > 0 ? (
+              activityTimeline.map((item) => (
+                <div key={item.id} className="dd-activity-item">
+                  <div className="dd-activity-bullet">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="dd-activity-content">
+                    <p>{item.title}</p>
+                    <time>{item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN') : 'Recently'}</time>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="dd-empty-box">
+                <div className="dd-empty-icon"><Clock size={24} /></div>
+                <h4>No recent activity</h4>
+                <p>Recent team actions and updates will populate here.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
