@@ -1,27 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
-  Bell,
+  ArrowRight,
   Calendar,
   CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   FileText,
-  LogOut,
-  MapPin,
   MessageSquare,
-  Moon,
-  Package,
-  Sun,
   TrendingUp,
   User,
   Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { CompanyLogo } from '../common/CompanyLogo';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
@@ -33,24 +24,18 @@ export const DirectorDashboard = () => {
     dailyReports = [],
     followUps = [],
     notifications = [],
-    lastUpdated,
     dataLoading,
-    logout,
-    theme,
-    toggleTheme,
+    lastUpdated,
   } = useApp();
-
-  const [mobileGroup, setMobileGroup] = useState(1); // 1 or 2
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const now = useMemo(() => new Date(), []);
   const todayValue = useMemo(() => now.toISOString().slice(0, 10), [now]);
 
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
-  const formattedDate = now.toLocaleDateString('en-IN', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
+  const formattedDate = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
     year: 'numeric',
   });
 
@@ -61,209 +46,32 @@ export const DirectorDashboard = () => {
     ).length;
   }, [users]);
 
-  const todayScheduledVisitsCount = useMemo(
-    () => visitPlans.filter((plan) => plan.visitDate === todayValue).length,
+  const todayScheduledVisits = useMemo(
+    () => visitPlans.filter((plan) => plan.visitDate === todayValue),
     [visitPlans, todayValue]
   );
 
-  const completedPlansCount = useMemo(
-    () => visitPlans.filter((plan) => String(plan.status).toLowerCase() === 'completed').length,
-    [visitPlans]
-  );
+  const pendingReportsList = useMemo(() => {
+    const all = [...dailyReports, ...visitReports];
+    return all.filter((r) => !['approved', 'completed'].includes(String(r.status).toLowerCase()));
+  }, [dailyReports, visitReports]);
 
-  const submittedPlansCount = useMemo(
-    () => visitPlans.filter((plan) => ['submitted', 'planned', 'started', 'rescheduled', 'approved'].includes(String(plan.status).toLowerCase())).length,
-    [visitPlans]
-  );
-
-  const allReports = useMemo(() => [...dailyReports, ...visitReports], [dailyReports, visitReports]);
-  const pendingReportsCount = useMemo(
-    () => allReports.filter((r) => !['approved', 'completed'].includes(String(r.status).toLowerCase())).length,
-    [allReports]
-  );
-
-  const pendingFollowUpsCount = useMemo(
-    () => followUps.filter((item) => String(item.status).toLowerCase() !== 'completed').length,
+  const pendingFollowUpsList = useMemo(
+    () => followUps.filter((item) => String(item.status).toLowerCase() !== 'completed'),
     [followUps]
   );
 
-  const unreadNotifsCount = useMemo(
-    () => notifications.filter((n) => !n.is_read && !n.isRead).length,
-    [notifications]
-  );
-
-  // Initials for Profile Avatar
-  const userInitials = useMemo(() => {
-    if (!currentUser?.fullName) return 'D';
-    return currentUser.fullName
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-  }, [currentUser]);
-
-  // 12 Tiles Definition with Soft Pastel Styling
-  const tiles = useMemo(() => [
-    {
-      id: 'team',
-      title: 'Marketing Team',
-      icon: Users,
-      badge: `${marketingTeamCount} Reps`,
-      badgeColor: '#0284C7',
-      bgLight: '#E0F2FE',
-      description: 'Directory, territories & rep status',
-      path: '/director/team',
-      group: 1,
-    },
-    {
-      id: 'today-schedule',
-      title: 'Today Schedule',
-      icon: Clock,
-      badge: `${todayScheduledVisitsCount} Today`,
-      badgeColor: '#2563EB',
-      bgLight: '#DBEAFE',
-      description: 'Real-time field visit tracking',
-      path: '/director/today-schedule',
-      group: 1,
-    },
-    {
-      id: 'visit-plans',
-      title: 'Visit Plans',
-      icon: Calendar,
-      badge: `${submittedPlansCount} Submitted`,
-      badgeColor: '#7C3AED',
-      bgLight: '#ECE9FE',
-      description: 'Review field visit plan submissions',
-      path: '/director/visit-plans',
-      group: 1,
-    },
-    {
-      id: 'visit-reports',
-      title: 'Visit Reports',
-      icon: CheckCircle2,
-      badge: `${completedPlansCount} Verified`,
-      badgeColor: '#16A34A',
-      bgLight: '#DCFCE7',
-      description: 'Completed visit logs & proof',
-      path: '/director/visit-reports',
-      group: 1,
-    },
-    {
-      id: 'daily-reports',
-      title: 'Daily Reports',
-      icon: FileText,
-      badge: `${pendingReportsCount} Pending`,
-      badgeColor: '#9333EA',
-      bgLight: '#F3E8FF',
-      description: 'Daily activity summaries',
-      path: '/director/daily-reports',
-      group: 1,
-    },
-    {
-      id: 'follow-ups',
-      title: 'Follow-ups',
-      icon: AlertCircle,
-      badge: `${pendingFollowUpsCount} Due`,
-      badgeColor: '#E11D48',
-      bgLight: '#FFE4E6',
-      description: 'Open client follow-up actions',
-      path: '/director/follow-ups',
-      group: 1,
-    },
-    {
-      id: 'product-overview',
-      title: 'Product Overview',
-      icon: Package,
-      badge: 'Catalog',
-      badgeColor: '#0284C7',
-      bgLight: '#E0F2FE',
-      description: 'Product demand & tag insights',
-      path: '/director/analytics/products',
-      group: 2,
-    },
-    {
-      id: 'area-overview',
-      title: 'Area Overview',
-      icon: MapPin,
-      badge: 'Territories',
-      badgeColor: '#D97706',
-      bgLight: '#FEF3C7',
-      description: 'Geographic visit analytics',
-      path: '/director/analytics/areas',
-      group: 2,
-    },
-    {
-      id: 'performance',
-      title: 'Performance',
-      icon: TrendingUp,
-      badge: 'Analytics',
-      badgeColor: '#16A34A',
-      bgLight: '#DCFCE7',
-      description: 'Team performance metrics',
-      path: '/director/analytics/performance',
-      group: 2,
-    },
-    {
-      id: 'comments',
-      title: 'Comments',
-      icon: MessageSquare,
-      badge: 'Feed',
-      badgeColor: '#7C3AED',
-      bgLight: '#ECE9FE',
-      description: 'Director notes & rep feedback',
-      path: '/director/comments',
-      group: 2,
-    },
-    {
-      id: 'notifications',
-      title: 'Notifications',
-      icon: Bell,
-      badge: `${unreadNotifsCount} Unread`,
-      badgeColor: '#2563EB',
-      bgLight: '#DBEAFE',
-      description: 'System alerts & activity stream',
-      path: '/director/notifications',
-      group: 2,
-    },
-    {
-      id: 'profile',
-      title: 'Profile',
-      icon: User,
-      badge: 'Account',
-      badgeColor: '#475569',
-      bgLight: '#F1F5F9',
-      description: 'Director settings & credentials',
-      path: '/director/profile',
-      group: 2,
-    },
-  ], [
-    marketingTeamCount,
-    todayScheduledVisitsCount,
-    submittedPlansCount,
-    completedPlansCount,
-    pendingReportsCount,
-    pendingFollowUpsCount,
-    unreadNotifsCount,
-  ]);
-
-  const handleTileKeyDown = (e, path) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      navigate(path);
-    }
-  };
+  const recentUpdatesList = useMemo(() => {
+    return notifications.slice(0, 4);
+  }, [notifications]);
 
   if (dataLoading && !lastUpdated) {
     return (
-      <div className="dcc-container">
-        <div className="director-dashboard-skeleton" aria-label="Loading Director Control Center">
-          <div className="ds-skeleton" style={{ height: '70px', borderRadius: '18px' }} />
-          <div className="ds-skeleton" style={{ height: '76px', borderRadius: '18px' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
-            {Array.from({ length: 12 }, (_, idx) => (
-              <div className="ds-skeleton" key={idx} style={{ height: '120px', borderRadius: '18px' }} />
-            ))}
+      <div className="marketing-dashboard director-dashboard">
+        <div className="hero-welcome-card" style={{ opacity: 0.7 }}>
+          <div className="hero-text">
+            <h2>Loading Director Portal…</h2>
+            <p>Fetching latest field activities</p>
           </div>
         </div>
       </div>
@@ -271,230 +79,249 @@ export const DirectorDashboard = () => {
   }
 
   return (
-    <div className="dcc-container">
-      {/* 1. White Rounded Control Center Top Header */}
-      <header className="dcc-header">
-        <div className="dcc-header-left">
-          <CompanyLogo className="dcc-logo" />
-          <div className="dcc-title-block">
-            <h1>Director Control Center</h1>
-            <p>
-              {greeting}, <strong>{currentUser?.fullName || 'Director'}</strong> • {formattedDate}
-            </p>
+    <div className="marketing-dashboard director-dashboard">
+      {/* 1. Gradient Welcome Banner */}
+      <div className="hero-welcome-card">
+        <div className="hero-text">
+          <h2>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
+          <p>📅 {formattedDate} &nbsp;•&nbsp; Monitor your marketing team and field activities.</p>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="hero-actions">
+          <button className="btn btn-action" type="button" onClick={() => navigate('/director/team')}>
+            <Users size={18} /> View Marketing Team
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={() => navigate('/director/today-schedule')}>
+            <Calendar size={18} /> Today Schedule
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={() => navigate('/director/daily-reports')}>
+            <FileText size={18} /> View Reports
+          </button>
+        </div>
+      </div>
+
+      {/* 2. 4 Compact White KPI Stat Cards */}
+      <div className="stat-grid dashboard-summary-grid">
+        <div className="stat-card" onClick={() => navigate('/director/team')}>
+          <div className="stat-icon-wrapper blue"><Users size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{marketingTeamCount}</div>
+            <div className="stat-label">Total Marketing Team</div>
+          </div>
+          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <TrendingUp size={12} /> Active Reps
           </div>
         </div>
 
-        <div className="dcc-header-right">
-          {/* Live Status Pill */}
-          <span className="dcc-live-pill">
-            <span className="dcc-live-dot" /> Live ({lastUpdated ? lastUpdated.toLocaleTimeString() : 'Syncing'})
-          </span>
+        <div className="stat-card" onClick={() => navigate('/director/today-schedule')}>
+          <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{todayScheduledVisits.length}</div>
+            <div className="stat-label">Today Visits</div>
+          </div>
+          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: 'var(--action-orange)', fontWeight: 700 }}>
+            Scheduled Today
+          </div>
+        </div>
 
-          {/* Theme Toggle */}
-          <button
-            type="button"
-            className="dcc-icon-btn"
-            onClick={toggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+        <div className="stat-card" onClick={() => navigate('/director/daily-reports')}>
+          <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{pendingReportsList.length}</div>
+            <div className="stat-label">Pending Reports</div>
+          </div>
+          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 700 }}>
+            Review Needed
+          </div>
+        </div>
 
-          {/* Notification Bell */}
-          <button
-            type="button"
-            className="dcc-icon-btn dcc-notif-btn"
-            onClick={() => navigate('/director/notifications')}
-            title="Notifications"
-            aria-label={`Notifications (${unreadNotifsCount} unread)`}
-          >
-            <Bell size={18} />
-            {unreadNotifsCount > 0 && <span className="dcc-notif-badge">{unreadNotifsCount}</span>}
-          </button>
+        <div className="stat-card" onClick={() => navigate('/director/follow-ups')}>
+          <div className="stat-icon-wrapper green"><Clock size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{pendingFollowUpsList.length}</div>
+            <div className="stat-label">Pending Follow-ups</div>
+          </div>
+          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>
+            Action Required
+          </div>
+        </div>
+      </div>
 
-          {/* White Profile Card Trigger */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="dcc-profile-card-trigger"
-              onClick={() => setShowProfileMenu((prev) => !prev)}
-              aria-label="Director Profile Menu"
-            >
-              <div className="dcc-avatar-circle">{userInitials}</div>
-              <div className="dcc-profile-info">
-                <span className="dcc-profile-name">{currentUser?.fullName || 'Director'}</span>
-                <span className="dcc-profile-role">Executive Director</span>
-              </div>
-              <ChevronDown size={14} color="#64748B" />
+      {/* 3. Main Content: Today's Team Field Schedule & Recent Team Updates */}
+      <div className="dashboard-main-grid" style={{ marginBottom: '18px' }}>
+        {/* Today's Team Field Schedule */}
+        <div className="card dashboard-schedule-card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean">
+              <Calendar size={20} color="var(--primary-blue)" /> Today's Team Field Schedule
+            </h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/today-schedule')}>
+              View All <ArrowRight size={14} />
             </button>
-
-            {showProfileMenu && (
-              <div className="dcc-profile-dropdown">
-                <button
-                  type="button"
-                  onClick={() => { setShowProfileMenu(false); navigate('/director/profile'); }}
-                >
-                  <User size={14} /> My Profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowProfileMenu(false); logout(); }}
-                  style={{ color: '#EF4444' }}
-                >
-                  <LogOut size={14} /> Logout
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      </header>
 
-      {/* 2. White Rounded Executive Summary Strip */}
-      <div className="dcc-summary-strip">
-        {/* Marketing Team Item */}
-        <div className="dcc-summary-item">
-          <div className="dcc-summary-icon" style={{ backgroundColor: '#E0F2FE', color: '#0284C7' }}>
-            <Users size={18} />
-          </div>
-          <div className="dcc-summary-details">
-            <span className="dcc-summary-label">MARKETING TEAM</span>
-            <strong className="dcc-summary-count">{marketingTeamCount} Reps</strong>
-            <span className="dcc-summary-status" style={{ color: '#16A34A' }}>Active Field Force</span>
-          </div>
-        </div>
-
-        <div className="dcc-summary-divider" />
-
-        {/* Today's Visits Item */}
-        <div className="dcc-summary-item">
-          <div className="dcc-summary-icon" style={{ backgroundColor: '#DBEAFE', color: '#2563EB' }}>
-            <Clock size={18} />
-          </div>
-          <div className="dcc-summary-details">
-            <span className="dcc-summary-label">TODAY'S VISITS</span>
-            <strong className="dcc-summary-count" style={{ color: '#2563EB' }}>{todayScheduledVisitsCount} Scheduled</strong>
-            <span className="dcc-summary-status" style={{ color: '#2563EB' }}>Real-time Operations</span>
-          </div>
-        </div>
-
-        <div className="dcc-summary-divider" />
-
-        {/* Pending Reports Item */}
-        <div className="dcc-summary-item">
-          <div className="dcc-summary-icon" style={{ backgroundColor: '#F3E8FF', color: '#9333EA' }}>
-            <FileText size={18} />
-          </div>
-          <div className="dcc-summary-details">
-            <span className="dcc-summary-label">PENDING REPORTS</span>
-            <strong className="dcc-summary-count" style={{ color: '#9333EA' }}>{pendingReportsCount} Pending</strong>
-            <span className="dcc-summary-status" style={{ color: '#9333EA' }}>Awaiting Review</span>
-          </div>
-        </div>
-
-        <div className="dcc-summary-divider" />
-
-        {/* Pending Follow-ups Item */}
-        <div className="dcc-summary-item">
-          <div className="dcc-summary-icon" style={{ backgroundColor: '#FFE4E6', color: '#E11D48' }}>
-            <AlertCircle size={18} />
-          </div>
-          <div className="dcc-summary-details">
-            <span className="dcc-summary-label">PENDING FOLLOW-UPS</span>
-            <strong className="dcc-summary-count" style={{ color: '#E11D48' }}>{pendingFollowUpsCount} Due</strong>
-            <span className="dcc-summary-status" style={{ color: '#E11D48' }}>Action Required</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Paginated Controls (<768px only) */}
-      <div className="dcc-mobile-pager">
-        <button
-          type="button"
-          disabled={mobileGroup === 1}
-          onClick={() => setMobileGroup(1)}
-          className={`dcc-page-btn ${mobileGroup === 1 ? 'active' : ''}`}
-        >
-          <ChevronLeft size={16} /> Group 1: Operations
-        </button>
-
-        <div className="dcc-dots">
-          <span className={`dcc-dot ${mobileGroup === 1 ? 'active' : ''}`} onClick={() => setMobileGroup(1)} />
-          <span className={`dcc-dot ${mobileGroup === 2 ? 'active' : ''}`} onClick={() => setMobileGroup(2)} />
-        </div>
-
-        <button
-          type="button"
-          disabled={mobileGroup === 2}
-          onClick={() => setMobileGroup(2)}
-          className={`dcc-page-btn ${mobileGroup === 2 ? 'active' : ''}`}
-        >
-          Group 2: Analytics <ChevronRight size={16} />
-        </button>
-      </div>
-
-      {/* 3. White Tile Grid (12 Cards, 4x3 desktop layout) */}
-      <div className="dcc-tile-grid">
-        {tiles.map((tile) => {
-          const Icon = tile.icon;
-          const isMobileVisible = mobileGroup === tile.group;
-
-          return (
-            <div
-              key={tile.id}
-              className={`dcc-tile ${!isMobileVisible ? 'mobile-hidden' : ''}`}
-              onClick={() => navigate(tile.path)}
-              onKeyDown={(e) => handleTileKeyDown(e, tile.path)}
-              tabIndex={0}
-              role="button"
-              aria-label={`${tile.title} - ${tile.description}`}
-            >
-              <div className="dcc-tile-top">
-                <div className="dcc-tile-icon-box" style={{ backgroundColor: tile.bgLight, color: tile.badgeColor }}>
-                  <Icon size={20} />
-                </div>
-                <span
-                  className="dcc-tile-badge"
+          {todayScheduledVisits.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No team field visits scheduled for today.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {todayScheduledVisits.slice(0, 4).map((plan) => (
+                <div
+                  key={plan.id}
                   style={{
-                    backgroundColor: `${tile.badgeColor}12`,
-                    borderColor: `${tile.badgeColor}30`,
-                    color: tile.badgeColor,
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--color-surface-muted, #f8fafc)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
                   }}
                 >
-                  {tile.badge}
-                </span>
-              </div>
-
-              <div className="dcc-tile-body">
-                <h3>{tile.title}</h3>
-                <p>{tile.description}</p>
-              </div>
-
-              <div className="dcc-tile-arrow">
-                <ChevronRight size={16} />
-              </div>
+                  <div>
+                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.92rem', display: 'block' }}>
+                      {plan.customerName || plan.area || 'Client Visit'}
+                    </strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <User size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                      {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Territory'}
+                    </span>
+                  </div>
+                  <span className={`badge badge-${String(plan.status || 'planned').toLowerCase()}`}>
+                    {plan.status || 'Planned'}
+                  </span>
+                </div>
+              ))}
             </div>
-          );
-        })}
+          )}
+        </div>
+
+        {/* Recent Team Updates */}
+        <div className="card dashboard-feedback-card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean">
+              <MessageSquare size={20} color="var(--primary-blue)" /> Recent Team Updates
+            </h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/notifications')}>
+              View All <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {recentUpdatesList.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No recent team activity updates.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {recentUpdatesList.map((notif) => (
+                <div
+                  key={notif.id}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--color-surface-muted, #f8fafc)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <strong style={{ color: 'var(--primary-dark)', fontSize: '0.88rem' }}>
+                    {notif.title || notif.type || 'Team Activity Update'}
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {notif.message || 'New update submitted'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 4. Enterprise Clean Footer */}
-      <footer className="dcc-footer">
-        <div className="dcc-footer-left">
-          © 2026 Kaiser Whale Healthcare. All rights reserved.
+      {/* 4. Second Row: Pending Reports & Follow-ups Due */}
+      <div className="dashboard-main-grid">
+        {/* Pending Reports */}
+        <div className="card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean">
+              <FileText size={20} color="var(--primary-blue)" /> Pending Reports
+            </h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/daily-reports')}>
+              View All <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {pendingReportsList.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No pending reports for review.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {pendingReportsList.slice(0, 3).map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--color-surface-muted, #f8fafc)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                    {r.employeeName || 'Rep Report'} • {r.reportDate || r.visitDate || 'Today'}
+                  </span>
+                  <span className="badge badge-planned" style={{ fontSize: '0.74rem' }}>Pending Review</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="dcc-footer-center">
-          <span className="dcc-footer-emblem">Kaiser Whale Enterprise Control Center</span>
+
+        {/* Follow-ups Due */}
+        <div className="card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean">
+              <Clock size={20} color="var(--primary-blue)" /> Follow-ups Due
+            </h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/follow-ups')}>
+              View All <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {pendingFollowUpsList.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '12px 0' }}>No follow-ups due.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {pendingFollowUpsList.slice(0, 3).map((f) => (
+                <div
+                  key={f.id}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--color-surface-muted, #f8fafc)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+                    {f.customerName || 'Client Follow-up'} • {f.followUpDate || 'Due'}
+                  </span>
+                  <span className="badge badge-started" style={{ fontSize: '0.74rem' }}>Action Due</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="dcc-footer-right">
-          System Status: <span style={{ color: '#16A34A', fontWeight: 600 }}>Operational</span> • v2.4
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };
 
 export default DirectorDashboard;
+
 
 
 

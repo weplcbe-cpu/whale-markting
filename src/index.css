@@ -3358,12 +3358,13 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
 }
 
 /* ==========================================
-   DIRECTOR CONTROL CENTER WHITE SAAS THEME
+   DIRECTOR DASHBOARD STYLES
    ========================================== */
 
-.main-layout:has(.dcc-container) {
-  padding-inline: 0 !important;
-  background-color: var(--color-bg-app, #F7F9FC);
+.director-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .dcc-container {

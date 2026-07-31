@@ -103,30 +103,17 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   const breadcrumb = generateBreadcrumb();
   const pageTitle = portalTitleMap[currentRole] || 'Portal';
 
-  const isDirectorInnerPage = currentRole === 'Director' && location.pathname !== '/director' && location.pathname !== '/director/';
-
   return (
     <header className="top-navbar">
-      {/* Left: hamburger (mobile/tablet only for non-Director) or Back to Control Center */}
+      {/* Left: hamburger (mobile/tablet only) */}
       <div className="navbar-left">
-        {currentRole !== 'Director' ? (
-          <button
-            className="icon-btn mobile-menu-btn"
-            onClick={toggleSidebar}
-            title="Toggle Menu"
-          >
-            <Menu size={20} />
-          </button>
-        ) : isDirectorInnerPage ? (
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/director')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-          >
-            ← Back to Control Center
-          </button>
-        ) : null}
+        <button
+          className="icon-btn mobile-menu-btn"
+          onClick={toggleSidebar}
+          title="Toggle Menu"
+        >
+          <Menu size={20} />
+        </button>
       </div>
 
       {/* Center: breadcrumb (small) above the portal name (primary heading) */}

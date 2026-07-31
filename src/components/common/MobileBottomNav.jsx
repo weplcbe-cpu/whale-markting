@@ -9,11 +9,6 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Hide bottom nav for Director role (control center tile navigation is used)
-  if (currentRole === 'Director') {
-    return null;
-  }
-
   const isMarketing = currentRole === 'Marketing Team';
   const isDirector = currentRole === 'Director';
   const goToMarketing = (id, search = '') => navigate(`${getMarketingRouteById(id).path}${search}`);
