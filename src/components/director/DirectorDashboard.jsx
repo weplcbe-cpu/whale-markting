@@ -217,7 +217,7 @@ export const DirectorDashboard = () => {
       {/* 3. Main Content: Today's Team Field Schedule & Recent Team Updates */}
       <div className="dashboard-main-grid" style={{ marginBottom: '16px' }}>
         {/* Today's Team Field Schedule */}
-        <div className="card dashboard-schedule-card" style={{ minHeight: '180px', maxHeight: '230px', overflow: 'hidden' }}>
+        <div className="card dashboard-schedule-card" style={{ minHeight: '180px', overflow: 'hidden' }}>
           <div className="card-header-clean" style={{ marginBottom: '12px' }}>
             <h3 className="card-title-clean">
               <Calendar size={20} color="var(--primary-blue)" /> Today's Team Field Schedule
@@ -266,9 +266,9 @@ export const DirectorDashboard = () => {
           )}
         </div>
 
-        {/* Recent Team Updates */}
-        <div className="card dashboard-feedback-card" style={{ minHeight: '180px', maxHeight: '230px', overflow: 'hidden' }}>
-          <div className="card-header-clean" style={{ marginBottom: '12px' }}>
+        {/* Recent Team Updates (Vertical Activity Timeline UI) */}
+        <div className="card dashboard-feedback-card" style={{ minHeight: '180px', overflow: 'hidden' }}>
+          <div className="card-header-clean" style={{ marginBottom: '16px' }}>
             <h3 className="card-title-clean">
               <MessageSquare size={20} color="var(--primary-blue)" /> Recent Team Updates
             </h3>
@@ -278,41 +278,152 @@ export const DirectorDashboard = () => {
           </div>
 
           {recentUpdatesList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 8px', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '24px 8px', color: 'var(--text-muted)' }}>
               <MessageSquare size={18} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No recent team activity updates.</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>No recent team updates.</span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {recentUpdatesList.map((update) => {
-                const dateStr = formatUpdateDate(update);
+            <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              {recentUpdatesList.map((update, idx) => {
+                const formatted = formatUpdateDate(update);
+                let dateDisplay = null;
+                let timeDisplay = null;
+                if (formatted) {
+                  const parts = formatted.split(', ');
+                  dateDisplay = parts[0];
+                  timeDisplay = parts[1] || null;
+                }
+
+                const isLast = idx === recentUpdatesList.length - 1;
+
                 return (
                   <div
-                    key={update.id}
+                    key={update.id || idx}
+                    className="timeline-row"
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--color-surface-muted, #f8fafc)',
-                      border: '1px solid var(--border-color)',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '10px 0',
+                      borderBottom: isLast ? 'none' : '1px solid var(--border-color, #f1f5f9)',
+                      position: 'relative',
                     }}
                   >
-                    <div>
-                      <strong style={{ color: 'var(--primary-dark)', fontSize: '0.86rem', display: 'block' }}>
+                    {/* LEFT: Timeline node + vertical connector line */}
+                    <div
+                      className="timeline-left"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '50%',
+                          backgroundColor: '#E0F2FE',
+                          color: '#0284C7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 2,
+                        }}
+                      >
+                        <MessageSquare size={13} />
+                      </div>
+                      {!isLast && (
+                        <div
+                          style={{
+                            width: '2px',
+                            position: 'absolute',
+                            top: '26px',
+                            bottom: '-10px',
+                            backgroundColor: '#E2E8F0',
+                            zIndex: 1,
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* CENTER: Title + Employee Name & Organization */}
+                    <div
+                      className="timeline-center"
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                      }}
+                    >
+                      <strong
+                        style={{
+                          color: 'var(--primary-dark, #0F172A)',
+                          fontSize: '0.86rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: 1.3,
+                        }}
+                      >
                         {update.title || update.type || 'Team Activity Update'}
                       </strong>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {update.employeeName || update.senderName || 'Team Member'} {update.organization ? `• ${update.organization}` : ''}
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--text-muted, #64748B)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {update.employeeName || update.senderName || 'Team Member'}
+                        {update.organization ? ` • ${update.organization}` : ''}
                       </span>
                     </div>
-                    {dateStr ? (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {dateStr}
-                      </span>
-                    ) : null}
+
+                    {/* RIGHT: Formatted Date & Time */}
+                    {(dateDisplay || timeDisplay) && (
+                      <div
+                        className="timeline-right"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-end',
+                          flexShrink: 0,
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {dateDisplay && (
+                          <span
+                            style={{
+                              fontSize: '0.76rem',
+                              fontWeight: 600,
+                              color: 'var(--primary-dark, #0F172A)',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {dateDisplay}
+                          </span>
+                        )}
+                        {timeDisplay && (
+                          <span
+                            style={{
+                              fontSize: '0.73rem',
+                              color: 'var(--text-muted, #64748B)',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {timeDisplay}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

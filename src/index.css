@@ -3367,6 +3367,20 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   gap: 18px;
 }
 
+@media (max-width: 575px) {
+  .timeline-row {
+    flex-wrap: wrap;
+  }
+  .timeline-right {
+    align-items: flex-start !important;
+    width: 100%;
+    margin-left: 38px;
+    margin-top: 2px;
+    flex-direction: row !important;
+    gap: 8px;
+  }
+}
+
 .dcc-container {
   display: flex;
   flex-direction: column;
