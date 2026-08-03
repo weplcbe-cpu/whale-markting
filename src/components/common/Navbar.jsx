@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { directorRoutes, marketingRoutes } from '../../routes';
 import { isLegacyApprovalNotification } from '../../utils/directorFeedback';
 import { CompanyLogo } from './CompanyLogo';
+import NotificationPopover from './NotificationPopover';
 import {
   Bell,
   LogOut,
@@ -39,12 +40,13 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, markNotificationRead, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, markNotificationRead, showToast, theme, toggleTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const notificationBellRef = useRef(null);
 
   // Filter notifications relevant to this user
   const userNotifs = notifications.filter(
@@ -74,6 +76,37 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
     if (text.includes('comment')) return '/director/comments';
     if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';
     return '/director/notifications';
+  };
+
+  const openNotification = async (notification, kind) => {
+    await markNotificationRead(notification.id);
+    setShowNotifDropdown(false);
+
+    if (currentRole !== 'Director') {
+      navigate(notificationPath(notification));
+      return;
+    }
+
+    const targets = {
+      visitPlan: { path: '/director/visit-plans', parameter: 'planId', records: visitPlans },
+      planUpdated: { path: '/director/visit-plans', parameter: 'planId', records: visitPlans },
+      visitReport: { path: '/director/visit-reports', parameter: 'reportId', records: visitReports },
+      dailyReport: { path: '/director/daily-reports', parameter: 'reportId', records: dailyReports },
+      followUp: { path: '/director/follow-ups', parameter: 'followUpId', records: followUps },
+      comment: { path: '/director/comments', parameter: 'commentId', records: directorComments },
+    };
+    const target = targets[kind];
+    if (!target) {
+      navigate('/director/notifications');
+      return;
+    }
+    const relatedId = notification.referenceId;
+    const exists = relatedId && target.records.some((item) => String(item.id) === String(relatedId));
+    if (!exists) {
+      showToast?.('This related record is no longer available.', 'error');
+      return;
+    }
+    navigate(`${target.path}?${target.parameter}=${encodeURIComponent(relatedId)}`);
   };
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
@@ -166,6 +199,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
         {/* Notifications */}
         <div className="icon-btn-wrapper" style={{ position: 'relative' }}>
           <button
+            ref={notificationBellRef}
             className="icon-btn"
             onClick={() => setShowNotifDropdown(!showNotifDropdown)}
             title="Notifications"
@@ -178,73 +212,15 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
             )}
           </button>
           {showNotifDropdown && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '48px',
-                right: 0,
-                width: '300px',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-glass)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 1100,
-                padding: '16px'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '12px',
-                  alignItems: 'center'
-                }}
-              >
-                <h4 style={{ color: 'var(--primary-dark)', fontSize: '0.98rem', fontWeight: 800 }}>
-                  Notifications
-                </h4>
-                <button
-                  onClick={() => setShowNotifDropdown(false)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              {userNotifs.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No notifications yet.</p>
-              ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {userNotifs.map(n => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => { markNotificationRead(n.id); navigate(notificationPath(n)); setShowNotifDropdown(false); }}
-                      style={{
-                        padding: '10px',
-                        background: 'rgba(117, 139, 253, 0.08)',
-                        borderRadius: 'var(--radius-sm)',
-                        borderLeft: '4px solid var(--primary-blue)'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-dark)' }}>
-                        {n.title}
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {n.message}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <NotificationPopover
+              notifications={userNotifs}
+              unreadCount={unreadCount}
+              onClose={() => setShowNotifDropdown(false)}
+              onMarkRead={markNotificationRead}
+              onOpenNotification={openNotification}
+              onViewAll={() => { setShowNotifDropdown(false); navigate(currentRole === 'Director' ? '/director/notifications' : notificationPath({})); }}
+              bellRef={notificationBellRef}
+            />
           )}
         </div>
 
