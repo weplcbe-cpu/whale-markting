@@ -90,6 +90,33 @@ export const directorFeedbackRoute = (feedback) => {
   }
 };
 
+export const resolveDirectorFeedbackRecord = (feedback, records = {}) => {
+  const targetId = String(feedback?.targetId || '').trim();
+  if (!targetId) return { state: 'malformed', record: null };
+  const { visitPlans = [], visitReports = [], dailyReports = [], followUps = [] } = records;
+  let record = null;
+  switch (feedback.targetType) {
+    case 'Visit Plan':
+      record = visitPlans.find((row) => String(row.id) === targetId);
+      break;
+    case 'Tour Plan':
+      record = visitPlans.find((row) => String(row.id) === targetId || String(row.batchId) === targetId);
+      break;
+    case 'Visit Report':
+      record = visitReports.find((row) => String(row.id) === targetId || String(row.visitPlanId) === targetId);
+      break;
+    case 'Daily Report':
+      record = dailyReports.find((row) => String(row.id) === targetId);
+      break;
+    case 'Follow-up':
+      record = followUps.find((row) => String(row.id) === targetId);
+      break;
+    default:
+      return { state: 'malformed', record: null };
+  }
+  return { state: record ? 'available' : 'deleted', record: record || null };
+};
+
 export const isLegacyApprovalNotification = (notification) => {
   const text = `${notification?.title || ''} ${notification?.message || ''}`.toLowerCase();
   return [

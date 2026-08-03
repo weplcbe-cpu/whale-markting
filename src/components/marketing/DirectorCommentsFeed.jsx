@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExternalLink, MessageSquare, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { directorFeedbackRoute } from '../../utils/directorFeedback';
+import { directorFeedbackRoute, resolveDirectorFeedbackRecord } from '../../utils/directorFeedback';
 import { Badge, Button, EmptyState, Modal, PageHeader } from '../ui';
 
 const FILTERS = ['All', 'Unread', 'Read', 'Visit Plans', 'Tour Plans', 'Reports', 'Follow-ups'];
@@ -45,15 +45,8 @@ export const DirectorCommentsFeed = () => {
     }
   }, [feedback, markDirectorFeedbackRead, searchParams]);
 
-  const recordAvailable = (item) => {
-    if (!item.targetId) return false;
-    if (item.targetType === 'Visit Plan') return visitPlans.some((row) => row.id === item.targetId);
-    if (item.targetType === 'Tour Plan') return visitPlans.some((row) => row.id === item.targetId || row.batchId === item.targetId);
-    if (item.targetType === 'Visit Report') return visitReports.some((row) => row.id === item.targetId);
-    if (item.targetType === 'Daily Report') return dailyReports.some((row) => row.id === item.targetId);
-    if (item.targetType === 'Follow-up') return followUps.some((row) => row.id === item.targetId);
-    return false;
-  };
+  const relatedRecord = (item) => resolveDirectorFeedbackRecord(item, { visitPlans, visitReports, dailyReports, followUps });
+  const recordAvailable = (item) => relatedRecord(item).state === 'available';
   const filtered = feedback.filter((item) => {
     if (filter === 'Unread') return !item.isRead;
     if (filter === 'Read') return item.isRead;
@@ -73,8 +66,11 @@ export const DirectorCommentsFeed = () => {
     setSearchParams({});
   };
   const openRelated = (item) => {
-    const path = directorFeedbackRoute(item);
-    if (path && recordAvailable(item)) navigate(path);
+    const resolution = relatedRecord(item);
+    const path = resolution.record
+      ? directorFeedbackRoute({ ...item, targetId: resolution.record.id })
+      : null;
+    if (path) navigate(path);
   };
 
   return (
@@ -121,7 +117,8 @@ export const DirectorCommentsFeed = () => {
           <div><small>Date and Time</small><strong>{formatDate(selected.createdAt)}</strong></div>
           <div><small>Related Record</small><strong>{selected.targetTitle}</strong></div>
           <p>{selected.message}</p>
-          {selected.targetId && !recordAvailable(selected) && <div className="ds-error">This related record is no longer available.</div>}
+          {relatedRecord(selected).state === 'deleted' && <div className="ds-error">This related record was deleted.</div>}
+          {relatedRecord(selected).state === 'malformed' && <div className="ds-error">This legacy feedback does not contain a valid related-record reference.</div>}
         </div>}
       </Modal>
     </div>

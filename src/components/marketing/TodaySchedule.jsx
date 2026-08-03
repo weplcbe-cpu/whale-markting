@@ -39,6 +39,7 @@ export const TodaySchedule = () => {
     submitVisitReport,
     deleteVisitPlanEntry,
     inspectCompletedVisitDelete,
+    getVisitReportForPlan,
     deleteCompletedVisit,
     updateEditableVisitPlan,
     resubmitVisitPlan,
@@ -54,6 +55,7 @@ export const TodaySchedule = () => {
   const [cancelModal, setCancelModal] = useState(null);
   const [rescheduleModal, setRescheduleModal] = useState(null);
   const [detailsModal, setDetailsModal] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [editModal, setEditModal] = useState(null);
   const [deletingPlan, setDeletingPlan] = useState(null);
   const [completedDeletingPlan, setCompletedDeletingPlan] = useState(null);
@@ -248,6 +250,23 @@ export const TodaySchedule = () => {
     }
   };
 
+  const openVisitDetails = async (visit) => {
+    setDetailsModal({ ...visit, visitReport: null, detailsError: null });
+    if (normalizePlanStatus(visit.status) !== 'Completed') return;
+    setDetailsLoading(true);
+    try {
+      const report = await getVisitReportForPlan(visit.id, visit.visitReportId || visit.reportId);
+      setDetailsModal((current) => current?.id === visit.id
+        ? { ...current, visitReport: report, detailsError: report ? null : 'legacy' }
+        : current);
+    } catch (error) {
+      const detailsError = error?.message === 'VISIT_REPORT_ACCESS_DENIED' ? 'permission' : 'network';
+      setDetailsModal((current) => current?.id === visit.id ? { ...current, detailsError } : current);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   const renderActions = (visit) => {
     const status = normalizePlanStatus(visit.status);
     const rawStatus = String(visit.rawStatus || visit.status || '').trim().toLowerCase();
@@ -268,7 +287,7 @@ export const TodaySchedule = () => {
       </button>
     ) : null;
     const detailsButton = (
-      <button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(visit)}>
+      <button className="btn btn-secondary btn-sm" onClick={() => openVisitDetails(visit)}>
         <Eye size={14} /> View Details
       </button>
     );
@@ -376,6 +395,10 @@ export const TodaySchedule = () => {
           <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header"><h3>Visit Plan Details</h3><button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(null)}><X size={16} /></button></div>
             <div className="modal-body" style={{ display: 'grid', gap: '10px' }}>
+              {detailsLoading && <div role="status">Loading submitted visit report…</div>}
+              {!detailsLoading && detailsModal.detailsError === 'legacy' && <div className="ds-error">This legacy completed visit does not contain a submitted visit report.</div>}
+              {!detailsLoading && detailsModal.detailsError === 'permission' && <div className="ds-error">You are not authorized to view this visit report.</div>}
+              {!detailsLoading && detailsModal.detailsError === 'network' && <div className="ds-error">The visit report could not be loaded. Please retry.</div>}
               <div><strong>Status:</strong> {normalizePlanStatus(detailsModal.status)}</div>
               <div><strong>Visit Date:</strong> {detailsModal.visitDate || 'Not provided'}</div>
               <div><strong>Expected Time:</strong> {detailsModal.expectedTime || 'Not provided'}</div>
@@ -385,6 +408,13 @@ export const TodaySchedule = () => {
               <div><strong>Products:</strong> {Array.isArray(detailsModal.products) ? detailsModal.products.join(', ') || 'Not provided' : detailsModal.products || 'Not provided'}</div>
               <div><strong>Requirement:</strong> {detailsModal.requirement || 'Not provided'}</div>
               <div><strong>Notes:</strong> {detailsModal.notes || 'Not provided'}</div>
+              {detailsModal.visitReport && <>
+                <div><strong>Customer Response:</strong> {detailsModal.visitReport.customerResponse || 'Not provided'}</div>
+                <div><strong>Discussion Notes:</strong> {detailsModal.visitReport.discussionNotes || 'Not provided'}</div>
+                <div><strong>Next Action:</strong> {detailsModal.visitReport.nextAction || 'Not provided'}</div>
+                <div><strong>Follow-up Date:</strong> {detailsModal.visitReport.followUpDate || 'Not required'}</div>
+                <div><strong>Submitted At:</strong> {detailsModal.visitReport.submittedAt ? new Date(detailsModal.visitReport.submittedAt).toLocaleString() : 'Not provided'}</div>
+              </>}
             </div>
             <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setDetailsModal(null)}>Close</button></div>
           </div>

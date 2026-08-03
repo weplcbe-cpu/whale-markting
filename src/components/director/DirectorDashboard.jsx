@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatSafeDate, formatUpdateDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
+import { getPendingDailyReports, getPendingFollowUps, getPendingVisitReports } from '../../utils/reportSelectors';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
@@ -48,13 +49,11 @@ export const DirectorDashboard = () => {
     (plan) => normalizeDateKey(plan.visitDate || plan.visit_date) === todayValue
   );
 
-  const pendingReportsList = useMemo(() => {
-    const all = [...dailyReports, ...visitReports];
-    return all.filter((r) => !['approved', 'completed'].includes(String(r.status).toLowerCase()));
-  }, [dailyReports, visitReports]);
+  const pendingVisitReportsList = useMemo(() => getPendingVisitReports(visitReports), [visitReports]);
+  const pendingDailyReportsList = useMemo(() => getPendingDailyReports(dailyReports), [dailyReports]);
 
   const pendingFollowUpsList = useMemo(
-    () => followUps.filter((item) => String(item.status).toLowerCase() !== 'completed'),
+    () => getPendingFollowUps(followUps),
     [followUps]
   );
 
@@ -205,11 +204,19 @@ export const DirectorDashboard = () => {
         <div className="stat-card" onClick={() => navigate('/director/daily-reports')}>
           <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
           <div className="stat-content">
-            <div className="stat-value">{pendingReportsList.length}</div>
-            <div className="stat-label">Pending Reports</div>
+            <div className="stat-value">{pendingVisitReportsList.length}</div>
+            <div className="stat-label">Pending Visit Reports</div>
           </div>
           <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 700 }}>
             Review Needed
+          </div>
+        </div>
+
+        <div className="stat-card" onClick={() => navigate('/director/daily-reports')}>
+          <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{pendingDailyReportsList.length}</div>
+            <div className="stat-label">Pending Daily Reports</div>
           </div>
         </div>
 
@@ -367,21 +374,21 @@ export const DirectorDashboard = () => {
         <div className="card director-fit-card">
           <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
-              <FileText size={18} color="var(--primary-blue)" /> Pending Reports
+              <FileText size={18} color="var(--primary-blue)" /> Pending Visit Reports
             </h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/daily-reports')}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/visit-reports')}>
               View All <ArrowRight size={14} />
             </button>
           </div>
 
-          {pendingReportsList.length === 0 ? (
+          {pendingVisitReportsList.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
               <FileText size={16} color="var(--text-muted)" />
               <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No pending reports for review.</span>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {pendingReportsList.slice(0, 3).map((r) => (
+              {pendingVisitReportsList.slice(0, 3).map((r) => (
                 <div
                   key={r.id}
                   style={{
@@ -450,5 +457,4 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
 

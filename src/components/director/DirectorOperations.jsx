@@ -6,6 +6,7 @@ import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, Sec
 import { normalizePlanStatus } from '../../utils/planStatus';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { CompanyLogo } from '../common/CompanyLogo';
+import { getPendingDailyReports, getPendingFollowUps } from '../../utils/reportSelectors';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const text = (value) => value || 'Not provided';
@@ -86,13 +87,15 @@ export const DirectorOperations = () => {
   }
 
   if (location.pathname === '/director/daily-reports') {
-    const rows = dailyReports.filter(matches).filter((row) => status === 'All' || row.status === status);
+    const defaultRows = getPendingDailyReports(dailyReports);
+    const rows = (status === 'All' ? defaultRows : dailyReports.filter((row) => String(row.status).toLowerCase() === status.toLowerCase())).filter(matches);
     const columns = [{ key: 'employee', label: 'Employee', render: (row) => employeeName(row.employeeId, row.fullName || row.employeeName) }, { key: 'date', label: 'Date', render: (row) => row.date || row.reportDate }, { key: 'planned', label: 'Planned Visits', render: (row) => row.plannedVisits ?? 0 }, { key: 'completed', label: 'Completed', render: (row) => row.completedVisits ?? 0 }, { key: 'cancelled', label: 'Cancelled', render: (row) => row.cancelledVisits ?? 0 }, { key: 'pending', label: 'Pending Actions', render: (row) => row.pendingActions ?? 0 }, { key: 'status', label: 'Status', render: (row) => <Badge tone={statusTone(row.status)}>{text(row.status)}</Badge> }, { key: 'actions', label: 'Actions', render: (row) => <div className="ds-page-actions"><Button variant="secondary" onClick={() => setSelected({ title: 'Daily Report', details: row })}>View</Button>{commentButton(row, 'Daily Report')}</div> }];
     return <div className="ds-page"><PageHeader title="Daily Reports" description="Review submitted daily summaries. Locking, reopening, editing, and deletion remain Admin-only." />{filterBar}<DataTable rows={rows} columns={columns} empty={<EmptyState icon={FileText} title="No daily reports found" />} />{detailModal}{commentModal}</div>;
   }
 
   if (location.pathname === '/director/follow-ups') {
-    const rows = followUps.filter(matches).filter((row) => status === 'All' || row.status === status);
+    const defaultRows = getPendingFollowUps(followUps);
+    const rows = (status === 'All' ? defaultRows : followUps.filter((row) => String(row.status).toLowerCase() === status.toLowerCase())).filter(matches);
     const columns = [{ key: 'employee', label: 'Employee', render: (row) => employeeName(row.employeeId, row.fullName || row.employeeName) }, { key: 'customer', label: 'Organization / Person', render: (row) => text(row.customerName) }, { key: 'date', label: 'Follow-up Date', render: (row) => row.followUpDate }, { key: 'type', label: 'Type', render: (row) => text(row.followUpType || row.type) }, { key: 'purpose', label: 'Purpose', render: (row) => text(row.purpose) }, { key: 'priority', label: 'Priority', render: (row) => text(row.priority) }, { key: 'status', label: 'Status', render: (row) => <Badge tone={statusTone(row.status)}>{text(row.status)}</Badge> }, { key: 'actions', label: 'Actions', render: (row) => <div className="ds-page-actions"><Button variant="secondary" onClick={() => setSelected({ title: 'Follow-up Details', details: row })}>View</Button>{commentButton(row, 'Follow-up')}</div> }];
     return <div className="ds-page"><PageHeader title="Follow-up Monitoring" description="Monitor today, upcoming, overdue, and completed Marketing follow-ups." />{filterBar}<DataTable rows={rows} columns={columns} empty={<EmptyState icon={Clock} title="No follow-ups found" />} />{detailModal}{commentModal}</div>;
   }

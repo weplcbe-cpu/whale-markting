@@ -457,7 +457,7 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
     // Keep this channel limited to tables that are actually in the Realtime
     // publication. visit_plans has its own isolated subscription below.
-    const tables = ['director_comments', 'notifications', 'visit_reports', 'follow_ups'];
+    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
 
@@ -1010,6 +1010,22 @@ export const AppProvider = ({ children }) => {
     return rowToCamel(data || {});
   };
 
+  const getVisitReportForPlan = async (visitPlanId, directReportId = null) => {
+    if (!isDatabaseVisitPlanId(visitPlanId)) throw new Error('VISIT_REPORT_INVALID_PLAN');
+    let query = supabase.from('visit_reports').select('*');
+    query = isDatabaseVisitPlanId(directReportId)
+      ? query.or(`visit_plan_id.eq.${visitPlanId},id.eq.${directReportId}`)
+      : query.eq('visit_plan_id', visitPlanId);
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error) {
+      if (error.code === '42501' || /permission|row-level security|rls/i.test(error.message || '')) {
+        throw new Error('VISIT_REPORT_ACCESS_DENIED');
+      }
+      throw new Error('VISIT_REPORT_LOOKUP_FAILED');
+    }
+    return data ? rowToCamel(data) : null;
+  };
+
   const deleteCompletedVisit = async (entryId) => {
     if (!isDatabaseVisitPlanId(entryId)) throw new Error('Unable to delete this completed visit.');
     const target = visitPlans.find((plan) => plan.id === entryId);
@@ -1310,7 +1326,7 @@ export const AppProvider = ({ children }) => {
   const submitDailyReport = async (dReportData) => {
     const row = objToSnakeRow({
       employeeId: currentUser?.employeeId,
-      employeeName: currentUser?.employeeName,
+      fullName: currentUser?.fullName || currentUser?.employeeName || currentUser?.username,
       submittedAt: new Date().toISOString(),
       status: 'Submitted',
       isLocked: false,
@@ -1318,8 +1334,11 @@ export const AppProvider = ({ children }) => {
     });
     const { data, error } = await supabase.from('daily_reports').insert(row).select().single();
     if (error) {
-      showToast('Failed to submit daily report', 'error');
-      return;
+      const message = error.code === '42501'
+        ? 'You do not have permission to submit this daily report.'
+        : 'Unable to submit the daily report. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
     }
     setDailyReports(prev => [rowToCamel(data), ...prev]);
     await refreshEntity('daily_reports');
@@ -1346,7 +1365,7 @@ export const AppProvider = ({ children }) => {
   const addFollowUp = async (folData) => {
     const row = objToSnakeRow({
       employeeId: currentUser?.employeeId,
-      employeeName: currentUser?.employeeName,
+      fullName: currentUser?.fullName || currentUser?.employeeName || currentUser?.username,
       status: 'Pending',
       ...folData
     });
@@ -1455,6 +1474,7 @@ export const AppProvider = ({ children }) => {
     addTourPlanBatch,
     deleteVisitPlanEntry,
     inspectCompletedVisitDelete,
+    getVisitReportForPlan,
     deleteCompletedVisit,
     updateEditableVisitPlan,
     resubmitVisitPlan,

@@ -104,12 +104,18 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
     const records = kind === 'visitReport'
       ? await refreshEntity('visit_reports')
       : target.records;
-    const exists = relatedId && records?.some((item) => String(item.id) === String(relatedId));
+    const matchedRecord = relatedId && records?.find((item) => (
+      String(item.id) === String(relatedId)
+      || (kind === 'visitReport' && String(item.visitPlanId) === String(relatedId))
+    ));
+    const exists = Boolean(matchedRecord);
     if (!exists) {
-      showToast?.('This related record is no longer available.', 'error');
+      showToast?.(relatedId
+        ? 'This related record was deleted.'
+        : 'This legacy notification does not contain a valid related-record reference.', 'error');
       return;
     }
-    navigate(`${target.path}?${target.parameter}=${encodeURIComponent(relatedId)}`);
+    navigate(`${target.path}?${target.parameter}=${encodeURIComponent(matchedRecord.id)}`);
   };
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),

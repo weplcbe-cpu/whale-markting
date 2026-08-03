@@ -29,19 +29,23 @@ export const DailyReportSubmit = () => {
     remarks: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    submitDailyReport({
-      date: formData.date,
-      plannedVisits: plannedCount,
-      completedVisits: completedCount,
-      cancelledVisits: cancelledCount,
-      followUpsCompleted: followupsCompletedCount,
-      importantDiscussion: formData.importantDiscussion,
-      pendingActions: formData.pendingActions,
-      tomorrowPlan: formData.tomorrowPlan,
-      remarks: formData.remarks
-    });
+    try {
+      await submitDailyReport({
+        date: formData.date,
+        plannedVisits: plannedCount,
+        completedVisits: completedCount,
+        cancelledVisits: cancelledCount,
+        followUpsCompleted: followupsCompletedCount,
+        importantDiscussion: formData.importantDiscussion,
+        pendingActions: formData.pendingActions,
+        tomorrowPlan: formData.tomorrowPlan,
+        remarks: formData.remarks
+      });
+    } catch {
+      // AppContext displays the safe error; retain every entered field.
+    }
   };
 
   return (
@@ -129,7 +133,7 @@ export const DailyReportSubmit = () => {
         </form>
       </div>
       <Modal open={Boolean(relatedId)} onClose={closeRelated} title="Report Details" footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}>
-        {relatedReport ? <div className="director-feedback-detail"><div><small>Report Date</small><strong>{relatedReport.date || relatedReport.visitDate || relatedReport.submittedAt}</strong></div><div><small>Status</small><strong>{relatedReport.status || 'Submitted'}</strong></div><div><small>Organization</small><strong>{relatedReport.customerName || 'Daily Report'}</strong></div><p>{relatedReport.importantDiscussion || relatedReport.discussionNotes || relatedReport.remarks || 'No additional details.'}</p></div> : <div className="ds-error">This related record is no longer available.</div>}
+        {relatedReport ? <div className="director-feedback-detail"><div><small>Report Date</small><strong>{relatedReport.date || relatedReport.visitDate || relatedReport.submittedAt}</strong></div><div><small>Status</small><strong>{relatedReport.status || 'Submitted'}</strong></div><div><small>Organization</small><strong>{relatedReport.customerName || 'Daily Report'}</strong></div><p>{relatedReport.importantDiscussion || relatedReport.discussionNotes || relatedReport.remarks || 'No additional details.'}</p></div> : <div className="ds-error">This related record was deleted.</div>}
       </Modal>
     </div>
   );
