@@ -587,16 +587,20 @@ export const AppProvider = ({ children }) => {
       ...profileUpdates,
       role: CREATE_USER_ROLE_MAP[profileUpdates.role] || profileUpdates.role,
     });
+    const payload = {
+      p_user_id: id,
+      p_profile: profileRow,
+      p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
+    };
+    if (import.meta.env.DEV) console.log('Admin update RPC payload', payload);
     let result;
     try {
-      result = await supabase.rpc('admin_update_user_with_visit_places', {
-        p_user_id: id,
-        p_profile: profileRow,
-        p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
-      });
+      result = await supabase.rpc('admin_update_user_with_visit_places', payload);
     } catch (error) {
-      console.log('RPC Result', result);
-      console.log('RPC Error', error);
+      if (import.meta.env.DEV) {
+        console.log('Admin update RPC result', result?.data);
+        console.log('Admin update RPC error', error);
+      }
       const safeMessage = getSafeUpdateUserMessage(error);
       showToast(safeMessage, 'error');
       const updateError = new Error(safeMessage);
@@ -604,8 +608,10 @@ export const AppProvider = ({ children }) => {
       throw updateError;
     }
     const { data, error } = result;
-    console.log('RPC Result', result);
-    console.log('RPC Error', error);
+    if (import.meta.env.DEV) {
+      console.log('Admin update RPC result', data);
+      console.log('Admin update RPC error', error);
+    }
     if (error || data?.success === false) {
       const rpcError = error || data;
       const httpStatus = inferUpdateHttpStatus(rpcError);
@@ -630,8 +636,9 @@ export const AppProvider = ({ children }) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...profileUpdates } : u));
     await refreshEntity('employee_visit_places');
     logActivity(`Updated user details for ID ${id}`, 'User Management');
-    showToast('User updated successfully', 'success');
-    return { success: true };
+    const successResult = { success: true };
+    if (successResult.success === true) showToast('User updated successfully', 'success');
+    return successResult;
   };
 
   const toggleUserStatus = async (id) => {
