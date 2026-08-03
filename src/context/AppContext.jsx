@@ -27,6 +27,40 @@ const CREATE_USER_ROLE_MAP = {
   'Marketing Team': 'Marketing',
 };
 
+const UPDATE_USER_ERROR_MESSAGES = {
+  UPDATE_USER_FORBIDDEN: 'You do not have permission to update this user.',
+  USER_NOT_FOUND: 'The user record no longer exists.',
+  INVALID_MOBILE: 'Invalid mobile number.',
+  VISIT_PLACES_REQUIRED: 'Assign at least one visit place for a Marketing user.',
+  VISIT_PLACES_UPDATE_FAILED: 'Failed to update assigned visit places.',
+};
+
+const inferUpdateHttpStatus = (error) => {
+  if (Number.isInteger(error?.status)) return error.status;
+  if (error?.code === 'PGRST301' || /jwt|session|token/i.test(error?.message || '')) return 401;
+  if (error?.code === '42501' || error?.message === 'UPDATE_USER_FORBIDDEN') return 403;
+  if (error?.code === '23505') return 409;
+  return 400;
+};
+
+const getSafeUpdateUserMessage = (error) => {
+  if (error?.code === 'PGRST301' || /jwt expired|invalid jwt|session.*expired/i.test(error?.message || '')) {
+    return 'Your session has expired. Please log in again.';
+  }
+  if (error?.code === '42501' || error?.message === 'UPDATE_USER_FORBIDDEN') {
+    return UPDATE_USER_ERROR_MESSAGES.UPDATE_USER_FORBIDDEN;
+  }
+  if (error?.code === '23505') {
+    if (/email/i.test(error?.details || '')) return 'This email already exists.';
+    if (/employee_id/i.test(error?.details || '')) return 'This employee ID already exists.';
+    return 'This email or employee ID already exists.';
+  }
+  if (/mobile|INVALID_MOBILE/i.test(`${error?.message || ''} ${error?.details || ''}`)) {
+    return UPDATE_USER_ERROR_MESSAGES.INVALID_MOBILE;
+  }
+  return UPDATE_USER_ERROR_MESSAGES[error?.message] || 'Unable to update this user. Please try again.';
+};
+
 const readableErrorText = (value) => {
   if (typeof value !== 'string') return null;
   const message = value.trim();
@@ -549,19 +583,37 @@ export const AppProvider = ({ children }) => {
 
   const updateUser = async (id, updatedFields) => {
     const { assignedVisitPlaces = [], ...profileUpdates } = updatedFields;
-    const { error } = await supabase.from('profiles').update(objToSnakeRow(profileUpdates)).eq('id', id);
+    const profileRow = objToSnakeRow({
+      ...profileUpdates,
+      role: CREATE_USER_ROLE_MAP[profileUpdates.role] || profileUpdates.role,
+    });
+    const { error } = await supabase.rpc('admin_update_user_with_visit_places', {
+      p_user_id: id,
+      p_profile: profileRow,
+      p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
+    });
     if (error) {
-      showToast('Failed to update user', 'error');
-      return;
-    }
-    const target = users.find((user) => user.id === id);
-    if (target?.employeeId) {
-      await syncEmployeeVisitPlaces(
-        target.employeeId,
-        normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
-      );
+      const httpStatus = inferUpdateHttpStatus(error);
+      if (import.meta.env.DEV) {
+        console.error('Save User Record request failed:', {
+          request: 'POST /rest/v1/rpc/admin_update_user_with_visit_places',
+          step: error.message === 'VISIT_PLACES_UPDATE_FAILED' ? 'employee_visit_places' : 'profiles',
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          httpStatus,
+          error,
+        });
+      }
+      const safeMessage = getSafeUpdateUserMessage(error);
+      showToast(safeMessage, 'error');
+      const updateError = new Error(safeMessage);
+      updateError.cause = error;
+      throw updateError;
     }
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...profileUpdates } : u));
+    await refreshEntity('employee_visit_places');
     logActivity(`Updated user details for ID ${id}`, 'User Management');
     showToast('User updated successfully', 'success');
   };
