@@ -418,7 +418,7 @@ export const TodaySchedule = () => {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleConfirmComplete}>
+            <form className="complete-visit-outcome-form" onSubmit={handleConfirmComplete}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div><strong>Customer:</strong> {completeModal.customerName}</div>
 
@@ -465,6 +465,7 @@ export const TodaySchedule = () => {
                 <div className="form-group">
                   <label className="form-label">Discussion Notes *</label>
                   <textarea
+                    name="discussionNotes"
                     className="form-textarea"
                     required
                     rows={3}
@@ -477,6 +478,7 @@ export const TodaySchedule = () => {
                 <div className="form-group">
                   <label className="form-label">Next Action</label>
                   <input
+                    name="nextAction"
                     type="text"
                     className="form-input"
                     placeholder="e.g. Send formal quotation by Friday"
@@ -502,6 +504,7 @@ export const TodaySchedule = () => {
                     <div className="form-group">
                       <label className="form-label">Follow-up Date</label>
                       <input
+                        name="followUpDate"
                         type="date"
                         className="form-input"
                         value={completeForm.followUpDate}

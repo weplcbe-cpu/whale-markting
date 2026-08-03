@@ -165,6 +165,16 @@ button, input, select, textarea, a, table {
   font-family: var(--font-body);
 }
 
+input,
+textarea,
+select {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  font-family: var(--font-body);
+  line-height: normal;
+}
+
 h1, h2, h3, h4, h5, h6,
 .page-title,
 .section-title,
@@ -1787,6 +1797,49 @@ h1, h2, h3, h4, h5, h6,
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Complete Visit fields: keep long and multiline values inside their controls. */
+.complete-visit-outcome-form,
+.complete-visit-outcome-form .form-group {
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.complete-visit-outcome-form .modal-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.complete-visit-outcome-form .form-input,
+.complete-visit-outcome-form .form-select {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  line-height: normal;
+}
+
+.complete-visit-outcome-form .form-textarea {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 14px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #fff;
+  color: var(--text-primary, var(--text-main));
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  resize: vertical;
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
@@ -4604,4 +4657,3 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
     font-size: 0.72rem;
   }
 }
-
