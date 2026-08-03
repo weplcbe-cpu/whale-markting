@@ -3,6 +3,48 @@ import { createPortal } from 'react-dom';
 import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
 import { useModalLayer } from './modalLayer';
 
+export const AppShell = ({ sidebar, navbar, children }) => (
+  <div className="app-container kw-app-shell">
+    <div className="main-layout">
+      {sidebar}
+      <div className="content-area">
+        {navbar}
+        <main className="main-view-wrapper">{children}</main>
+      </div>
+    </div>
+  </div>
+);
+
+export const GlassCard = ({ children, className = '', ...props }) => (
+  <section className={`ds-section-card kw-glass-card ${className}`.trim()} {...props}>{children}</section>
+);
+
+export const KpiCard = ({ icon: Icon, label, value, detail, className = '', ...props }) => (
+  <article className={`stat-card kw-kpi-card ${className}`.trim()} {...props}>
+    {Icon && <div className="stat-icon-wrapper blue"><Icon size={22} aria-hidden="true" /></div>}
+    <div className="stat-content"><div className="stat-value">{value}</div><div className="stat-label">{label}</div>{detail && <small>{detail}</small>}</div>
+  </article>
+);
+
+export const StatusBadge = ({ tone = 'neutral', children, className = '' }) => (
+  <span className={`ds-badge ds-badge--${tone} kw-status-badge ${className}`.trim()}>{children}</span>
+);
+
+export const NotificationPanel = ({ children, className = '', ...props }) => (
+  <aside className={`notification-popover kw-notification-panel ${className}`.trim()} {...props}>{children}</aside>
+);
+
+export const SectionHeader = ({ title, description, actions, className = '' }) => (
+  <header className={`ds-page-header kw-section-header ${className}`.trim()}><div><h2>{title}</h2>{description && <p>{description}</p>}</div>{actions && <div className="ds-page-actions">{actions}</div>}</header>
+);
+
+export const ChartCard = ({ title, description, actions, children, className = '' }) => (
+  <GlassCard className={`kw-chart-card ${className}`.trim()}>
+    {(title || actions) && <header className="ds-section-card__header"><div><h3>{title}</h3>{description && <p>{description}</p>}</div>{actions}</header>}
+    <div className="ds-section-card__body">{children}</div>
+  </GlassCard>
+);
+
 export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);

@@ -4,6 +4,7 @@ import { Sidebar } from './components/common/Sidebar';
 import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
+import { AppShell } from './components/ui';
 import { LoginPage } from './components/auth/LoginPage';
 import { BrandedLoadingScreen, CompanyLogo } from './components/common/CompanyLogo';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -161,44 +162,22 @@ export function AppContent() {
 
 
   return (
-    <div className="app-container">
-      <div className="main-layout">
-        {/* Role Specific Streamlined Sidebar */}
-        <Sidebar
-          activeTab={currentTab}
-          setActiveTab={selectAdminTab}
-          isMobileOpen={isMobileSidebarOpen}
-          toggleSidebar={toggleSidebar}
-        />
-
-        <div className="content-area">
-          {/* Top Navbar */}
-          <Navbar
-            activeTab={currentTab}
-            setActiveTab={selectAdminTab}
-            toggleSidebar={toggleSidebar}
-          />
-
-          {/* Main Dynamic View */}
-          <main className="main-view-wrapper">
-            {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
-            {dataLoading && <div className="director-live-status" role="status">Refreshing portal data…</div>}
-            <ErrorBoundary key={location.pathname}>
-              {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
-            </ErrorBoundary>
-          </main>
-        </div>
-      </div>
+    <>
+      <AppShell
+        sidebar={<Sidebar activeTab={currentTab} setActiveTab={selectAdminTab} isMobileOpen={isMobileSidebarOpen} toggleSidebar={toggleSidebar} />}
+        navbar={<Navbar activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />}
+      >
+        {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
+        {dataLoading && <div className="director-live-status" role="status">Refreshing portal data…</div>}
+        <ErrorBoundary key={location.pathname}>
+          {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
+        </ErrorBoundary>
+      </AppShell>
 
       {/* Mobile Native 1-Thumb Bottom Navigation */}
-      <MobileBottomNav
-        activeTab={currentTab}
-        setActiveTab={selectAdminTab}
-        toggleSidebar={toggleSidebar}
-      />
-
+      <MobileBottomNav activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />
       <ToastContainer />
-    </div>
+    </>
   );
 }
 
