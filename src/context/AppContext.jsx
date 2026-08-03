@@ -320,6 +320,23 @@ export const AppProvider = ({ children }) => {
   const loadAllData = useCallback(async () => {
     setDataLoading(true);
     setDataError(null);
+    const assignedPlaceQueryPayload = {
+      employee_id: currentUser?.role === 'Marketing Team' ? currentUser.employeeId : null,
+      is_active: true,
+    };
+    let assignedPlaceQuery = supabase
+      .from('employee_visit_places')
+      .select('employee_id, place_name, is_active')
+      .eq('is_active', true)
+      .order('place_name', { ascending: true });
+    if (assignedPlaceQueryPayload.employee_id) {
+      assignedPlaceQuery = assignedPlaceQuery.eq('employee_id', assignedPlaceQueryPayload.employee_id);
+    }
+    if (import.meta.env.DEV) {
+      console.log('Marketing assigned places currentUser.employeeId', currentUser?.employeeId);
+      console.log('Marketing assigned places currentUser.id', currentUser?.id);
+      console.log('Marketing assigned place query payload', assignedPlaceQueryPayload);
+    }
     const queries = [
       ['users', supabase.from('profiles').select('*')],
       ['products', supabase.from('products').select('*').order('display_order')],
@@ -329,7 +346,7 @@ export const AppProvider = ({ children }) => {
       ['visitReports', supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false })],
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
-      ['employeeVisitPlaces', supabase.from('employee_visit_places').select('*').eq('is_active', true).order('place_name')],
+      ['employeeVisitPlaces', assignedPlaceQuery],
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -363,6 +380,7 @@ export const AppProvider = ({ children }) => {
     setVisitReports(rowsToCamel(results.visitReports));
     setDailyReports(rowsToCamel(results.dailyReports));
     setFollowUps(rowsToCamel(results.followUps));
+    if (import.meta.env.DEV) console.log('Marketing assigned place returned rows', results.employeeVisitPlaces || []);
     setEmployeeVisitPlaces(rowsToCamel(results.employeeVisitPlaces));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
@@ -372,7 +390,7 @@ export const AppProvider = ({ children }) => {
     setDataError(failed.length ? `Unable to refresh: ${failed.join(', ')}` : null);
     setLastUpdated(new Date());
     setDataLoading(false);
-  }, []);
+  }, [currentUser?.employeeId, currentUser?.id, currentUser?.role]);
 
   const refreshEntity = useCallback(async (table) => {
     const config = {
@@ -381,7 +399,17 @@ export const AppProvider = ({ children }) => {
       visit_reports: [() => supabase.from('visit_reports').select('*').order('submitted_at', { ascending: false }), setVisitReports],
       daily_reports: [() => supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false }), setDailyReports],
       follow_ups: [() => supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false }), setFollowUps],
-      employee_visit_places: [() => supabase.from('employee_visit_places').select('*').eq('is_active', true).order('place_name'), setEmployeeVisitPlaces],
+      employee_visit_places: [() => {
+        let query = supabase
+          .from('employee_visit_places')
+          .select('employee_id, place_name, is_active')
+          .eq('is_active', true)
+          .order('place_name', { ascending: true });
+        if (currentUser?.role === 'Marketing Team' && currentUser.employeeId) {
+          query = query.eq('employee_id', currentUser.employeeId);
+        }
+        return query;
+      }, setEmployeeVisitPlaces],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -404,7 +432,7 @@ export const AppProvider = ({ children }) => {
             : mapped);
     setDataError(null);
     setLastUpdated(new Date());
-  }, []);
+  }, [currentUser?.employeeId, currentUser?.role]);
 
   useEffect(() => {
     if (currentUser) {
@@ -583,6 +611,12 @@ export const AppProvider = ({ children }) => {
 
   const updateUser = async (id, updatedFields) => {
     const { assignedVisitPlaces = [], ...profileUpdates } = updatedFields;
+    const normalizedVisitPlaces = assignedVisitPlaces
+      .map((place) => String(place).trim())
+      .filter(Boolean)
+      .filter((place, index, places) => places.findIndex(
+        (candidate) => candidate.toLocaleLowerCase() === place.toLocaleLowerCase(),
+      ) === index);
     const profileRow = objToSnakeRow({
       ...profileUpdates,
       role: CREATE_USER_ROLE_MAP[profileUpdates.role] || profileUpdates.role,
@@ -590,9 +624,12 @@ export const AppProvider = ({ children }) => {
     const payload = {
       p_user_id: id,
       p_profile: profileRow,
-      p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
+      p_visit_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? normalizedVisitPlaces : [],
     };
-    if (import.meta.env.DEV) console.log('Admin update RPC payload', payload);
+    if (import.meta.env.DEV) {
+      console.log('Admin update RPC visit places payload', payload.p_visit_places);
+      console.log('Admin update RPC payload', payload);
+    }
     let result;
     try {
       result = await supabase.rpc('admin_update_user_with_visit_places', payload);

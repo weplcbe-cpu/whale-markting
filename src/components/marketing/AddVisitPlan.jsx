@@ -90,9 +90,10 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     if (!currentUser?.employeeId) return [];
     return employeeVisitPlaces
       .filter((item) => item.employeeId === currentUser.employeeId && item.isActive !== false)
-      .map((item) => item.placeName)
-      .filter((place, index, list) => place && list.indexOf(place) === index)
-      .sort();
+      .map((item) => item.placeName?.trim())
+      .filter(Boolean)
+      .filter((place, index, list) => list.findIndex((candidate) => candidate.toLocaleLowerCase() === place.toLocaleLowerCase()) === index)
+      .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
   }, [currentUser?.employeeId, employeeVisitPlaces]);
 
   // Master data lists

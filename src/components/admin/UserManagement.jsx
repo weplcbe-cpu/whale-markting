@@ -164,7 +164,7 @@ export const UserManagement = () => {
     if (submitLockRef.current) return;
     setFormError('');
 
-    if (formData.role === 'Marketing Team' && !formData.assignedVisitPlaces.length) {
+    if (!editingUser && formData.role === 'Marketing Team' && !formData.assignedVisitPlaces.length) {
       setFormError('Assign at least one visit place for a Marketing user.');
       return;
     }
@@ -172,7 +172,17 @@ export const UserManagement = () => {
     if (editingUser) {
       // `profiles` has no `password` column — passwords live in Supabase Auth
       // and are never edited from this screen, so strip it from the payload.
-      const { password: _password, ...profileFields } = formData;
+      const normalizedVisitPlaces = formData.assignedVisitPlaces
+        .map((place) => place.trim())
+        .filter(Boolean)
+        .filter((place, index, places) => places.findIndex(
+          (candidate) => candidate.toLocaleLowerCase() === place.toLocaleLowerCase(),
+        ) === index);
+      const { password: _password, ...profileFields } = {
+        ...formData,
+        assignedVisitPlaces: normalizedVisitPlaces,
+      };
+      if (import.meta.env.DEV) console.log('Admin edit selected visit place chips', normalizedVisitPlaces);
       submitLockRef.current = true;
       setIsSubmitting(true);
       try {
