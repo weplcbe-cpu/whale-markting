@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -11,7 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatSafeDate, formatUpdateDate } from '../../utils/dateUtils';
+import { formatSafeDate, formatUpdateDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export const DirectorDashboard = () => {
   } = useApp();
 
   const now = new Date();
-  const todayValue = now.toISOString().slice(0, 10);
+  const todayValue = getLocalDateKey(now);
 
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   const formattedDate = formatSafeDate(now);
@@ -44,7 +44,9 @@ export const DirectorDashboard = () => {
   // Keep today's KPI and schedule on the live context value. Realtime can update
   // the contents independently of the other dashboard feeds, so this derived
   // subset must not be retained behind a memoized array identity.
-  const todayScheduledVisits = visitPlans.filter((plan) => plan.visitDate === todayValue);
+  const todayScheduledVisits = visitPlans.filter(
+    (plan) => normalizeDateKey(plan.visitDate || plan.visit_date) === todayValue
+  );
 
   const pendingReportsList = useMemo(() => {
     const all = [...dailyReports, ...visitReports];
@@ -144,15 +146,14 @@ export const DirectorDashboard = () => {
     return unique;
   }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('Director derived-count recalculation', {
-        todayVisits: todayScheduledVisits.length,
-        recentUpdates: recentUpdatesList.length,
-        notifications: notifications.length,
-      });
-    }
-  }, [notifications.length, recentUpdatesList.length, todayScheduledVisits.length]);
+  if (import.meta.env.DEV) {
+    console.log('[Director Dashboard]', {
+      visitPlansLength: visitPlans.length,
+      todayScheduledVisitsLength: todayScheduledVisits.length,
+      notificationsLength: notifications.length,
+      directorCommentsLength: directorComments.length,
+    });
+  }
 
   if (dataLoading && !lastUpdated) {
     return (
@@ -449,7 +450,6 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
 
 
 

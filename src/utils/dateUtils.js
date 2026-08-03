@@ -1,3 +1,25 @@
+export const getLocalDateKey = (date = new Date()) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const normalizeDateKey = (value) => {
+  if (value instanceof Date) return getLocalDateKey(value);
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  const standardMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/);
+  if (standardMatch) return `${standardMatch[1]}-${standardMatch[2]}-${standardMatch[3]}`;
+
+  const legacyMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (legacyMatch) return `${legacyMatch[3]}-${legacyMatch[2]}-${legacyMatch[1]}`;
+
+  return null;
+};
+
 export const formatSafeDate = (inputDate) => {
   if (!inputDate) return 'Date unavailable';
 
