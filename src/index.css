@@ -3046,6 +3046,115 @@ body {
   .app-theme-dark :is(.ds-table tr, .custom-table tr, .daily-reports-table tr) { background: var(--surface-2); border-color: var(--border-subtle); }
 }
 @media (max-width: 575px) { .app-theme-dark .profile-page .director-detail-grid { grid-template-columns: 1fr; } }
+
+/* Final dark compatibility layer. This remains last so legacy page styles cannot reintroduce light portal surfaces. */
+[data-theme="dark"] {
+  --app-bg: #080D1C;
+  --sidebar-bg: #0F1629;
+  --navbar-bg: #17172F;
+  --surface-1: #10182C;
+  --surface-2: #16213A;
+  --surface-3: #1C2946;
+  --surface-hover: #243252;
+  --surface-elevated: rgba(18, 27, 48, 0.98);
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-disabled: #64748B;
+  --border-subtle: rgba(148, 163, 184, 0.15);
+  --border-default: rgba(148, 163, 184, 0.26);
+  --border-strong: rgba(148, 163, 184, 0.38);
+  --primary: #5B7CFF;
+  --primary-hover: #6D8CFF;
+  --primary-soft: rgba(91, 124, 255, 0.15);
+  --success: #34D399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --warning: #FBBF24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
+  --danger: #FB7185;
+  --danger-soft: rgba(251, 113, 133, 0.14);
+  --purple: #A78BFA;
+  --purple-soft: rgba(167, 139, 250, 0.14);
+  --bg-main: var(--app-bg);
+  --bg-card: var(--surface-2);
+  --bg-input: #0D1427;
+  --border-color: var(--border-subtle);
+  --primary-blue: var(--primary);
+  --primary-dark: var(--text-primary);
+  --text-main: var(--text-primary);
+}
+
+[data-theme="dark"] :is(.toolbar-bar, .card, .stat-card, .ds-section-card, .ds-visit-row, .ds-monthly-header, .ds-monthly-row, .ds-week-header, .director-filter-bar, .daily-reports-results, .complete-follow-up, .dd-kpi-card, .dd-card, .dd-team-card, .dd-team-stats) {
+  background: var(--surface-1);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+[data-theme="dark"] :is(.toolbar-bar, .ds-monthly-row__editor, .ds-week-editor, .ds-sticky-actions, .complete-visit-footer) { background: var(--surface-2); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.dashboard-visit-card, .dashboard-feedback-card, .director-fit-card > div[style], .ds-monthly-review > div, .ds-choice, .ds-review, .daily-report-facts > div, .daily-report-narratives article) {
+  background: var(--surface-2) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-primary);
+}
+[data-theme="dark"] :is(.dashboard-visit-card h4, .dashboard-visit-card span, .dashboard-feedback-card, .dashboard-feedback-card__title, .dashboard-feedback-card__message, .daily-report-details h3, .daily-report-facts dd, .daily-report-narratives h4, .ds-review dd) { color: var(--text-primary) !important; }
+[data-theme="dark"] :is(.dashboard-visit-card__details, .dashboard-feedback-card__meta, .daily-report-narratives p, .ds-empty, .ds-state, .ds-empty p, .ds-field small) { color: var(--text-secondary); }
+
+[data-theme="dark"] :is(.table-responsive, .ds-table-wrap, .custom-table, .ds-table, .daily-reports-table) { background: var(--surface-1); border-color: var(--border-subtle); color: var(--text-primary); }
+[data-theme="dark"] :is(.custom-table th, .ds-table th, .daily-reports-table th) { background: #1B294A; color: var(--text-secondary); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.custom-table td, .ds-table td, .daily-reports-table td) { background: var(--surface-2); color: var(--text-primary); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.custom-table tbody tr:nth-child(even) td, .ds-table tbody tr:nth-child(even) td, .daily-reports-table tbody tr:nth-child(even) td) { background: #121B31; }
+[data-theme="dark"] :is(.custom-table tbody tr:hover td, .ds-table tbody tr:hover td, .daily-reports-table tbody tr:hover td) { background: var(--surface-hover); }
+[data-theme="dark"] :is(.custom-table small, .ds-table small, .daily-reports-table small, .daily-report-pending) { color: var(--text-muted); }
+
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger, .clock-time-trigger, .ds-combobox, .ds-multi-select, .ds-project-select__control) {
+  background: #0D1427 !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+[data-theme="dark"] :is(.form-input, .form-textarea, .ds-field input, .ds-field textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+[data-theme="dark"] :is(.form-label, .form-group label, .ds-field label) { color: var(--text-secondary); }
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger, .clock-time-trigger):focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(91, 124, 255, .18) !important; }
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea):-webkit-autofill { -webkit-text-fill-color: var(--text-primary); -webkit-box-shadow: 0 0 0 1000px #0D1427 inset; }
+[data-theme="dark"] select option { background: var(--surface-1); color: var(--text-primary); }
+
+[data-theme="dark"] :is(.visit-date-popover, .clock-time-popover, .ds-combobox-menu, .ds-project-select__menu, .ds-multi-panel, .global-search-results) { background: var(--surface-elevated); border-color: var(--border-default); color: var(--text-primary); }
+[data-theme="dark"] :is(.visit-date-header h3, .clock-time-popover h3, .visit-date-header button, .visit-date-grid button, .clock-time-display button, .ds-combobox-menu > button, .ds-project-select__menu button, .ds-multi-option) { color: var(--text-primary); }
+[data-theme="dark"] :is(.visit-date-header button:hover:not(:disabled), .visit-date-grid button:hover:not(:disabled), .clock-time-display button, .ds-combobox-menu > button:hover, .ds-project-select__menu button:hover, .ds-multi-option:hover, .ds-multi-option.active) { background: var(--surface-hover); }
+
+[data-theme="dark"] :is(.ds-modal, .modal-content, .user-modal) { background: var(--surface-1) !important; color: var(--text-primary); border-color: var(--border-default); }
+[data-theme="dark"] :is(.ds-modal__header, .modal-header, .user-modal__header, .ds-modal__body, .modal-body, .user-modal__body) { background: var(--surface-1); color: var(--text-primary); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.ds-modal__footer, .modal-footer, .user-modal__footer) { background: var(--surface-2); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.ds-modal__header h2, .modal-header h3, .user-modal__header h2, .entity-details-section > h3, .entity-detail-item > strong, .entity-narrative h4) { color: var(--text-primary); }
+[data-theme="dark"] :is(.entity-detail-item, .entity-narrative, .entity-feedback-message, .entity-reference button) { background: var(--surface-2); border-color: var(--border-subtle); color: var(--text-secondary); }
+[data-theme="dark"] :is(.entity-detail-item > span, .entity-reference, .entity-reference code) { color: var(--text-muted); }
+[data-theme="dark"] :is(.entity-modal-close, .ds-icon-button, .modal-close, .user-modal__close) { background: var(--surface-2); border-color: var(--border-default); color: var(--text-primary); }
+[data-theme="dark"] :is(.entity-modal-close, .ds-icon-button, .modal-close, .user-modal__close):hover { background: var(--surface-hover); border-color: var(--primary); color: #fff; }
+
+[data-theme="dark"] :is(.btn-secondary, .ds-button--secondary) { background: var(--surface-3); color: var(--text-primary); border-color: var(--border-default); }
+[data-theme="dark"] :is(.btn-secondary, .ds-button--secondary):hover:not(:disabled) { background: var(--surface-hover); border-color: var(--primary); }
+[data-theme="dark"] :is(.btn-primary, .ds-button--primary) { background: var(--primary); color: #fff; }
+[data-theme="dark"] :is(.btn-success, .ds-button--success) { background: var(--success); color: #071812; }
+[data-theme="dark"] :is(.btn-danger, .ds-button--danger) { background: var(--danger); color: #fff; }
+[data-theme="dark"] :is(.btn:disabled, .ds-button:disabled) { background: var(--surface-3); color: var(--text-disabled); border-color: var(--border-subtle); opacity: 1; }
+
+[data-theme="dark"] :is(.notification-popover, .notification-row, .notification-popover__footer, .toast) { background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.notification-row:hover, .notification-row--unread, .notification-filters button, .notification-popover__footer button:hover) { background: var(--surface-hover); }
+[data-theme="dark"] :is(.notification-row__content strong, .notification-popover__header h2, .notification-empty strong) { color: var(--text-primary); }
+[data-theme="dark"] :is(.notification-row__message, .notification-row__meta, .notification-row__content time, .notification-empty p) { color: var(--text-secondary); }
+[data-theme="dark"] .toast.success { border-left-color: var(--success); }
+[data-theme="dark"] .toast.error { border-left-color: var(--danger); }
+[data-theme="dark"] .ds-error { background: var(--danger-soft); border-color: rgba(251, 113, 133, .4); color: #FECDD3; }
+
+[data-theme="dark"] .profile-page .director-detail-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+[data-theme="dark"] .profile-page .director-detail-grid > div { background: var(--surface-2); border-color: var(--border-subtle); }
+[data-theme="dark"] .profile-page .director-detail-grid small { color: var(--text-muted); }
+[data-theme="dark"] .profile-page .director-detail-grid strong { color: var(--text-primary); }
+[data-theme="dark"] :focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+@media (max-width: 767px) {
+  [data-theme="dark"] .profile-page .director-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="dark"] :is(.custom-table tr, .ds-table tr, .daily-reports-table tr) { background: var(--surface-2); border-color: var(--border-subtle); }
+}
+@media (max-width: 575px) { [data-theme="dark"] .profile-page .director-detail-grid { grid-template-columns: 1fr; } }
 .director-feedback-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);min-width:0}
 .director-feedback-card.is-unread{border-left:4px solid var(--action-orange);background:color-mix(in srgb,var(--action-orange) 6%,var(--bg-card))}
 .director-feedback-card__main{display:grid;gap:8px;min-width:0;flex:1;padding:0;border:0;background:transparent;color:var(--text-main);text-align:left;cursor:pointer}
@@ -5313,3 +5422,25 @@ body {
 @media (max-width: 380px) {
   .complete-response-grid { grid-template-columns: 1fr; }
 }
+
+/* Keep late complete-visit styles inside the authenticated dark theme. */
+[data-theme="dark"] :is(.complete-response-grid button, .complete-calendar-trigger, .complete-calendar-popover, .complete-upload-zone) {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+[data-theme="dark"] :is(.complete-response-grid button:hover, .complete-response-grid button.selected, .complete-calendar-grid button:not(:disabled):hover, .complete-upload-zone:hover, .complete-upload-zone.dragging) {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .complete-response-grid button.selected { box-shadow: 0 0 0 1px var(--primary); }
+[data-theme="dark"] :is(.complete-calendar-header button, .complete-calendar-grid button) { color: var(--text-primary); }
+[data-theme="dark"] .complete-calendar-weekday { color: var(--text-muted); }
+[data-theme="dark"] .complete-upload-zone small { color: var(--text-muted); }
+[data-theme="dark"] .complete-upload-icon { background: var(--primary-soft); color: #B8C5FF; }
+[data-theme="dark"] .complete-file-list > span { background: var(--primary-soft); color: var(--text-secondary); }
+[data-theme="dark"] .complete-visit-footer { background: var(--surface-2); border-color: var(--border-subtle); box-shadow: 0 -8px 20px rgba(0, 0, 0, .24); }
+[data-theme="dark"] .complete-toggle { background: var(--text-disabled); }
+[data-theme="dark"] .complete-toggle span { background: var(--text-primary); }
+[data-theme="dark"] .complete-toggle.selected { background: var(--primary); }

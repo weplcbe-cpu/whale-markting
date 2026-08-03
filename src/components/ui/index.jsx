@@ -4,7 +4,7 @@ import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
 import { useModalLayer } from './modalLayer';
 
 export const AppShell = ({ sidebar, navbar, children }) => (
-  <div className="app-container kw-app-shell app-theme-dark">
+  <div className="app-container kw-app-shell app-theme-dark" data-theme="dark">
     <div className="main-layout">
       {sidebar}
       <div className="content-area">
@@ -94,6 +94,7 @@ export const ModalPortal = ({ open = true, children, className = '', onClose, cl
   return createPortal(
     <div
       className={`modal-overlay ${className}`}
+      data-theme="dark"
       role="presentation"
       onMouseDown={(event) => {
         if (closeOnBackdrop && event.target === event.currentTarget) onClose?.();
@@ -179,7 +180,7 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   if (!open) return null;
   const requestClose = () => { if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); };
   return createPortal(
-    <div className="ds-modal-overlay app-theme-dark" role="presentation" onMouseDown={(event) => {
+    <div className="ds-modal-overlay app-theme-dark" data-theme="dark" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !dirty) requestClose();
     }}>
       <section ref={dialogRef} className={`ds-modal ds-modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>

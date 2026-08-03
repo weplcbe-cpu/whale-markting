@@ -122,7 +122,7 @@ export const MarketingDashboard = () => {
                   className="dashboard-visit-card"
                   style={{
                     padding: '18px 22px',
-                    background: '#ffffff',
+                    background: 'var(--surface-2)',
                     border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-lg)',
                     boxShadow: 'var(--shadow-sm)'
