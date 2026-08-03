@@ -421,7 +421,7 @@ export const AppProvider = ({ children }) => {
     const { data, error } = await query();
     if (error) { console.error(`Failed to refresh ${table}:`, error); setDataError(`Unable to refresh ${table.replaceAll('_', ' ')}.`); return; }
     const mapped = rowsToCamel(data);
-    setter(table === 'profiles'
+    const normalized = table === 'profiles'
       ? mapped.map(normalizeProfileData)
       : table === 'visit_plans'
         ? mapped.map(normalizeVisitPlan)
@@ -429,9 +429,11 @@ export const AppProvider = ({ children }) => {
           ? normalizeDirectorFeedbackList(mapped)
           : table === 'company_info'
             ? (mapped[0] || null)
-            : mapped);
+            : mapped;
+    setter(normalized);
     setDataError(null);
     setLastUpdated(new Date());
+    return normalized;
   }, [currentUser?.employeeId, currentUser?.role]);
 
   useEffect(() => {
@@ -1195,29 +1197,50 @@ export const AppProvider = ({ children }) => {
   const submitVisitReport = async (reportData) => {
     const row = objToSnakeRow({
       employeeId: currentUser?.employeeId,
-      employeeName: currentUser?.employeeName,
+      fullName: currentUser?.fullName || currentUser?.employeeName || currentUser?.username || 'Marketing Employee',
       submittedAt: new Date().toISOString(),
       isLocked: false,
       ...reportData
     });
     if (import.meta.env.DEV) console.log('Payload', row);
-    const response = await supabase.from('visit_reports').insert(row).select().single();
+    const response = await supabase.rpc('submit_visit_report', {
+      p_visit_plan_id: reportData.visitPlanId,
+      p_report: row,
+    }).single();
     const { data, error } = response;
     if (import.meta.env.DEV) console.log('RPC', response);
     if (error) {
       console.log('Error', error);
-      showToast('Failed to submit visit report', 'error');
-      return;
+      const safeErrors = {
+        DISCUSSION_NOTES_REQUIRED: 'Discussion Notes is required.',
+        FOLLOW_UP_DATE_REQUIRED: 'Please select a follow-up date.',
+        INVALID_VISIT_REPORT_PAYLOAD: 'The visit report contains an invalid value.',
+        VISIT_PLAN_NOT_STARTED: 'Only a started visit can be completed.',
+        VISIT_PLAN_NOT_OWNED: 'This visit is not available for completion.',
+        REPORT_MARKETING_ONLY: 'Only Marketing employees can submit visit reports.',
+        REPORT_PROFILE_INACTIVE: 'Your active employee profile could not be verified.',
+        REPORT_AUTH_REQUIRED: 'Please sign in again before submitting the report.',
+        NO_ACTIVE_DIRECTOR: 'No active Director is available to receive this report.',
+      };
+      const message = safeErrors[error.message] || 'Unable to submit the visit report. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
     }
-    setVisitReports(prev => [rowToCamel(data), ...prev]);
-    await refreshEntity('visit_reports');
-
-    if (reportData.visitPlanId) {
-      await updateVisitPlanStatus(reportData.visitPlanId, 'Completed');
-    }
+    const saved = rowToCamel(data);
+    setVisitReports((previous) => [saved, ...previous.filter((report) => report.id !== saved.id)]);
+    setVisitPlans((previous) => previous.map((plan) => plan.id === reportData.visitPlanId
+      ? { ...plan, status: 'Completed' }
+      : plan));
+    await Promise.all([
+      refreshEntity('visit_reports'),
+      refreshEntity('visit_plans'),
+      refreshEntity('notifications'),
+      refreshEntity('follow_ups'),
+    ]);
 
     logActivity(`Submitted visit report for ${reportData.customerName}`, 'Daily Report');
     showToast('Visit report submitted successfully!', 'success');
+    return saved;
   };
 
   const submitDailyReport = async (dReportData) => {

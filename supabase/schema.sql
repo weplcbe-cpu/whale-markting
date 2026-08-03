@@ -259,7 +259,7 @@ create table if not exists public.visit_reports (
   id uuid primary key default gen_random_uuid(),
   visit_plan_id uuid references public.visit_plans (id) on delete set null,
   employee_id text not null,
-  employee_name text,
+  full_name text,
   visit_date date,
   customer_name text,
   meeting_completed boolean default true,
@@ -304,7 +304,7 @@ create table if not exists public.daily_reports (
 create table if not exists public.follow_ups (
   id uuid primary key default gen_random_uuid(),
   employee_id text not null,
-  employee_name text,
+  full_name text,
   customer_id uuid references public.customers (id) on delete set null,
   customer_name text,
   follow_up_date date,

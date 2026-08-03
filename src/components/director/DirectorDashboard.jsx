@@ -91,7 +91,7 @@ export const DirectorDashboard = () => {
       list.push({
         id: `report-${r.id}`,
         title: `Daily Report Submitted`,
-        employeeName: r.employeeName || 'Marketing Rep',
+        employeeName: r.fullName || r.employeeName || 'Marketing Employee',
         organization: r.area || r.district || '',
         createdAt: r.submittedAt || r.submitted_at || r.reportDate || r.report_date || r.visitDate || r.createdAt,
         ...r,
@@ -395,7 +395,7 @@ export const DirectorDashboard = () => {
                   }}
                 >
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                    {r.employeeName || 'Rep Report'} • {formatSafeDate(r.reportDate || r.visitDate || r.submittedAt)}
+                    {r.fullName || r.employeeName || 'Marketing Employee'} • {formatSafeDate(r.reportDate || r.visitDate || r.submittedAt)}
                   </span>
                   <span className="badge badge-planned" style={{ fontSize: '0.7rem', flexShrink: 0 }}>Pending Review</span>
                 </div>
@@ -450,6 +450,5 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
 
 

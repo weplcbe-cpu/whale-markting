@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, MessageSquare, Eye, Clock, X } from 'lucide-react';
 import { ModalPortal } from '../ui';
 
@@ -8,21 +9,42 @@ export const DirectorVisitReports = () => {
   const [activeTab, setActiveTab] = useState('visit-reports');
   const [selectedReport, setSelectedReport] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reportName = (report) => report?.fullName || report?.employeeName || 'Marketing Employee';
 
-  const handlePostComment = (e) => {
+  useEffect(() => {
+    const reportId = searchParams.get('reportId');
+    if (!reportId) return;
+    const report = visitReports.find((item) => String(item.id) === reportId);
+    if (report) {
+      setActiveTab('visit-reports');
+      setSelectedReport(report);
+    }
+  }, [searchParams, visitReports]);
+
+  const closeReport = () => {
+    setSelectedReport(null);
+    if (searchParams.has('reportId')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('reportId');
+      setSearchParams(next, { replace: true });
+    }
+  };
+
+  const handlePostComment = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    addDirectorComment({
+    await addDirectorComment({
       targetEmployeeId: selectedReport.employeeId,
-      targetEmployeeName: selectedReport.employeeName,
+      targetEmployeeName: reportName(selectedReport),
       targetModule: activeTab === 'visit-reports' ? 'Visit Report' : 'Daily Report',
       referenceId: selectedReport.id,
       message: commentText
     });
 
     setCommentText('');
-    setSelectedReport(null);
+    closeReport();
   };
 
   return (
@@ -67,7 +89,7 @@ export const DirectorVisitReports = () => {
                 {visitReports.length === 0 && <tr><td colSpan="8"><div className="ds-empty"><h3>No visit reports have been submitted yet.</h3><p>Completed field visit reports will appear here automatically.</p></div></td></tr>}
                 {visitReports.map(rep => (
                   <tr key={rep.id}>
-                    <td><strong>{rep.employeeName}</strong></td>
+                    <td><strong>{reportName(rep)}</strong></td>
                     <td>{rep.visitDate}</td>
                     <td>{rep.customerName}</td>
                     <td>
@@ -137,16 +159,16 @@ export const DirectorVisitReports = () => {
 
       {/* Inspect Modal */}
       {selectedReport && (
-        <ModalPortal onClose={() => setSelectedReport(null)}>
+        <ModalPortal onClose={closeReport}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Visit Report Inspection - {selectedReport.customerName}</h3>
-              <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
+              <button onClick={closeReport} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
                 <X size={18} />
               </button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div><strong>Employee Rep:</strong> {selectedReport.employeeName}</div>
+              <div><strong>Employee Rep:</strong> {reportName(selectedReport)}</div>
               <div><strong>Actual Meeting Time:</strong> {selectedReport.actualTime}</div>
               <div><strong>Customer Response:</strong> <span className="badge badge-planned">{selectedReport.customerResponse}</span></div>
               <div><strong>Discussion Notes:</strong> {selectedReport.discussionNotes}</div>
@@ -168,7 +190,7 @@ export const DirectorVisitReports = () => {
               {/* Add Director Comment Form */}
               <form onSubmit={handlePostComment} style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
                 <div className="form-group">
-                  <label className="form-label"><MessageSquare size={14} style={{ display: 'inline' }} /> Post Director Comment to {selectedReport.employeeName}</label>
+                  <label className="form-label"><MessageSquare size={14} style={{ display: 'inline' }} /> Post Director Comment to {reportName(selectedReport)}</label>
                   <textarea
                     className="form-textarea"
                     rows={3}

@@ -40,7 +40,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, markNotificationRead, showToast, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, refreshEntity, markNotificationRead, showToast, theme, toggleTheme } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -101,7 +101,10 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
       return;
     }
     const relatedId = notification.referenceId;
-    const exists = relatedId && target.records.some((item) => String(item.id) === String(relatedId));
+    const records = kind === 'visitReport'
+      ? await refreshEntity('visit_reports')
+      : target.records;
+    const exists = relatedId && records?.some((item) => String(item.id) === String(relatedId));
     if (!exists) {
       showToast?.('This related record is no longer available.', 'error');
       return;
@@ -111,7 +114,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   const searchResults = globalSearch.trim().length < 2 ? [] : [
     ...users.filter(item => `${item.fullName || item.employeeName || ''} ${item.employeeId || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `user-${item.id}`, label: item.fullName || item.employeeName, group: 'Employees', path: '/director/team' })),
     ...visitPlans.filter(item => `${item.customerName || ''} ${item.area || item.district || ''} ${item.visitPurpose || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `plan-${item.id}`, label: `${item.customerName || item.area} · ${item.visitDate}`, group: 'Visit Plans', path: '/director/tour-plans' })),
-    ...[...visitReports, ...dailyReports].filter(item => `${item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.employeeName} report`, group: 'Reports', path: '/director/visit-reports' }))
+    ...[...visitReports, ...dailyReports].filter(item => `${item.fullName || item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.fullName || item.employeeName || 'Marketing Employee'} report`, group: 'Reports', path: '/director/visit-reports' }))
   ];
 
   // Theme toggle – adds/removes `dark` class on <html>

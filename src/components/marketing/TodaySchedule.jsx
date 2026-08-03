@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
@@ -38,6 +38,7 @@ export const TodaySchedule = () => {
   const [editModal, setEditModal] = useState(null);
   const [deletingPlan, setDeletingPlan] = useState(null);
   const [busyAction, setBusyAction] = useState('');
+  const completeSubmittingRef = useRef(false);
 
   // Form states
   const [cancelReason, setCancelReason] = useState('');
@@ -79,15 +80,25 @@ export const TodaySchedule = () => {
     setRescheduleModal(null);
   };
 
-  const handleConfirmComplete = (e) => {
+  const handleConfirmComplete = async (e) => {
     e.preventDefault();
-    submitVisitReport({
-      visitPlanId: completeModal.id,
-      customerName: completeModal.customerName,
-      visitDate: completeModal.visitDate,
-      ...completeForm
-    });
-    setCompleteModal(null);
+    if (!completeModal || completeSubmittingRef.current) return;
+    completeSubmittingRef.current = true;
+    setBusyAction('complete-visit');
+    try {
+      const saved = await submitVisitReport({
+        visitPlanId: completeModal.id,
+        customerName: completeModal.customerName,
+        visitDate: completeModal.visitDate,
+        ...completeForm
+      });
+      if (saved?.id) setCompleteModal(null);
+    } catch {
+      // AppContext shows the mapped safe error; retain the modal and its values.
+    } finally {
+      completeSubmittingRef.current = false;
+      setBusyAction('');
+    }
   };
 
   const openEditor = (visit) => setEditModal({
@@ -524,8 +535,10 @@ export const TodaySchedule = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setCompleteModal(null)}>Cancel</button>
-                <button type="submit" className="btn btn-success">Submit Visit Report</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setCompleteModal(null)} disabled={busyAction === 'complete-visit'}>Cancel</button>
+                <button type="submit" className="btn btn-success" disabled={busyAction === 'complete-visit'}>
+                  {busyAction === 'complete-visit' ? 'Submitting…' : 'Submit Visit Report'}
+                </button>
               </div>
             </form>
           </div>
