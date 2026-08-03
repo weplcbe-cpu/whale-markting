@@ -28,8 +28,8 @@ export const DirectorDashboard = () => {
     lastUpdated,
   } = useApp();
 
-  const now = useMemo(() => new Date(), []);
-  const todayValue = useMemo(() => now.toISOString().slice(0, 10), [now]);
+  const now = new Date();
+  const todayValue = now.toISOString().slice(0, 10);
 
   const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
   const formattedDate = formatSafeDate(now);
@@ -41,10 +41,10 @@ export const DirectorDashboard = () => {
     ).length;
   }, [users]);
 
-  const todayScheduledVisits = useMemo(
-    () => visitPlans.filter((plan) => plan.visitDate === todayValue),
-    [visitPlans, todayValue]
-  );
+  // Keep today's KPI and schedule on the live context value. Realtime can update
+  // the contents independently of the other dashboard feeds, so this derived
+  // subset must not be retained behind a memoized array identity.
+  const todayScheduledVisits = visitPlans.filter((plan) => plan.visitDate === todayValue);
 
   const pendingReportsList = useMemo(() => {
     const all = [...dailyReports, ...visitReports];
@@ -449,7 +449,6 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
 
 
 
