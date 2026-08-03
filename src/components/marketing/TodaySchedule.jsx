@@ -1,9 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
 import { isDatabaseVisitPlanId } from '../../utils/visitPlanDraftCache';
 import { ConfirmationDialog, ModalPortal } from '../ui';
+import CompleteVisitOutcomeForm from './CompleteVisitOutcomeForm';
 
 const LEGACY_STATUSES = new Set([
   'approved',
@@ -12,6 +13,11 @@ const LEGACY_STATUSES = new Set([
   'pending approval',
   'submitted for director approval'
 ]);
+
+const todayDateKey = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
 
 export const TodaySchedule = () => {
   const {
@@ -55,7 +61,7 @@ export const TodaySchedule = () => {
     requirementDetails: '',
     nextAction: '',
     isFollowUpRequired: true,
-    followUpDate: new Date().toISOString().split('T')[0],
+    followUpDate: todayDateKey(),
     isQuotationRequired: false,
     finalStatus: 'Completed'
   });
@@ -74,6 +80,18 @@ export const TodaySchedule = () => {
 
   const handleCustomerResponse = useCallback((customerResponse) => {
     setCompleteForm((previous) => ({ ...previous, customerResponse }));
+  }, []);
+
+  const handleFollowUpToggle = useCallback((enabled) => {
+    setCompleteForm((previous) => ({
+      ...previous,
+      isFollowUpRequired: enabled,
+      followUpDate: enabled ? (previous.followUpDate || todayDateKey()) : '',
+    }));
+  }, []);
+
+  const handleFollowUpDateChange = useCallback((followUpDate) => {
+    setCompleteForm((previous) => ({ ...previous, followUpDate }));
   }, []);
 
   const handleConfirmStart = (visit) => {
@@ -108,7 +126,9 @@ export const TodaySchedule = () => {
         visitDate: completeModal.visitDate,
         ...completeForm
       });
-      if (saved?.id) setCompleteModal(null);
+      if (saved?.id) {
+        setCompleteModal(null);
+      }
     } catch {
       // AppContext shows the mapped safe error; retain the modal and its values.
     } finally {
@@ -437,129 +457,17 @@ export const TodaySchedule = () => {
 
       {/* Complete Visit Outcome Modal */}
       {completeModal && (
-        <ModalPortal onClose={handleCloseCompleteModal} closeOnBackdrop={false}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px' }}>
-            <div className="modal-header">
-              <h3>Complete Visit Outcome Form</h3>
-              <button type="button" className="modal-close-btn" onClick={handleCloseCompleteModal} aria-label="Close complete visit form">
-                <X size={20} />
-              </button>
-            </div>
-            <form className="complete-visit-outcome-form" onSubmit={handleConfirmComplete}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div><strong>Customer:</strong> {completeModal.customerName}</div>
-
-                <div className="form-group">
-                  <label className="form-label">Customer Response (Tap one option) *</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
-                    {[
-                      { label: 'Interested', icon: '👍', color: 'var(--accent-emerald)' },
-                      { label: 'Need Quotation', icon: '📄', color: 'var(--primary)' },
-                      { label: 'Need Demo', icon: '📽️', color: 'var(--accent-cyan)' },
-                      { label: 'Need Follow-up', icon: '🕒', color: 'var(--accent-amber)' },
-                      { label: 'Decision Pending', icon: '⏳', color: 'var(--accent-purple)' },
-                      { label: 'Not Interested', icon: '👎', color: 'var(--accent-rose)' }
-                    ].map(item => {
-                      const isSelected = completeForm.customerResponse === item.label;
-                      return (
-                        <button
-                          key={item.label}
-                          type="button"
-                          onClick={() => handleCustomerResponse(item.label)}
-                          style={{
-                            padding: '8px 14px',
-                            borderRadius: '20px',
-                            border: `2px solid ${isSelected ? item.color : 'var(--border-color)'}`,
-                            background: isSelected ? 'var(--primary-light)' : 'var(--bg-input)',
-                            color: isSelected ? 'var(--text-main)' : 'var(--text-muted)',
-                            fontWeight: isSelected ? 700 : 500,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <span>{item.icon}</span>
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Discussion Notes *</label>
-                  <textarea
-                    name="discussionNotes"
-                    className="form-textarea"
-                    required
-                    rows={3}
-                    placeholder="Enter meeting notes and customer feedback..."
-                    value={completeForm.discussionNotes}
-                    onChange={handleCompleteFormChange}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Next Action</label>
-                  <input
-                    name="nextAction"
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Send formal quotation by Friday"
-                    value={completeForm.nextAction}
-                    onChange={handleCompleteFormChange}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Follow-up Required?</label>
-                    <select
-                      name="isFollowUpRequired"
-                      className="form-select"
-                      value={completeForm.isFollowUpRequired ? 'Yes' : 'No'}
-                      onChange={handleCompleteFormChange}
-                    >
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                  </div>
-
-                  {completeForm.isFollowUpRequired && (
-                    <div className="form-group">
-                      <label className="form-label">Follow-up Date</label>
-                      <input
-                        name="followUpDate"
-                        type="date"
-                        className="form-input"
-                        value={completeForm.followUpDate}
-                        onChange={handleCompleteFormChange}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Upload Site Photo / Document Mock</label>
-                  <div style={{ border: '2px dashed var(--border-color)', padding: '16px', textAlign: 'center', borderRadius: 'var(--radius-md)' }}>
-                    <Upload size={24} color="var(--accent-cyan)" style={{ marginBottom: '6px' }} />
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Click to upload site photos or demonstration documents</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleCloseCompleteModal} disabled={busyAction === 'complete-visit'}>Cancel</button>
-                <button type="submit" className="btn btn-success" disabled={busyAction === 'complete-visit'}>
-                  {busyAction === 'complete-visit' ? 'Submitting…' : 'Submit Visit Report'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </ModalPortal>
+        <CompleteVisitOutcomeForm
+          visit={completeModal}
+          form={completeForm}
+          onChange={handleCompleteFormChange}
+          onCustomerResponse={handleCustomerResponse}
+          onFollowUpToggle={handleFollowUpToggle}
+          onDateChange={handleFollowUpDateChange}
+          onClose={handleCloseCompleteModal}
+          onSubmit={handleConfirmComplete}
+          submitting={busyAction === 'complete-visit'}
+        />
       )}
     </div>
   );
