@@ -174,6 +174,7 @@ export const AppProvider = ({ children }) => {
 
   const [theme, setTheme] = useState(() => localStorage.getItem('kw_vmm_theme') || 'dark');
   const [toasts, setToasts] = useState([]);
+  const currentRole = currentUser ? normalizeRole(currentUser.role) : null;
 
   useEffect(() => {
     localStorage.setItem('kw_vmm_theme', theme);
@@ -236,6 +237,10 @@ export const AppProvider = ({ children }) => {
     const applySession = async (session, version) => {
       if (!isMounted || version !== sessionVersion) return;
 
+      // Postgres Changes authorization is evaluated with the Realtime socket's
+      // access token. Keep it aligned with the restored/refreshed Auth session.
+      await supabase.realtime.setAuth(session?.access_token ?? null);
+
       if (!session?.user) {
         if (isMounted && version === sessionVersion) {
           setCurrentUser(null);
@@ -288,6 +293,10 @@ export const AppProvider = ({ children }) => {
     // is deferred until after the callback returns.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION') return;
+
+      supabase.realtime.setAuth(session?.access_token ?? null).catch((error) => {
+        console.error('[Realtime auth] unable to update access token', error);
+      });
 
       const version = ++sessionVersion;
       window.setTimeout(() => {
@@ -487,6 +496,11 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
 
     let reconciliationTimer;
+    let reconnectTimer;
+    let visitPlansChannel;
+    let stopped = false;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 3;
     const reconcileVisitPlans = () => {
       window.clearTimeout(reconciliationTimer);
       reconciliationTimer = window.setTimeout(() => refreshEntity('visit_plans'), 150);
@@ -498,10 +512,8 @@ export const AppProvider = ({ children }) => {
         ? null
         : normalizeVisitPlan(rowToCamel(payload.new));
 
-      if (import.meta.env.DEV) {
-        console.log('[Realtime visit_plans] event payload', payload);
-        if (normalized) console.log('[Realtime visit_plans] normalized row', normalized);
-      }
+      console.log('[Realtime visit_plans] event payload', payload);
+      if (normalized) console.log('[Realtime visit_plans] normalized row', normalized);
 
       setVisitPlans((previous) => {
         let next = previous;
@@ -516,38 +528,82 @@ export const AppProvider = ({ children }) => {
           next = previous.filter((plan) => plan.id !== payload.old?.id);
         }
 
-        if (import.meta.env.DEV) {
-          console.log('[Realtime visit_plans] state counts', {
-            previous: previous.length,
-            updated: next.length,
-          });
-        }
+        console.log('[Realtime visit_plans] state counts', {
+          previous: previous.length,
+          updated: next.length,
+        });
         return next;
       });
 
-      if (eventType === 'INSERT' || eventType === 'UPDATE') reconcileVisitPlans();
+      reconcileVisitPlans();
     };
 
-    const visitPlansChannel = supabase
-      .channel(`visit-plans-live:${currentUser.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'visit_plans' },
-        handleVisitPlanChange
-      )
-      .subscribe((subscriptionStatus) => {
-        if (import.meta.env.DEV) console.log('[Realtime visit_plans]', subscriptionStatus);
-        if (subscriptionStatus === 'SUBSCRIBED') reconcileVisitPlans();
-        if (subscriptionStatus === 'CHANNEL_ERROR' || subscriptionStatus === 'TIMED_OUT') {
-          console.error(`[Realtime visit_plans] ${subscriptionStatus.toLowerCase()}`);
-        }
+    const removeVisitPlansChannel = async () => {
+      if (!visitPlansChannel) return;
+      const channel = visitPlansChannel;
+      visitPlansChannel = undefined;
+      await supabase.removeChannel(channel);
+    };
+
+    const createVisitPlansChannel = async () => {
+      if (stopped) return;
+
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data?.session?.access_token) {
+        console.error('[Realtime visit_plans] session unavailable', error);
+        return;
+      }
+      await supabase.realtime.setAuth(data.session.access_token);
+      if (stopped) return;
+
+      console.log('[Realtime visit_plans] channel creating', {
+        userId: currentUser.id,
+        employeeId: currentUser.employeeId,
+        role: currentRole,
       });
 
-    return () => {
-      window.clearTimeout(reconciliationTimer);
-      supabase.removeChannel(visitPlansChannel);
+      visitPlansChannel = supabase
+        .channel(`visit-plans-live:${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'visit_plans' },
+          handleVisitPlanChange
+        )
+        .subscribe((subscriptionStatus) => {
+          console.log('[Realtime visit_plans] channel status', subscriptionStatus);
+          if (subscriptionStatus === 'SUBSCRIBED') {
+            reconnectAttempts = 0;
+            reconcileVisitPlans();
+            return;
+          }
+          if (subscriptionStatus === 'CHANNEL_ERROR' || subscriptionStatus === 'TIMED_OUT') {
+            console.error('[Realtime visit_plans] subscription failure', {
+              status: subscriptionStatus,
+              attempt: reconnectAttempts + 1,
+            });
+            if (!stopped && reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts += 1;
+              window.clearTimeout(reconnectTimer);
+              reconnectTimer = window.setTimeout(async () => {
+                await removeVisitPlansChannel();
+                await createVisitPlansChannel();
+              }, reconnectAttempts * 1000);
+            }
+          }
+        });
     };
-  }, [currentUser?.id, refreshEntity]);
+
+    createVisitPlansChannel().catch((error) => {
+      console.error('[Realtime visit_plans] channel creation failed', error);
+    });
+
+    return () => {
+      stopped = true;
+      window.clearTimeout(reconciliationTimer);
+      window.clearTimeout(reconnectTimer);
+      removeVisitPlansChannel();
+    };
+  }, [currentUser?.employeeId, currentUser?.id, currentRole, refreshEntity]);
 
   // ---------------------------------------------------------------------
   // Auth actions
@@ -1434,7 +1490,7 @@ export const AppProvider = ({ children }) => {
 
   const value = {
     currentUser,
-    currentRole: currentUser ? normalizeRole(currentUser.role) : null,
+    currentRole,
     authLoading,
     authError,
     dataLoading,

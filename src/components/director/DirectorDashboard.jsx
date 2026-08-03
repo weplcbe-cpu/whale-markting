@@ -145,14 +145,11 @@ export const DirectorDashboard = () => {
     return unique;
   }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
 
-  if (import.meta.env.DEV) {
-    console.log('[Director Dashboard]', {
-      visitPlansLength: visitPlans.length,
-      todayScheduledVisitsLength: todayScheduledVisits.length,
-      notificationsLength: notifications.length,
-      directorCommentsLength: directorComments.length,
-    });
-  }
+  console.log('[Director Dashboard render]', {
+    visitPlansLength: visitPlans.length,
+    todayVisitsLength: todayScheduledVisits.length,
+    latestIds: visitPlans.slice(0, 3).map((item) => item.id),
+  });
 
   if (dataLoading && !lastUpdated) {
     return (
@@ -457,4 +454,3 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
