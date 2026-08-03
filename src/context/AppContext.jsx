@@ -1200,8 +1200,12 @@ export const AppProvider = ({ children }) => {
       isLocked: false,
       ...reportData
     });
-    const { data, error } = await supabase.from('visit_reports').insert(row).select().single();
+    if (import.meta.env.DEV) console.log('Payload', row);
+    const response = await supabase.from('visit_reports').insert(row).select().single();
+    const { data, error } = response;
+    if (import.meta.env.DEV) console.log('RPC', response);
     if (error) {
+      console.log('Error', error);
       showToast('Failed to submit visit report', 'error');
       return;
     }
