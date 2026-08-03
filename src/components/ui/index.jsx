@@ -4,7 +4,7 @@ import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
 import { useModalLayer } from './modalLayer';
 
 export const AppShell = ({ sidebar, navbar, children }) => (
-  <div className="app-container kw-app-shell">
+  <div className="app-container kw-app-shell app-theme-dark">
     <div className="main-layout">
       {sidebar}
       <div className="content-area">
@@ -179,11 +179,11 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   if (!open) return null;
   const requestClose = () => { if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); };
   return createPortal(
-    <div className="ds-modal-overlay" role="presentation" onMouseDown={(event) => {
+    <div className="ds-modal-overlay app-theme-dark" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !dirty) requestClose();
     }}>
       <section ref={dialogRef} className={`ds-modal ds-modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <header className="ds-modal__header"><div><h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="ds-icon-button" onClick={requestClose} aria-label={closeLabel}><X size={20} /></button></header>
+        <header className="ds-modal__header"><div><h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="ds-icon-button entity-modal-close" onClick={requestClose} aria-label={closeLabel}><X size={20} aria-hidden="true" /></button></header>
         <div className="ds-modal__body">{children}</div>
         {footer && <footer className="ds-modal__footer">{footer}</footer>}
       </section>
