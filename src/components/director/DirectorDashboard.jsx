@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -143,6 +143,16 @@ export const DirectorDashboard = () => {
 
     return unique;
   }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('Director derived-count recalculation', {
+        todayVisits: todayScheduledVisits.length,
+        recentUpdates: recentUpdatesList.length,
+        notifications: notifications.length,
+      });
+    }
+  }, [notifications.length, recentUpdatesList.length, todayScheduledVisits.length]);
 
   if (dataLoading && !lastUpdated) {
     return (
@@ -439,7 +449,6 @@ export const DirectorDashboard = () => {
 };
 
 export default DirectorDashboard;
-
 
 
 

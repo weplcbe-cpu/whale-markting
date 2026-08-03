@@ -453,9 +453,42 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;
-    const tables = ['profiles', 'visit_plans', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places', 'director_comments', 'notifications', 'activity_logs'];
+    const tables = ['profiles', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places', 'director_comments', 'notifications', 'activity_logs'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
+
+    channel = channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'visit_plans' }, (payload) => {
+        const normalized = normalizeVisitPlan(rowToCamel(payload.new));
+        if (import.meta.env.DEV) {
+          console.log('visit_plans INSERT payload', payload);
+          console.log('visit_plans normalized row', normalized);
+        }
+        setVisitPlans((previous) => {
+          const next = [normalized, ...previous.filter((plan) => plan.id !== normalized.id)];
+          if (import.meta.env.DEV) console.log('visit_plans AppContext state update', next);
+          return next;
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'visit_plans' }, (payload) => {
+        const normalized = normalizeVisitPlan(rowToCamel(payload.new));
+        setVisitPlans((previous) => {
+          const exists = previous.some((plan) => plan.id === normalized.id);
+          const next = exists
+            ? previous.map((plan) => plan.id === normalized.id ? normalized : plan)
+            : [normalized, ...previous];
+          if (import.meta.env.DEV) console.log('visit_plans AppContext state update', next);
+          return next;
+        });
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'visit_plans' }, (payload) => {
+        setVisitPlans((previous) => {
+          const next = previous.filter((plan) => plan.id !== payload.old?.id);
+          if (import.meta.env.DEV) console.log('visit_plans AppContext state update', next);
+          return next;
+        });
+      });
+
     tables.forEach((table) => {
       channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
         window.clearTimeout(pending.get(table));
@@ -463,6 +496,13 @@ export const AppProvider = ({ children }) => {
       });
     });
     channel.subscribe((subscriptionStatus) => {
+      if (import.meta.env.DEV) console.log('Realtime channel status', subscriptionStatus);
+      if (subscriptionStatus === 'SUBSCRIBED') {
+        // Supabase Realtime automatically rejoins transient disconnects. A
+        // targeted refresh reconciles anything committed while disconnected.
+        refreshEntity('visit_plans');
+        refreshEntity('notifications');
+      }
       if (subscriptionStatus === 'CHANNEL_ERROR' || subscriptionStatus === 'TIMED_OUT') {
         console.error(`Realtime subscription ${subscriptionStatus.toLowerCase()}`);
       }
@@ -793,7 +833,11 @@ export const AppProvider = ({ children }) => {
     if (!data?.success || !data.plan) throw new Error('The database did not confirm the visit plan submission.');
     if (data.notificationError) console.error('Director visit plan notification failed:', data.notificationError);
     const saved = normalizeVisitPlan(rowToCamel(data.plan));
-    setVisitPlans((previous) => previous.some((plan) => plan.id === saved.id) ? previous : [saved, ...previous]);
+    setVisitPlans((previous) => {
+      const next = [saved, ...previous.filter((plan) => plan.id !== saved.id)];
+      if (import.meta.env.DEV) console.log('visit_plans AppContext state update', next);
+      return next;
+    });
     await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
     logActivity(`Submitted visit plan for ${planData.area} on ${planData.visitDate}`, 'Visit Plan');
     return saved;
