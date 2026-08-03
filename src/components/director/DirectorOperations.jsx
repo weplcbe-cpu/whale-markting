@@ -7,6 +7,7 @@ import { normalizePlanStatus } from '../../utils/planStatus';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { getPendingDailyReports, getPendingFollowUps } from '../../utils/reportSelectors';
+import { DirectorDailyReports } from './DirectorDailyReports';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const text = (value) => value || 'Not provided';
@@ -89,8 +90,8 @@ export const DirectorOperations = () => {
   if (location.pathname === '/director/daily-reports') {
     const defaultRows = getPendingDailyReports(dailyReports);
     const rows = (status === 'All' ? defaultRows : dailyReports.filter((row) => String(row.status).toLowerCase() === status.toLowerCase())).filter(matches);
-    const columns = [{ key: 'employee', label: 'Employee', render: (row) => employeeName(row.employeeId, row.fullName || row.employeeName) }, { key: 'date', label: 'Date', render: (row) => row.date || row.reportDate }, { key: 'planned', label: 'Planned Visits', render: (row) => row.plannedVisits ?? 0 }, { key: 'completed', label: 'Completed', render: (row) => row.completedVisits ?? 0 }, { key: 'cancelled', label: 'Cancelled', render: (row) => row.cancelledVisits ?? 0 }, { key: 'pending', label: 'Pending Actions', render: (row) => row.pendingActions ?? 0 }, { key: 'status', label: 'Status', render: (row) => <Badge tone={statusTone(row.status)}>{text(row.status)}</Badge> }, { key: 'actions', label: 'Actions', render: (row) => <div className="ds-page-actions"><Button variant="secondary" onClick={() => setSelected({ title: 'Daily Report', details: row })}>View</Button>{commentButton(row, 'Daily Report')}</div> }];
-    return <div className="ds-page"><PageHeader title="Daily Reports" description="Review submitted daily summaries. Locking, reopening, editing, and deletion remain Admin-only." />{filterBar}<DataTable rows={rows} columns={columns} empty={<EmptyState icon={FileText} title="No daily reports found" />} />{detailModal}{commentModal}</div>;
+    const dailyReportFilterBar = <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Submitted</option><option>Draft</option><option>Reviewed</option><option>Locked</option><option>Reopened</option></SelectField></div>;
+    return <div className="ds-page daily-reports-page"><PageHeader title="Daily Reports" description="Review submitted daily summaries. Locking, reopening, editing, and deletion remain Admin-only." /><DirectorDailyReports rows={rows} filterBar={dailyReportFilterBar} employeeName={employeeName} initialReportId={searchParams.get('reportId')} onComment={(row) => setCommentTarget({ ...row, module: 'Daily Report' })} />{commentModal}</div>;
   }
 
   if (location.pathname === '/director/follow-ups') {
