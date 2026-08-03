@@ -587,35 +587,51 @@ export const AppProvider = ({ children }) => {
       ...profileUpdates,
       role: CREATE_USER_ROLE_MAP[profileUpdates.role] || profileUpdates.role,
     });
-    const { error } = await supabase.rpc('admin_update_user_with_visit_places', {
-      p_user_id: id,
-      p_profile: profileRow,
-      p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
-    });
-    if (error) {
-      const httpStatus = inferUpdateHttpStatus(error);
-      if (import.meta.env.DEV) {
-        console.error('Save User Record request failed:', {
-          request: 'POST /rest/v1/rpc/admin_update_user_with_visit_places',
-          step: error.message === 'VISIT_PLACES_UPDATE_FAILED' ? 'employee_visit_places' : 'profiles',
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          httpStatus,
-          error,
-        });
-      }
+    let result;
+    try {
+      result = await supabase.rpc('admin_update_user_with_visit_places', {
+        p_user_id: id,
+        p_profile: profileRow,
+        p_places: normalizeRole(profileUpdates.role) === 'Marketing Team' ? assignedVisitPlaces : [],
+      });
+    } catch (error) {
+      console.log('RPC Result', result);
+      console.log('RPC Error', error);
       const safeMessage = getSafeUpdateUserMessage(error);
       showToast(safeMessage, 'error');
       const updateError = new Error(safeMessage);
       updateError.cause = error;
       throw updateError;
     }
+    const { data, error } = result;
+    console.log('RPC Result', result);
+    console.log('RPC Error', error);
+    if (error || data?.success === false) {
+      const rpcError = error || data;
+      const httpStatus = inferUpdateHttpStatus(rpcError);
+      if (import.meta.env.DEV) {
+        console.error('Save User Record request failed:', {
+          request: 'POST /rest/v1/rpc/admin_update_user_with_visit_places',
+          step: rpcError.message === 'VISIT_PLACES_UPDATE_FAILED' ? 'employee_visit_places' : 'profiles',
+          message: rpcError.message,
+          code: rpcError.code,
+          details: rpcError.details,
+          hint: rpcError.hint,
+          httpStatus,
+          error: rpcError,
+        });
+      }
+      const safeMessage = getSafeUpdateUserMessage(rpcError);
+      showToast(safeMessage, 'error');
+      const updateError = new Error(safeMessage);
+      updateError.cause = rpcError;
+      throw updateError;
+    }
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...profileUpdates } : u));
     await refreshEntity('employee_visit_places');
     logActivity(`Updated user details for ID ${id}`, 'User Management');
     showToast('User updated successfully', 'success');
+    return { success: true };
   };
 
   const toggleUserStatus = async (id) => {

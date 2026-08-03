@@ -176,10 +176,13 @@ export const UserManagement = () => {
       submitLockRef.current = true;
       setIsSubmitting(true);
       try {
-        await updateUser(editingUser.id, profileFields);
-        closeModal();
+        const result = await updateUser(editingUser.id, profileFields);
+        if (result?.success === false) {
+          throw new Error(result.error || 'Unable to update this user. Please try again.');
+        }
+        if (result?.success === true) closeModal();
       } catch (error) {
-        setFormError(getCaughtErrorMessage(error, 'Failed to update user'));
+        setFormError(getCaughtErrorMessage(error, 'Unable to update this user. Please try again.'));
       } finally {
         submitLockRef.current = false;
         setIsSubmitting(false);
