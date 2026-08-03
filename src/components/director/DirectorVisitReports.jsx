@@ -3,6 +3,9 @@ import { useApp } from '../../context/AppContext';
 import { useSearchParams } from 'react-router-dom';
 import { FileText, MessageSquare, Eye, Clock, X } from 'lucide-react';
 import { ModalPortal } from '../ui';
+import { EntityDetailsModal } from '../common/details';
+
+const LEGACY_DETAIL_PRESENTATION = false;
 
 export const DirectorVisitReports = () => {
   const { visitReports, dailyReports, addDirectorComment } = useApp();
@@ -158,7 +161,8 @@ export const DirectorVisitReports = () => {
       )}
 
       {/* Inspect Modal */}
-      {selectedReport && (
+      <EntityDetailsModal open={Boolean(selectedReport)} onClose={closeReport} type={activeTab === 'visit-reports' ? 'visitReport' : 'dailyReport'} entity={selectedReport} extraContent={selectedReport ? <form onSubmit={handlePostComment} className="entity-comment-form"><label htmlFor="director-report-comment"><MessageSquare size={14} /> Add Director Comment</label><textarea id="director-report-comment" className="form-textarea" rows={3} placeholder="Enter instructions or guidance…" value={commentText} onChange={(event) => setCommentText(event.target.value)} /><button type="submit" className="btn btn-primary" disabled={!commentText.trim()}>Post Comment</button></form> : null} />
+      {LEGACY_DETAIL_PRESENTATION && selectedReport && (
         <ModalPortal onClose={closeReport}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">

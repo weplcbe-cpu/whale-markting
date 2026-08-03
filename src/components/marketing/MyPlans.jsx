@@ -3,6 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Calendar, List, Eye, Target, X, Building2 } from 'lucide-react';
 import { ModalPortal } from '../ui';
+import { EntityDetailsModal } from '../common/details';
+
+const LEGACY_DETAIL_PRESENTATION = false;
 
 export const MyPlans = () => {
   const { currentUser, visitPlans } = useApp();
@@ -147,7 +150,8 @@ export const MyPlans = () => {
       </div>
 
       {/* Plan Details Modal */}
-      {selectedPlanModal && (
+      <EntityDetailsModal open={Boolean(selectedPlanModal)} onClose={() => setSelectedPlanModal(null)} type="visitPlan" entity={selectedPlanModal} />
+      {LEGACY_DETAIL_PRESENTATION && selectedPlanModal && (
         <ModalPortal onClose={() => setSelectedPlanModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">

@@ -2,6 +2,9 @@ import React, { useCallback, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { EntityDetailsModal } from '../common/details';
+
+const LEGACY_DETAIL_PRESENTATION = false;
 import { isDatabaseVisitPlanId } from '../../utils/visitPlanDraftCache';
 import { ConfirmationDialog, ModalPortal } from '../ui';
 import CompleteVisitOutcomeForm from './CompleteVisitOutcomeForm';
@@ -390,7 +393,8 @@ export const TodaySchedule = () => {
         ))}
       </div>
 
-      {detailsModal && (
+      <EntityDetailsModal open={Boolean(detailsModal)} onClose={() => setDetailsModal(null)} type="visitPlan" entity={detailsModal} notice={detailsLoading ? 'Loading submitted visit report…' : detailsModal?.detailsError === 'legacy' ? 'This legacy completed visit does not contain a submitted visit report.' : detailsModal?.detailsError === 'permission' ? 'You are not authorized to view this visit report.' : detailsModal?.detailsError === 'network' ? 'The visit report could not be loaded. Please retry.' : null} />
+      {LEGACY_DETAIL_PRESENTATION && detailsModal && (
         <ModalPortal onClose={() => setDetailsModal(null)}>
           <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '560px' }}>
             <div className="modal-header"><h3>Visit Plan Details</h3><button className="btn btn-secondary btn-sm" onClick={() => setDetailsModal(null)}><X size={16} /></button></div>

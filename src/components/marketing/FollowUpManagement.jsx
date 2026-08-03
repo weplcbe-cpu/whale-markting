@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Clock, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, DateField, EmptyState, FormField, Modal, PageHeader, SelectField, TextArea } from '../ui';
+import { EntityDetailsModal } from '../common/details';
 
 export const FollowUpManagement = () => {
   const { currentUser, followUps, addFollowUp } = useApp();
@@ -31,9 +32,7 @@ export const FollowUpManagement = () => {
     <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} dirty={JSON.stringify(formData) !== JSON.stringify(initialData)} title="Schedule New Follow-up" subtitle="Add the next action." footer={<><Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button type="submit" form="follow-up-form">Schedule Follow-up</Button></>}>
       <form id="follow-up-form" onSubmit={save} className="ds-form-grid"><FormField className="ds-field--full" label="Organization / Person (Optional)" value={formData.customerName} onChange={(event) => update('customerName', event.target.value)} /><DateField label="Follow-up Date" required value={formData.followUpDate} onChange={(event) => update('followUpDate', event.target.value)} /><SelectField label="Follow-up Type" value={formData.type} onChange={(event) => update('type', event.target.value)}>{['Phone Call', 'Physical Visit', 'Email', 'Quotation', 'Product Demo'].map((type) => <option key={type}>{type}</option>)}</SelectField><TextArea className="ds-field--full" label="Purpose / Notes" required rows={3} value={formData.purpose} onChange={(event) => update('purpose', event.target.value)} /><SelectField label="Priority" value={formData.priority} onChange={(event) => update('priority', event.target.value)}><option>High</option><option>Medium</option><option>Low</option></SelectField><TextArea label="Internal Notes" value={formData.notes} onChange={(event) => update('notes', event.target.value)} /></form>
     </Modal>
-    <Modal open={Boolean(searchParams.get('followUpId'))} onClose={closeRelated} title="Follow-up Details" footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}>
-      {relatedFollowUp ? <div className="director-feedback-detail"><div><small>Organization</small><strong>{relatedFollowUp.customerName || 'Not provided'}</strong></div><div><small>Date</small><strong>{relatedFollowUp.followUpDate}</strong></div><div><small>Status</small><strong>{relatedFollowUp.status}</strong></div><p>{relatedFollowUp.purpose || relatedFollowUp.notes || 'No details provided.'}</p></div> : <div className="ds-error">This related record was deleted.</div>}
-    </Modal>
+    {relatedFollowUp ? <EntityDetailsModal open={Boolean(searchParams.get('followUpId'))} onClose={closeRelated} type="followUp" entity={relatedFollowUp} /> : searchParams.get('followUpId') ? <Modal open title="Follow-up Details" onClose={closeRelated} footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}><div className="ds-error">This related record was deleted.</div></Modal> : null}
   </div>;
 };
 

@@ -3,13 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExternalLink, MessageSquare, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { directorFeedbackRoute, resolveDirectorFeedbackRecord } from '../../utils/directorFeedback';
-import { Badge, Button, EmptyState, Modal, PageHeader } from '../ui';
+import { Badge, Button, EmptyState, PageHeader } from '../ui';
+import { EntityDetailsModal, RelatedRecordButton } from '../common/details';
 
 const FILTERS = ['All', 'Unread', 'Read', 'Visit Plans', 'Tour Plans', 'Reports', 'Follow-ups'];
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-  : 'Date unavailable';
-
 export const DirectorCommentsFeed = () => {
   const {
     currentUser,
@@ -110,17 +107,7 @@ export const DirectorCommentsFeed = () => {
           {!filtered.length && <EmptyState icon={MessageSquare} title={filter === 'Unread' ? 'No unread feedback.' : 'No Director feedback yet.'} />}
         </div>
       )}
-      <Modal open={Boolean(selected)} onClose={closeDetails} title="Director Feedback" subtitle={selected?.targetType} footer={<><Button variant="secondary" onClick={closeDetails}>Close</Button>{selected?.targetId && <Button disabled={!recordAvailable(selected)} onClick={() => openRelated(selected)}>View Related Record</Button>}</>}>
-        {selected && <div className="director-feedback-detail">
-          <div><small>Director</small><strong>{selected.directorName}</strong></div>
-          <div><small>Feedback Type</small><strong>{selected.commentType}</strong></div>
-          <div><small>Date and Time</small><strong>{formatDate(selected.createdAt)}</strong></div>
-          <div><small>Related Record</small><strong>{selected.targetTitle}</strong></div>
-          <p>{selected.message}</p>
-          {relatedRecord(selected).state === 'deleted' && <div className="ds-error">This related record was deleted.</div>}
-          {relatedRecord(selected).state === 'malformed' && <div className="ds-error">This legacy feedback does not contain a valid related-record reference.</div>}
-        </div>}
-      </Modal>
+      <EntityDetailsModal open={Boolean(selected)} onClose={closeDetails} type="feedback" entity={selected} relatedState={selected ? relatedRecord(selected).state : null} primaryAction={selected?.targetId ? <RelatedRecordButton disabled={!recordAvailable(selected)} onClick={() => openRelated(selected)} /> : null} />
     </div>
   );
 };

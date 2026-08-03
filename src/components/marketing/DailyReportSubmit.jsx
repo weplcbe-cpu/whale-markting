@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Clock, Save } from 'lucide-react';
 import { Button, Modal } from '../ui';
+import { EntityDetailsModal } from '../common/details';
 
 export const DailyReportSubmit = () => {
   const { currentUser, visitPlans, visitReports, dailyReports, followUps, submitDailyReport, companyInfo } = useApp();
@@ -132,9 +133,7 @@ export const DailyReportSubmit = () => {
           </div>
         </form>
       </div>
-      <Modal open={Boolean(relatedId)} onClose={closeRelated} title="Report Details" footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}>
-        {relatedReport ? <div className="director-feedback-detail"><div><small>Report Date</small><strong>{relatedReport.date || relatedReport.visitDate || relatedReport.submittedAt}</strong></div><div><small>Status</small><strong>{relatedReport.status || 'Submitted'}</strong></div><div><small>Organization</small><strong>{relatedReport.customerName || 'Daily Report'}</strong></div><p>{relatedReport.importantDiscussion || relatedReport.discussionNotes || relatedReport.remarks || 'No additional details.'}</p></div> : <div className="ds-error">This related record was deleted.</div>}
-      </Modal>
+      {relatedReport ? <EntityDetailsModal open={Boolean(relatedId)} onClose={closeRelated} type={relatedReport.visitPlanId ? 'visitReport' : 'dailyReport'} entity={relatedReport} /> : relatedId ? <Modal open title="Report Details" onClose={closeRelated} footer={<Button variant="secondary" onClick={closeRelated}>Close</Button>}><div className="ds-error">This related record was deleted.</div></Modal> : null}
     </div>
   );
 };

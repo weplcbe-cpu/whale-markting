@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, FileText, MessageSquare } from 'lucide-react';
 import { Badge, Button, EmptyState, Modal } from '../ui';
+import { AddCommentButton, EntityDetailsModal } from '../common/details';
+
+const LEGACY_DETAIL_PRESENTATION = false;
 
 const dash = '—';
 
@@ -160,7 +163,8 @@ export const DirectorDailyReports = ({ rows, filterBar, employeeName, onComment,
           </div>
         </div>
       )}
-      <DailyReportDetails report={selectedReport} employeeName={employeeName} onClose={() => setSelectedReport(null)} onComment={openComment} />
+      <EntityDetailsModal open={Boolean(selectedReport)} onClose={() => setSelectedReport(null)} type="dailyReport" entity={selectedReport ? { ...selectedReport, fullName: employeeName(selectedReport.employeeId, selectedReport.fullName || selectedReport.employeeName) } : null} primaryAction={<AddCommentButton onClick={() => openComment(selectedReport)} />} />
+      {LEGACY_DETAIL_PRESENTATION && selectedReport && <DailyReportDetails report={selectedReport} employeeName={employeeName} onClose={() => setSelectedReport(null)} onComment={openComment} />}
     </>
   );
 };

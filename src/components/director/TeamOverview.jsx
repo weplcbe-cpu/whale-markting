@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Button, DataTable, EmptyState, FormField, Modal, PageHeader, SelectField } from '../ui';
+import { Button, DataTable, EmptyState, FormField, PageHeader, SelectField } from '../ui';
+import { EntityDetailsModal } from '../common/details';
 
 export const TeamOverview = () => {
   const { users, visitPlans, visitReports, dailyReports, followUps, directorComments, lastUpdated } = useApp();
@@ -15,7 +16,7 @@ export const TeamOverview = () => {
   return <div className="ds-page"><PageHeader title="Marketing Team" description={`Active Marketing employees and current workload. Last updated ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Not available'}.`} />
     <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search employee" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Period" value={period} onChange={(event) => setPeriod(event.target.value)}><option>This Week</option><option>This Month</option></SelectField></div>
     <DataTable columns={columns} rows={marketing} empty={<EmptyState icon={Users} title="No active Marketing employees found" description="Clear the search or refresh the portal data." action={<Button onClick={() => setSearch('')}>Clear Search</Button>} />} />
-    <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.fullName || selected?.employeeName || 'Employee Details'} subtitle={`${selected?.employeeId || 'Not provided'} · ${selected?.designation || 'Not provided'}`} footer={<Button variant="secondary" onClick={() => setSelected(null)}>Close</Button>}>{selected && <div className="director-detail-grid">{Object.entries({ 'Today Plan': selectedMetrics.today, 'Weekly Plans': selectedMetrics.plans, 'Completed Visits': selectedMetrics.completed, 'Visit Reports': visitReports.filter((item) => item.employeeId === selected.employeeId).length, 'Daily Reports': dailyReports.filter((item) => item.employeeId === selected.employeeId).length, 'Pending Follow-ups': selectedMetrics.followups, Comments: directorComments.filter((item) => item.targetEmployeeId === selected.employeeId).length }).map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>}</Modal>
+    <EntityDetailsModal open={Boolean(selected)} onClose={() => setSelected(null)} type="employee" entity={selected ? { ...selected, metrics: { ...selectedMetrics, visitReports: visitReports.filter((item) => item.employeeId === selected.employeeId).length, dailyReports: dailyReports.filter((item) => item.employeeId === selected.employeeId).length, comments: directorComments.filter((item) => item.targetEmployeeId === selected.employeeId).length } } : null} />
   </div>;
 };
 export default TeamOverview;
