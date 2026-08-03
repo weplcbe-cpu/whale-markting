@@ -2136,6 +2136,31 @@ h1, h2, h3, h4, h5, h6,
   overscroll-behavior: contain;
 }
 
+.modal-close-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-close-btn:hover,
+.modal-close-btn:focus-visible {
+  background: rgba(117, 139, 253, .1);
+  color: var(--primary-blue);
+}
+
+.modal-close-btn:focus-visible {
+  outline: 3px solid rgba(117, 139, 253, .25);
+  outline-offset: 1px;
+}
+
 .modal-footer {
   flex: 0 0 auto;
   padding: 16px 24px;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Upload, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
@@ -59,6 +59,22 @@ export const TodaySchedule = () => {
     isQuotationRequired: false,
     finalStatus: 'Completed'
   });
+
+  const handleCloseCompleteModal = useCallback(() => {
+    setCompleteModal(null);
+  }, []);
+
+  const handleCompleteFormChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setCompleteForm((previous) => ({
+      ...previous,
+      [name]: name === 'isFollowUpRequired' ? value === 'Yes' : value,
+    }));
+  }, []);
+
+  const handleCustomerResponse = useCallback((customerResponse) => {
+    setCompleteForm((previous) => ({ ...previous, customerResponse }));
+  }, []);
 
   const handleConfirmStart = (visit) => {
     updateVisitPlanStatus(visit.id, 'Started', { startTime: new Date().toLocaleTimeString() });
@@ -421,12 +437,12 @@ export const TodaySchedule = () => {
 
       {/* Complete Visit Outcome Modal */}
       {completeModal && (
-        <ModalPortal onClose={() => setCompleteModal(null)} closeOnBackdrop={false}>
+        <ModalPortal onClose={handleCloseCompleteModal} closeOnBackdrop={false}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px' }}>
             <div className="modal-header">
               <h3>Complete Visit Outcome Form</h3>
-              <button onClick={() => setCompleteModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)' }}>
-                <X size={18} />
+              <button type="button" className="modal-close-btn" onClick={handleCloseCompleteModal} aria-label="Close complete visit form">
+                <X size={20} />
               </button>
             </div>
             <form className="complete-visit-outcome-form" onSubmit={handleConfirmComplete}>
@@ -449,7 +465,7 @@ export const TodaySchedule = () => {
                         <button
                           key={item.label}
                           type="button"
-                          onClick={() => setCompleteForm({ ...completeForm, customerResponse: item.label })}
+                          onClick={() => handleCustomerResponse(item.label)}
                           style={{
                             padding: '8px 14px',
                             borderRadius: '20px',
@@ -482,7 +498,7 @@ export const TodaySchedule = () => {
                     rows={3}
                     placeholder="Enter meeting notes and customer feedback..."
                     value={completeForm.discussionNotes}
-                    onChange={(e) => setCompleteForm({ ...completeForm, discussionNotes: e.target.value })}
+                    onChange={handleCompleteFormChange}
                   />
                 </div>
 
@@ -494,7 +510,7 @@ export const TodaySchedule = () => {
                     className="form-input"
                     placeholder="e.g. Send formal quotation by Friday"
                     value={completeForm.nextAction}
-                    onChange={(e) => setCompleteForm({ ...completeForm, nextAction: e.target.value })}
+                    onChange={handleCompleteFormChange}
                   />
                 </div>
 
@@ -502,9 +518,10 @@ export const TodaySchedule = () => {
                   <div className="form-group">
                     <label className="form-label">Follow-up Required?</label>
                     <select
+                      name="isFollowUpRequired"
                       className="form-select"
                       value={completeForm.isFollowUpRequired ? 'Yes' : 'No'}
-                      onChange={(e) => setCompleteForm({ ...completeForm, isFollowUpRequired: e.target.value === 'Yes' })}
+                      onChange={handleCompleteFormChange}
                     >
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
@@ -519,7 +536,7 @@ export const TodaySchedule = () => {
                         type="date"
                         className="form-input"
                         value={completeForm.followUpDate}
-                        onChange={(e) => setCompleteForm({ ...completeForm, followUpDate: e.target.value })}
+                        onChange={handleCompleteFormChange}
                       />
                     </div>
                   )}
@@ -535,7 +552,7 @@ export const TodaySchedule = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setCompleteModal(null)} disabled={busyAction === 'complete-visit'}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={handleCloseCompleteModal} disabled={busyAction === 'complete-visit'}>Cancel</button>
                 <button type="submit" className="btn btn-success" disabled={busyAction === 'complete-visit'}>
                   {busyAction === 'complete-visit' ? 'Submitting…' : 'Submit Visit Report'}
                 </button>
