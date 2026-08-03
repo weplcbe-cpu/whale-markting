@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Save, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, DateField, FormField, Modal, SelectField, TextArea } from '../ui';
+import ClockTimePicker from './ClockTimePicker';
 
 const LEGACY_DRAFT_KEY = 'marketing-visit-plan-draft';
 const DEFAULT_ORGANIZATION_TYPES = ['Corporation', 'Municipality', 'Government Department', 'Private Company', 'Contractor', 'Dealer', 'Consultant', 'Other'];
@@ -25,6 +26,16 @@ const roundedTime = () => {
 };
 
 const formatDate = (value) => value ? value.split('-').reverse().join('-') : '';
+
+const parseExpectedTime = (value) => {
+  const match = String(value || '').trim().match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i);
+  if (!match) return {};
+  return {
+    hour: match[1].padStart(2, '0'),
+    minute: match[2],
+    period: match[3].toUpperCase(),
+  };
+};
 
 const emptyPlan = () => ({
   visitDate: todayIso(),
@@ -75,6 +86,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       ...plan,
       visitPlace: plan.area || plan.city || '',
       selectedProducts: plan.products || [],
+      ...parseExpectedTime(plan.expectedTime),
     } : {}),
   }), [plan]);
 
@@ -158,7 +170,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const validate = () => {
     const nextErrors = {};
     if (!formData.visitDate) nextErrors.visitDate = 'Visit Date is required.';
-    if (!formData.hour || !formData.minute || !formData.period) nextErrors.expectedTime = 'Expected Time is required.';
+    if (!formData.hour || !formData.minute || !formData.period) nextErrors.expectedTime = 'Please select the visit time.';
     if (!formData.visitPlace) {
       nextErrors.visitPlace = assignedPlaces.length
         ? 'Select your assigned visit place.'
@@ -302,18 +314,16 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
         {/* Visit Time */}
         <div className="ds-field">
           <label>Visit Time <span className="ds-required">*</span></label>
-          <div className="visit-time-picker">
-            <select aria-label="Hour" value={formData.hour} onChange={(event) => update('hour', event.target.value)}>
-              {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((h) => <option key={h}>{h}</option>)}
-            </select>
-            <select aria-label="Minute" value={formData.minute} onChange={(event) => update('minute', event.target.value)}>
-              {['00', '15', '30', '45'].map((m) => <option key={m}>{m}</option>)}
-            </select>
-            <select aria-label="AM or PM" value={formData.period} onChange={(event) => update('period', event.target.value)}>
-              <option>AM</option>
-              <option>PM</option>
-            </select>
-          </div>
+          <ClockTimePicker
+            hour={formData.hour}
+            minute={formData.minute}
+            period={formData.period}
+            error={errors.expectedTime}
+            onChange={(time) => {
+              setFormData((current) => ({ ...current, ...time }));
+              setErrors((current) => ({ ...current, expectedTime: undefined }));
+            }}
+          />
           {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
         </div>
 

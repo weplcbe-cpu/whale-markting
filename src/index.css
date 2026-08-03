@@ -2612,21 +2612,200 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   align-items: start;
 }
 
-.visit-time-picker {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.1fr;
-  gap: 8px;
+.clock-time-field {
+  position: relative;
 }
 
-.visit-time-picker select {
-  min-width: 0;
+.clock-time-trigger {
+  width: 100%;
   min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: #fff;
   color: var(--text-main);
-  padding: 0 10px;
   font: 600 14px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-time-trigger svg {
+  color: var(--primary-blue);
+}
+
+.clock-time-trigger:focus-visible {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(117, 139, 253, .2);
+}
+
+.clock-time-trigger--error {
+  border-color: #dc2626;
+}
+
+.clock-time-popover {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(320px, calc(100vw - 40px));
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(30, 41, 59, .2);
+}
+
+.clock-time-popover:focus {
+  outline: none;
+}
+
+.clock-time-popover h3 {
+  margin: 0 0 10px;
+  color: var(--primary-dark);
+  font-family: var(--font-heading, "Swis721 BlkCn BT", sans-serif);
+  font-size: 20px;
+}
+
+.clock-time-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 12px;
+  font: 700 24px var(--font-primary);
+}
+
+.clock-time-display button {
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--primary-dark);
+  font: inherit;
+  cursor: pointer;
+}
+
+.clock-time-display button.selected {
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.clock-time-display strong {
+  margin-left: 5px;
+  color: var(--primary-blue);
+  font-size: 15px;
+}
+
+.clock-face {
+  position: relative;
+  width: 244px;
+  height: 244px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #f1f5ff;
+}
+
+.clock-face button {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--primary-dark);
+  font: 700 13px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-face button.selected {
+  background: var(--primary-blue);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(79, 70, 229, .28);
+}
+
+.clock-hand {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 50%;
+  width: 3px;
+  height: 84px;
+  border-radius: 3px;
+  background: #93c5fd;
+  transform-origin: bottom center;
+}
+
+.clock-center {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary-blue);
+  transform: translate(-50%, -50%);
+}
+
+.clock-period {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.clock-period button {
+  min-height: 42px;
+  border: 0;
+  background: #fff;
+  color: var(--primary-dark);
+  font: 700 14px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-period button + button {
+  border-left: 1px solid #cbd5e1;
+}
+
+.clock-period button.selected {
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.clock-time-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.clock-time-actions button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--primary-dark);
+  font: 700 14px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-time-actions button.primary {
+  border-color: var(--primary-blue);
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.clock-time-backdrop {
+  display: none;
 }
 
 .visit-toggle-field {
@@ -2757,6 +2936,32 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
 
   .visit-priority-group {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clock-time-backdrop {
+    position: fixed;
+    z-index: 89;
+    inset: 0;
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    padding: 0;
+    border: 0;
+    background: rgba(15, 23, 42, .4);
+  }
+
+  .clock-time-popover {
+    position: fixed;
+    z-index: 90;
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    padding: 18px max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    border-radius: 22px;
   }
 }
 
@@ -4077,6 +4282,5 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
     font-size: 0.72rem;
   }
 }
-
 
 
