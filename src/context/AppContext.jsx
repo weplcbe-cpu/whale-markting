@@ -457,7 +457,7 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
     // Keep this channel limited to tables that are actually in the Realtime
     // publication. visit_plans has its own isolated subscription below.
-    const tables = ['director_comments', 'notifications'];
+    const tables = ['director_comments', 'notifications', 'visit_reports', 'follow_ups'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
 
@@ -992,6 +992,70 @@ export const AppProvider = ({ children }) => {
     return true;
   };
 
+  const inspectCompletedVisitDelete = async (entryId) => {
+    if (!isDatabaseVisitPlanId(entryId)) throw new Error('Unable to inspect this completed visit.');
+    const { data, error } = await supabase.rpc('completed_visit_delete_impact', {
+      p_visit_plan_id: entryId,
+    });
+    if (error) {
+      const safeErrors = {
+        VISIT_DELETE_AUTH_REQUIRED: 'Please sign in again before deleting this visit.',
+        VISIT_DELETE_PROFILE_INACTIVE: 'Your active employee profile could not be verified.',
+        VISIT_DELETE_NOT_AUTHORIZED: 'You do not have permission to delete completed visits.',
+        VISIT_DELETE_NOT_OWNED: 'You can only delete your own completed visits.',
+        VISIT_DELETE_NOT_COMPLETED: 'Only completed visits can be deleted here.',
+      };
+      throw new Error(safeErrors[error.message] || 'Unable to inspect this completed visit. Please try again.');
+    }
+    return rowToCamel(data || {});
+  };
+
+  const deleteCompletedVisit = async (entryId) => {
+    if (!isDatabaseVisitPlanId(entryId)) throw new Error('Unable to delete this completed visit.');
+    const target = visitPlans.find((plan) => plan.id === entryId);
+    const role = normalizeRole(currentUser?.role);
+    if (!target || role !== 'Marketing Team' || target.employeeId !== currentUser?.employeeId) {
+      throw new Error('You can only delete your own completed visits.');
+    }
+    if (normalizePlanStatus(target.status) !== 'Completed') {
+      throw new Error('Only completed visits can be deleted here.');
+    }
+
+    const { data, error } = await supabase.rpc('delete_completed_visit', {
+      p_visit_plan_id: entryId,
+    });
+    if (error || data?.success !== true) {
+      const safeErrors = {
+        VISIT_DELETE_AUTH_REQUIRED: 'Please sign in again before deleting this visit.',
+        VISIT_DELETE_PROFILE_INACTIVE: 'Your active employee profile could not be verified.',
+        VISIT_DELETE_NOT_AUTHORIZED: 'You do not have permission to delete completed visits.',
+        VISIT_DELETE_NOT_OWNED: 'You can only delete your own completed visits.',
+        VISIT_DELETE_NOT_COMPLETED: 'Only completed visits can be deleted here.',
+        VISIT_DELETE_HAS_STORED_FILES: 'This visit has stored files and cannot be safely deleted yet.',
+      };
+      throw new Error(safeErrors[error?.message] || 'Unable to delete this completed visit. No data was removed.');
+    }
+
+    const reportId = data.report_id;
+    const notificationIds = new Set(data.notification_ids || []);
+    const followUpIds = new Set(data.follow_up_ids || []);
+    const commentIds = new Set(data.comment_ids || []);
+    setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
+    if (reportId) setVisitReports((previous) => previous.filter((report) => report.id !== reportId));
+    if (notificationIds.size) setNotifications((previous) => previous.filter((item) => !notificationIds.has(item.id)));
+    if (followUpIds.size) setFollowUps((previous) => previous.filter((item) => !followUpIds.has(item.id)));
+    if (commentIds.size) setDirectorComments((previous) => previous.filter((item) => !commentIds.has(item.id)));
+    removeVisitPlanFromDraftCaches({ id: entryId, databaseId: entryId });
+    await Promise.all([
+      refreshEntity('visit_plans'),
+      refreshEntity('visit_reports'),
+      refreshEntity('notifications'),
+      refreshEntity('follow_ups'),
+      refreshEntity('director_comments'),
+    ]);
+    return data;
+  };
+
   const updateEditableVisitPlan = async (entryId, updates) => {
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit plan not found.');
@@ -1390,6 +1454,8 @@ export const AppProvider = ({ children }) => {
     saveTourPlanDraft,
     addTourPlanBatch,
     deleteVisitPlanEntry,
+    inspectCompletedVisitDelete,
+    deleteCompletedVisit,
     updateEditableVisitPlan,
     resubmitVisitPlan,
     updateVisitPlanStatus,

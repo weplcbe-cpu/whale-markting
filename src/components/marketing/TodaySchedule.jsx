@@ -19,6 +19,17 @@ const todayDateKey = () => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
+const cleanDisplayValue = (value) => {
+  const text = String(value ?? '').trim();
+  return text && !['null', 'undefined'].includes(text.toLowerCase()) ? text : '';
+};
+
+const formatVisitLocation = (visit) => {
+  const fullAddress = cleanDisplayValue(visit.fullAddress);
+  if (fullAddress) return fullAddress;
+  return [...new Set([visit.area, visit.city, visit.district].map(cleanDisplayValue).filter(Boolean))].join(', ') || 'Location not provided';
+};
+
 export const TodaySchedule = () => {
   const {
     currentUser,
@@ -27,6 +38,8 @@ export const TodaySchedule = () => {
     rescheduleVisitPlan,
     submitVisitReport,
     deleteVisitPlanEntry,
+    inspectCompletedVisitDelete,
+    deleteCompletedVisit,
     updateEditableVisitPlan,
     resubmitVisitPlan,
     showToast
@@ -43,6 +56,10 @@ export const TodaySchedule = () => {
   const [detailsModal, setDetailsModal] = useState(null);
   const [editModal, setEditModal] = useState(null);
   const [deletingPlan, setDeletingPlan] = useState(null);
+  const [completedDeletingPlan, setCompletedDeletingPlan] = useState(null);
+  const [completedDeleteImpact, setCompletedDeleteImpact] = useState(null);
+  const [completedDeleteStage, setCompletedDeleteStage] = useState('initial');
+  const [checkingDeleteImpact, setCheckingDeleteImpact] = useState(false);
   const [busyAction, setBusyAction] = useState('');
   const completeSubmittingRef = useRef(false);
 
@@ -176,6 +193,49 @@ export const TodaySchedule = () => {
     }
   };
 
+  const closeCompletedDelete = () => {
+    if (busyAction) return;
+    setCompletedDeletingPlan(null);
+    setCompletedDeleteImpact(null);
+    setCompletedDeleteStage('initial');
+  };
+
+  const requestCompletedDelete = async (visit) => {
+    if (busyAction || checkingDeleteImpact) return;
+    setCompletedDeletingPlan(visit);
+    setCompletedDeleteImpact(null);
+    setCompletedDeleteStage('initial');
+    setCheckingDeleteImpact(true);
+    try {
+      setCompletedDeleteImpact(await inspectCompletedVisitDelete(visit.id));
+    } catch (error) {
+      showToast(error?.message || 'Unable to inspect this completed visit.', 'error');
+      setCompletedDeletingPlan(null);
+    } finally {
+      setCheckingDeleteImpact(false);
+    }
+  };
+
+  const handleCompletedDelete = async () => {
+    if (busyAction || checkingDeleteImpact || !completedDeletingPlan || !completedDeleteImpact) return;
+    if (completedDeleteStage === 'initial' && completedDeleteImpact.hasRelatedData) {
+      setCompletedDeleteStage('related');
+      return;
+    }
+    setBusyAction(`delete-${completedDeletingPlan.id}`);
+    try {
+      await deleteCompletedVisit(completedDeletingPlan.id);
+      showToast('Completed visit deleted successfully.', 'success');
+      setCompletedDeletingPlan(null);
+      setCompletedDeleteImpact(null);
+      setCompletedDeleteStage('initial');
+    } catch (error) {
+      showToast(error?.message || 'Unable to delete this completed visit. No data was removed.', 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const handleResubmit = async (visit) => {
     if (busyAction) return;
     setBusyAction(`submit-${visit.id}`);
@@ -219,7 +279,14 @@ export const TodaySchedule = () => {
       </>;
     }
     if (status === 'Completed') {
-      return detailsButton;
+      return <>
+        {detailsButton}
+        {isMarketingOwner && isDatabaseVisitPlanId(visit.id) && (
+          <button className="btn btn-danger btn-sm" disabled={pending} onClick={() => requestCompletedDelete(visit)}>
+            <Trash2 size={14} /> Delete
+          </button>
+        )}
+      </>;
     }
     if (status === 'Cancelled') {
       return <>{detailsButton}{deleteButton}</>;
@@ -285,7 +352,7 @@ export const TodaySchedule = () => {
                 <h3 style={{ color: 'var(--text-main)', fontSize: '1.25rem', marginBottom: '4px' }}>{visit.customerName}</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
                   <MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                  {visit.fullAddress || `${visit.city}, ${visit.district}`}
+                  {formatVisitLocation(visit)}
                 </p>
 
                 <div style={{ marginTop: '12px', fontSize: '0.85rem', color: 'var(--text-main)' }}>
@@ -355,6 +422,43 @@ export const TodaySchedule = () => {
         }}
         onConfirm={handleDelete}
       />
+
+      {completedDeletingPlan && (
+        <ModalPortal onClose={closeCompletedDelete} closeOnBackdrop={false} closeOnEscape={!busyAction}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header"><h3>Delete Completed Visit?</h3></div>
+            <div className="modal-body" style={{ display: 'grid', gap: '16px' }}>
+              <p>
+                {completedDeleteStage === 'related'
+                  ? 'Related report data was found. Confirm once more to permanently delete the visit and all linked records.'
+                  : 'This will permanently remove the completed visit and its related report data. This action cannot be undone.'}
+              </p>
+              <div className="card" style={{ display: 'grid', gap: '7px', padding: '14px' }}>
+                <div><strong>Visit place:</strong> {formatVisitLocation(completedDeletingPlan)}</div>
+                <div><strong>Visit date:</strong> {cleanDisplayValue(completedDeletingPlan.visitDate) || 'Not provided'}</div>
+                <div><strong>Visit time:</strong> {cleanDisplayValue(completedDeletingPlan.expectedTime) || 'Not provided'}</div>
+                <div><strong>Customer / organization:</strong> {cleanDisplayValue(completedDeletingPlan.customerName || completedDeletingPlan.organizationName) || 'Not provided'}</div>
+              </div>
+              {checkingDeleteImpact && <p role="status">Checking related records…</p>}
+              {completedDeleteImpact?.hasRelatedData && (
+                <div className="alert alert-warning" role="status">
+                  Related data: {completedDeleteImpact.reportCount || 0} report, {completedDeleteImpact.followUpCount || 0} follow-up, {completedDeleteImpact.notificationCount || 0} notification, {completedDeleteImpact.commentCount || 0} feedback item.
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={closeCompletedDelete} disabled={Boolean(busyAction)}>Cancel</button>
+              <button type="button" className="btn btn-danger" onClick={handleCompletedDelete} disabled={Boolean(busyAction) || checkingDeleteImpact || !completedDeleteImpact}>
+                {busyAction === `delete-${completedDeletingPlan.id}`
+                  ? 'Deleting…'
+                  : completedDeleteStage === 'initial' && completedDeleteImpact?.hasRelatedData
+                    ? 'Continue'
+                    : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
 
       {/* Start Visit Modal */}
       {startVisitModal && (
