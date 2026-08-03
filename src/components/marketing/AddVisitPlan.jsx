@@ -1,15 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Save, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Button, DateField, FormField, Modal, SelectField, TextArea } from '../ui';
+import { Button, FormField, Modal, SelectField, TextArea } from '../ui';
 import ClockTimePicker from './ClockTimePicker';
+import VisitDatePicker from './VisitDatePicker';
 
 const LEGACY_DRAFT_KEY = 'marketing-visit-plan-draft';
 const DEFAULT_ORGANIZATION_TYPES = ['Corporation', 'Municipality', 'Government Department', 'Private Company', 'Contractor', 'Dealer', 'Consultant', 'Other'];
 const DEFAULT_PURPOSES = ['Product Demo', 'Product Presentation', 'Service Visit', 'Follow-up Visit', 'New Requirement', 'Quotation Discussion', 'Payment Follow-up', 'General Visit', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
 const roundedTime = () => {
   const date = new Date();
   date.setSeconds(0, 0);
@@ -24,8 +28,6 @@ const roundedTime = () => {
     period: hour24 >= 12 ? 'PM' : 'AM',
   };
 };
-
-const formatDate = (value) => value ? value.split('-').reverse().join('-') : '';
 
 const parseExpectedTime = (value) => {
   const match = String(value || '').trim().match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i);
@@ -169,7 +171,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
   const validate = () => {
     const nextErrors = {};
-    if (!formData.visitDate) nextErrors.visitDate = 'Visit Date is required.';
+    if (!formData.visitDate) nextErrors.visitDate = 'Please select a visit date.';
     if (!formData.hour || !formData.minute || !formData.period) nextErrors.expectedTime = 'Please select the visit time.';
     if (!formData.visitPlace) {
       nextErrors.visitPlace = assignedPlaces.length
@@ -301,15 +303,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
       <div className="ds-form-grid visit-plan-sheet">
         {/* Visit Date */}
-        <DateField
-          label="Visit Date"
-          required
-          min={todayIso()}
-          value={formData.visitDate}
-          onChange={(event) => update('visitDate', event.target.value)}
-          error={errors.visitDate}
-          hint={formData.visitDate ? `Selected: ${formatDate(formData.visitDate)}` : undefined}
-        />
+        <div className="ds-field">
+          <label>Visit Date <span className="ds-required">*</span></label>
+          <VisitDatePicker value={formData.visitDate} min={todayIso()} error={errors.visitDate} onChange={(visitDate) => update('visitDate', visitDate)} />
+          {errors.visitDate && <span className="ds-field__error">{errors.visitDate}</span>}
+        </div>
 
         {/* Visit Time */}
         <div className="ds-field">

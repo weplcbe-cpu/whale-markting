@@ -3012,6 +3012,164 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
   align-items: start;
 }
 
+.visit-date-picker {
+  position: relative;
+}
+
+.visit-date-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  color: var(--text-main);
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  cursor: pointer;
+  font: 600 14px var(--font-primary);
+  text-align: left;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.visit-date-trigger:hover {
+  background: #f8faff;
+  border-color: #a9b9ed;
+}
+
+.visit-date-trigger svg {
+  flex: 0 0 auto;
+  color: var(--primary-blue);
+}
+
+.visit-date-trigger:focus-visible {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(117, 139, 253, .2);
+}
+
+.visit-date-trigger--error {
+  border-color: #dc2626;
+}
+
+.visit-date-popover {
+  position: absolute;
+  z-index: 85;
+  left: 0;
+  width: min(320px, calc(100vw - 40px));
+  padding: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(30, 41, 59, .2);
+  animation: visit-date-enter 180ms ease-out;
+}
+
+.visit-date-popover--below { top: calc(100% + 8px); }
+.visit-date-popover--above { bottom: calc(100% + 8px); }
+
+@keyframes visit-date-enter {
+  from { opacity: 0; transform: translateY(4px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.visit-date-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.visit-date-header h3 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-family: var(--font-heading, "Swis721 BlkCn BT", sans-serif);
+  font-size: 20px;
+  text-align: center;
+}
+
+.visit-date-header button,
+.visit-date-grid button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--primary-dark);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font: 600 14px var(--font-primary);
+}
+
+.visit-date-header button {
+  width: 38px;
+  height: 38px;
+}
+
+.visit-date-header button:hover:not(:disabled),
+.visit-date-grid button:hover:not(:disabled) {
+  background: #edf2ff;
+}
+
+.visit-date-header button:disabled,
+.visit-date-grid button:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.visit-date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.visit-date-weekday {
+  padding: 6px 0;
+  color: #64748b;
+  font: 700 11px var(--font-primary);
+  text-align: center;
+}
+
+.visit-date-grid button,
+.visit-date-grid > span[role="gridcell"] {
+  min-width: 0;
+  aspect-ratio: 1;
+}
+
+.visit-date-grid button.today {
+  box-shadow: inset 0 0 0 1px #9eb1ed;
+}
+
+.visit-date-grid button.selected {
+  color: #fff;
+  background: var(--primary-blue);
+  box-shadow: 0 4px 10px rgba(79, 70, 229, .25);
+}
+
+.visit-date-grid button:focus-visible {
+  outline: 3px solid rgba(117, 139, 253, .28);
+  outline-offset: 1px;
+}
+
+.visit-date-today {
+  display: block;
+  min-height: 36px;
+  margin: 11px auto 0;
+  padding: 0 14px;
+  color: var(--primary-blue);
+  background: #f1f5ff;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font: 700 13px var(--font-primary);
+}
+
+.visit-date-backdrop {
+  display: none;
+}
+
 .clock-time-field {
   position: relative;
 }
@@ -3348,6 +3506,44 @@ button.stat-card{width:100%;font:inherit;text-align:left;color:inherit}.ds-link-
     padding: 0;
     border: 0;
     background: rgba(15, 23, 42, .4);
+  }
+
+  .visit-date-backdrop {
+    position: fixed;
+    z-index: 89;
+    inset: 0;
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    padding: 0;
+    background: rgba(15, 23, 42, .4);
+    border: 0;
+  }
+
+  .visit-date-popover,
+  .visit-date-popover--above,
+  .visit-date-popover--below {
+    position: fixed;
+    z-index: 90;
+    top: 50%;
+    right: 12px;
+    bottom: auto;
+    left: 12px;
+    width: auto;
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 18px max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    transform: translateY(-50%);
+  }
+
+  .visit-date-grid button {
+    min-height: 42px;
+    aspect-ratio: auto;
+  }
+
+  @keyframes visit-date-enter {
+    from { opacity: 0; transform: translateY(calc(-50% + 8px)) scale(.985); }
+    to { opacity: 1; transform: translateY(-50%) scale(1); }
   }
 
   .clock-time-popover {
