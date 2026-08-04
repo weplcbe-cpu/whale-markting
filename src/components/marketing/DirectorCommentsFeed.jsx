@@ -85,7 +85,10 @@ export const DirectorCommentsFeed = () => {
         actions={<Button variant="secondary" onClick={() => refreshEntity('director_comments')}><RefreshCw size={16} /> Retry</Button>}
       />
       <div className="ds-segmented director-feedback-filters" aria-label="Filter Director feedback">
-        {FILTERS.map((option) => <button key={option} className={filter === option ? 'active' : ''} onClick={() => setFilter(option)}>{option}</button>)}
+        {FILTERS.map((option) => {
+          const active = filter === option;
+          return <button key={option} type="button" className={active ? 'active' : ''} aria-pressed={active} onClick={() => setFilter(option)}>{option}</button>;
+        })}
       </div>
       {dataLoading && !feedback.length ? <div className="ds-loading">Loading Director feedback…</div> : (
         <div className="director-feedback-list">

@@ -333,7 +333,7 @@ export const UserManagement = () => {
       {/* Add / Edit User Modal */}
       {isAddModalOpen && createPortal(
         <div className="user-modal-overlay" role="presentation">
-          <section className="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
+          <section className={`user-modal${editingUser ? ' admin-user-edit-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
             <header className="user-modal__header">
               <div>
                 <h2 id="user-modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>
@@ -347,7 +347,7 @@ export const UserManagement = () => {
                 aria-label="Close modal"
                 title="Close"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </header>
 
@@ -361,7 +361,7 @@ export const UserManagement = () => {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Employee Name *</label>
+                  <label className="form-label">Employee Name <span className="required-marker">*</span></label>
                   <input
                     type="text"
                     className="form-input"
@@ -373,7 +373,7 @@ export const UserManagement = () => {
 
                 {formData.role === 'Marketing Team' && (
                   <div className="form-group user-places-field">
-                    <label className="form-label">Assigned Visit Places *</label>
+                    <label className="form-label">Assigned Visit Places <span className="required-marker">*</span></label>
                     <div className="user-places-input">
                       <input
                         type="search"
@@ -406,7 +406,7 @@ export const UserManagement = () => {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Employee ID *</label>
+                  <label className="form-label">Employee ID <span className="required-marker">*</span></label>
                   <input
                     type="text"
                     className="form-input"
@@ -417,7 +417,7 @@ export const UserManagement = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Mobile Number *</label>
+                  <label className="form-label">Mobile Number <span className="required-marker">*</span></label>
                   <input
                     type="text"
                     className="form-input"
@@ -430,7 +430,7 @@ export const UserManagement = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Email Address *</label>
+                  <label className="form-label">Email Address <span className="required-marker">*</span></label>
                   <input
                     type="email"
                     className="form-input"
@@ -441,7 +441,7 @@ export const UserManagement = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Role *</label>
+                  <label className="form-label">Role <span className="required-marker">*</span></label>
                   <select
                     className="form-select"
                     value={formData.role}
@@ -454,7 +454,7 @@ export const UserManagement = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Username *</label>
+                  <label className="form-label">Username <span className="required-marker">*</span></label>
                   <input
                     type="text"
                     className="form-input"
@@ -466,7 +466,7 @@ export const UserManagement = () => {
 
                 {!editingUser && (
                   <div className="form-group">
-                    <label className="form-label">Password *</label>
+                    <label className="form-label">Password <span className="required-marker">*</span></label>
                     <input
                       type="password"
                       className="form-input"
