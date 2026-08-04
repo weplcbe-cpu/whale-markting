@@ -56,7 +56,7 @@ export const WeeklyPlanReview = () => {
   };
 
   const detailsPanel = selectedPlanBatchId ? createPortal(
-    <div className="modal-overlay tour-plan-review-overlay" role="presentation">
+    <div className="modal-overlay tour-plan-review-overlay app-theme-dark" data-theme="dark" role="presentation">
       <section className="tour-plan-review-modal" role="dialog" aria-modal="true" aria-labelledby="tour-plan-details-title">
         <header className="modal-header">
           <div>

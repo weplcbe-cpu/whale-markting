@@ -332,8 +332,8 @@ export const UserManagement = () => {
 
       {/* Add / Edit User Modal */}
       {isAddModalOpen && createPortal(
-        <div className={`user-modal-overlay${editingUser ? ' app-theme-dark' : ''}`} data-theme={editingUser ? 'dark' : undefined} role="presentation">
-          <section className={`user-modal${editingUser ? ' admin-user-edit-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
+        <div className="user-modal-overlay" role="presentation">
+          <section className={`user-modal admin-user-modal user-modal--${editingUser ? 'edit' : 'create'}`} role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
             <header className="user-modal__header">
               <div>
                 <h2 id="user-modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>

@@ -178,9 +178,12 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('kw_vmm_theme', theme);
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    const isDarkTheme = theme === 'dark';
+    document.documentElement.classList.toggle('dark', isDarkTheme);
+    document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
-    document.body.classList.remove('theme-light');
+    document.body.dataset.theme = theme;
+    document.body.classList.toggle('theme-light', !isDarkTheme);
   }, [theme]);
 
   const toggleTheme = () => {
