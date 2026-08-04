@@ -1,5 +1,5 @@
--- Prepare normalized territory allocation. Do not seed Sundar until the missing
--- seventh Tenkasi municipality is confirmed; the supplied list currently has 41.
+-- Prepare normalized territory allocation. Sundar's approved 10/7/41/48 seed
+-- is applied by the subsequent 20260804093000 migration.
 
 create table if not exists public.territory_zones (
   id uuid primary key default gen_random_uuid(),
@@ -209,9 +209,7 @@ for select to authenticated using (
   or employee_id = public.current_employee_id()
 );
 
--- Territory seed intentionally deferred: Tenkasi is stated as seven municipalities,
--- but only six unique names have been supplied. Apply the seed only after the
--- missing name is confirmed, then validate with the following query.
+-- Validate the approved Sundar seed after 20260804093000 has been applied.
 --
 -- select
 --   count(distinct district_id) as districts,
@@ -222,5 +220,8 @@ for select to authenticated using (
 -- join public.local_bodies lb on lb.id = eta.local_body_id
 -- join public.districts d on d.id = lb.district_id
 -- where eta.employee_id = 'EMP004' and eta.active and lb.active;
+-- Expected: 10 districts, 7 corporations, 41 municipalities, 48 local bodies.
+
+alter publication supabase_realtime add table public.employee_territory_assignments;
 
 notify pgrst, 'reload schema';

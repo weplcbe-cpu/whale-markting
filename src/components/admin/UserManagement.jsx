@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Plus } from 'lucide-react';
@@ -14,7 +14,7 @@ const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
 };
 
 export const UserManagement = () => {
-  const { users, employeeVisitPlaces, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
+  const { users, employeeVisitPlaces, territoryAssignments, territoryLocalBodies, addUser, updateUser, replaceEmployeeTerritoryAssignments, toggleUserStatus, deleteUser } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   
@@ -26,6 +26,8 @@ export const UserManagement = () => {
   const [formError, setFormError] = useState('');
   const [placeInput, setPlaceInput] = useState('');
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [territoryDraft, setTerritoryDraft] = useState({});
+  const [isSavingTerritory, setIsSavingTerritory] = useState(false);
   const initialFormDataRef = useRef(null);
   const submitLockRef = useRef(false);
 
@@ -50,6 +52,34 @@ export const UserManagement = () => {
     const matchesRole = roleFilter === 'All' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const isSundarTerritoryEditor = editingUser?.employeeId === 'EMP004' && formData.role === 'Marketing Team';
+  const sundarAssignments = useMemo(() => territoryAssignments.filter((assignment) => assignment.employeeId === 'EMP004'), [territoryAssignments]);
+  const territoryZoneId = sundarAssignments[0]?.zoneId || '';
+  const territoryZoneName = sundarAssignments[0]?.zone?.zoneName || 'South Tamil Nadu Zone';
+  const territoryDistricts = useMemo(() => {
+    const groups = new Map();
+    territoryLocalBodies.forEach((localBody) => {
+      const districtName = localBody.district?.districtName || 'Unassigned district';
+      if (!groups.has(districtName)) groups.set(districtName, []);
+      groups.get(districtName).push(localBody);
+    });
+    return [...groups.entries()]
+      .map(([districtName, localBodies]) => ({
+        districtName,
+        localBodies: [...localBodies].sort((left, right) => left.localBodyName.localeCompare(right.localBodyName)),
+      }))
+      .sort((left, right) => left.districtName.localeCompare(right.districtName));
+  }, [territoryLocalBodies]);
+  const territoryTotals = useMemo(() => {
+    const assigned = Object.values(territoryDraft).filter((assignment) => assignment.active !== false);
+    return {
+      districts: new Set(assigned.map((assignment) => assignment.districtName)).size,
+      corporations: assigned.filter((assignment) => assignment.localBodyType === 'Corporation').length,
+      municipalities: assigned.filter((assignment) => assignment.localBodyType === 'Municipality').length,
+      locations: assigned.length,
+    };
+  }, [territoryDraft]);
 
   const isFormDirty = isAddModalOpen && initialFormDataRef.current !== null &&
     JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
@@ -117,6 +147,52 @@ export const UserManagement = () => {
     formData.assignedVisitPlaces.filter((item) => item !== place),
   );
 
+  const updateTerritoryDraft = (localBody, updates) => {
+    setTerritoryDraft((current) => ({
+      ...current,
+      [localBody.id]: {
+        localBodyId: localBody.id,
+        districtName: localBody.district?.districtName,
+        localBodyType: localBody.localBodyType,
+        priority: localBody.localBodyType === 'Corporation' ? 'A' : 'B',
+        visitCycle: localBody.localBodyType === 'Corporation' ? 'Monthly' : 'Bi-Monthly',
+        active: true,
+        ...current[localBody.id],
+        ...updates,
+      },
+    }));
+  };
+
+  const setDistrictAssignments = (localBodies, active) => {
+    localBodies.forEach((localBody) => updateTerritoryDraft(localBody, { active }));
+  };
+
+  const saveTerritoryAssignments = async () => {
+    if (!territoryZoneId) {
+      setFormError('Territory zone data is not available. Refresh and try again.');
+      return;
+    }
+    setFormError('');
+    setIsSavingTerritory(true);
+    try {
+      const assignments = Object.values(territoryDraft)
+        .filter((assignment) => assignment.active !== false)
+        .map((assignment) => ({ ...assignment, zoneId: territoryZoneId }));
+      await replaceEmployeeTerritoryAssignments('EMP004', assignments);
+      const selectedIds = new Set(assignments.map((assignment) => assignment.localBodyId));
+      setFormData((current) => ({
+        ...current,
+        assignedVisitPlaces: territoryLocalBodies
+          .filter((localBody) => selectedIds.has(localBody.id))
+          .map((localBody) => localBody.localBodyName),
+      }));
+    } catch (error) {
+      setFormError(getCaughtErrorMessage(error, 'Unable to save territory assignments. Please try again.'));
+    } finally {
+      setIsSavingTerritory(false);
+    }
+  };
+
   const handleOpenAdd = () => {
     setFormError('');
     const nextFormData = {
@@ -132,6 +208,7 @@ export const UserManagement = () => {
       assignedVisitPlaces: []
     };
     setFormData(nextFormData);
+    setTerritoryDraft({});
     initialFormDataRef.current = nextFormData;
     setEditingUser(null);
     setIsAddModalOpen(true);
@@ -155,6 +232,18 @@ export const UserManagement = () => {
         .map((item) => item.placeName)
     };
     setFormData(nextFormData);
+    setTerritoryDraft(Object.fromEntries(
+      territoryAssignments
+        .filter((assignment) => assignment.employeeId === user.employeeId)
+        .map((assignment) => [assignment.localBodyId, {
+          localBodyId: assignment.localBodyId,
+          districtName: assignment.districtName,
+          localBodyType: assignment.localBodyType,
+          priority: assignment.priority,
+          visitCycle: assignment.visitCycle,
+          active: assignment.active !== false,
+        }]),
+    ));
     initialFormDataRef.current = nextFormData;
     setIsAddModalOpen(true);
   };
@@ -371,7 +460,7 @@ export const UserManagement = () => {
                   />
                 </div>
 
-                {formData.role === 'Marketing Team' && (
+                {formData.role === 'Marketing Team' && !isSundarTerritoryEditor && (
                   <div className="form-group user-places-field">
                     <label className="form-label">Assigned Visit Places <span className="required-marker">*</span></label>
                     <div className="user-places-input">
@@ -403,6 +492,54 @@ export const UserManagement = () => {
                     </div>
                     {!formData.assignedVisitPlaces.length && <small>Assign one or more places before saving this Marketing user.</small>}
                   </div>
+                )}
+
+                {isSundarTerritoryEditor && (
+                  <section className="territory-assignment-field" aria-labelledby="territory-assignment-heading">
+                    <div className="territory-assignment__heading">
+                      <div>
+                        <h3 id="territory-assignment-heading">Assigned Territory</h3>
+                        <p>{territoryZoneName}</p>
+                      </div>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(territoryLocalBodies, true)} disabled={isSavingTerritory || !territoryLocalBodies.length}>Select All</button>
+                    </div>
+                    <div className="territory-summary-grid">
+                      <span><strong>{territoryTotals.districts}</strong> Districts</span>
+                      <span><strong>{territoryTotals.corporations}</strong> Corporations</span>
+                      <span><strong>{territoryTotals.municipalities}</strong> Municipalities</span>
+                      <span><strong>{territoryTotals.locations}</strong> Locations</span>
+                    </div>
+                    <div className="territory-district-list">
+                      {territoryDistricts.map(({ districtName, localBodies }) => {
+                        const assignedCount = localBodies.filter((localBody) => territoryDraft[localBody.id]?.active !== false).length;
+                        return <details key={districtName} className="territory-district-card">
+                          <summary>
+                            <span>{districtName}</span>
+                            <small>{assignedCount} / {localBodies.length} assigned</small>
+                          </summary>
+                          <div className="territory-district-card__actions">
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(localBodies, true)}>Select Entire District</button>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(localBodies, false)}>Clear District</button>
+                          </div>
+                          <div className="territory-location-list">
+                            {localBodies.map((localBody) => {
+                              const assignment = territoryDraft[localBody.id];
+                              const assigned = assignment?.active !== false;
+                              return <div className="territory-location-row" key={localBody.id}>
+                                <label><input type="checkbox" checked={assigned} onChange={(event) => updateTerritoryDraft(localBody, { active: event.target.checked })} /> <span>{localBody.localBodyName}</span></label>
+                                <span className={`territory-type-badge territory-type-badge--${localBody.localBodyType.toLowerCase()}`}>{localBody.localBodyType}</span>
+                                <select aria-label={`${localBody.localBodyName} priority`} disabled={!assigned} value={assignment?.priority || (localBody.localBodyType === 'Corporation' ? 'A' : 'B')} onChange={(event) => updateTerritoryDraft(localBody, { priority: event.target.value })}><option value="A">Priority A</option><option value="B">Priority B</option><option value="C">Priority C</option></select>
+                                <select aria-label={`${localBody.localBodyName} visit cycle`} disabled={!assigned} value={assignment?.visitCycle || (localBody.localBodyType === 'Corporation' ? 'Monthly' : 'Bi-Monthly')} onChange={(event) => updateTerritoryDraft(localBody, { visitCycle: event.target.value })}><option value="Monthly">Monthly</option><option value="Bi-Monthly">Bi-Monthly</option><option value="Quarterly">Quarterly</option></select>
+                              </div>;
+                            })}
+                          </div>
+                        </details>;
+                      })}
+                    </div>
+                    <div className="territory-assignment__footer">
+                      <button type="button" className="btn btn-primary" onClick={saveTerritoryAssignments} disabled={isSavingTerritory || !territoryLocalBodies.length}>{isSavingTerritory ? 'Saving Territory...' : 'Save Territory Assignment'}</button>
+                    </div>
+                  </section>
                 )}
 
                 <div className="form-group">

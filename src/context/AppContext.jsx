@@ -147,6 +147,21 @@ const normalizeProfileData = (profile) => ({
   mobile: profile.mobileNumber || profile.mobile || 'Not provided'
 });
 const normalizeVisitPlan = (plan) => ({ ...plan, rawStatus: plan.rawStatus || plan.status, status: normalizePlanStatus(plan.status), planType: inferPlanType(plan), products: Array.isArray(plan.products) ? plan.products : plan.productName ? [plan.productName] : plan.products ? [plan.products] : [] });
+const normalizeTerritoryAssignment = (assignment) => {
+  const normalized = rowToCamel(assignment);
+  const localBody = rowToCamel(assignment.local_bodies);
+  const district = rowToCamel(assignment.local_bodies?.districts);
+  return {
+    ...normalized,
+    zone: rowToCamel(assignment.territory_zones),
+    localBody: { ...localBody, district },
+    district,
+    districtId: localBody.district_id || localBody.districtId,
+    districtName: district?.districtName,
+    localBodyName: localBody?.localBodyName,
+    localBodyType: localBody?.localBodyType,
+  };
+};
 
 export const AppProvider = ({ children }) => {
   // Auth / profile state
@@ -164,6 +179,8 @@ export const AppProvider = ({ children }) => {
   const [dailyReports, setDailyReports] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [employeeVisitPlaces, setEmployeeVisitPlaces] = useState([]);
+  const [territoryAssignments, setTerritoryAssignments] = useState([]);
+  const [territoryLocalBodies, setTerritoryLocalBodies] = useState([]);
   const [directorComments, setDirectorComments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -359,6 +376,8 @@ export const AppProvider = ({ children }) => {
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
       ['employeeVisitPlaces', assignedPlaceQuery],
+      ['territoryAssignments', supabase.from('employee_territory_assignments').select('id, employee_id, zone_id, local_body_id, priority, visit_cycle, active, assigned_at, territory_zones(id, zone_name), local_bodies(id, district_id, local_body_name, local_body_type, active, districts(id, district_name))').eq('active', true)],
+      ['territoryLocalBodies', supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name)').eq('active', true)],
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -394,6 +413,11 @@ export const AppProvider = ({ children }) => {
     setFollowUps(rowsToCamel(results.followUps));
     if (import.meta.env.DEV) console.log('Marketing assigned place returned rows', results.employeeVisitPlaces || []);
     setEmployeeVisitPlaces(rowsToCamel(results.employeeVisitPlaces));
+    setTerritoryAssignments((results.territoryAssignments || []).map(normalizeTerritoryAssignment));
+    setTerritoryLocalBodies((results.territoryLocalBodies || []).map((localBody) => {
+      const normalized = rowToCamel(localBody);
+      return { ...normalized, district: rowToCamel(localBody.districts) };
+    }));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
@@ -422,6 +446,8 @@ export const AppProvider = ({ children }) => {
         }
         return query;
       }, setEmployeeVisitPlaces],
+      employee_territory_assignments: [() => supabase.from('employee_territory_assignments').select('id, employee_id, zone_id, local_body_id, priority, visit_cycle, active, assigned_at, territory_zones(id, zone_name), local_bodies(id, district_id, local_body_name, local_body_type, active, districts(id, district_name))').eq('active', true), setTerritoryAssignments],
+      local_bodies: [() => supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name)').eq('active', true), setTerritoryLocalBodies],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -439,6 +465,13 @@ export const AppProvider = ({ children }) => {
         ? mapped.map(normalizeVisitPlan)
         : table === 'director_comments'
           ? normalizeDirectorFeedbackList(mapped)
+            : table === 'employee_territory_assignments'
+              ? (data || []).map(normalizeTerritoryAssignment)
+          : table === 'local_bodies'
+            ? (data || []).map((localBody) => {
+              const normalized = rowToCamel(localBody);
+              return { ...normalized, district: rowToCamel(localBody.districts) };
+            })
           : table === 'company_info'
             ? (mapped[0] || null)
             : mapped;
@@ -455,7 +488,7 @@ export const AppProvider = ({ children }) => {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
-      setFollowUps([]); setEmployeeVisitPlaces([]); setDirectorComments([]); setNotifications([]);
+      setFollowUps([]); setEmployeeVisitPlaces([]); setTerritoryAssignments([]); setTerritoryLocalBodies([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -469,7 +502,7 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
     // Keep this channel limited to tables that are actually in the Realtime
     // publication. visit_plans has its own isolated subscription below.
-    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups'];
+    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_territory_assignments'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
 
@@ -677,6 +710,29 @@ export const AppProvider = ({ children }) => {
       if (insertError) throw insertError;
     }
     await refreshEntity('employee_visit_places');
+  };
+
+  const replaceEmployeeTerritoryAssignments = async (employeeId, assignments = []) => {
+    const normalizedAssignments = assignments
+      .filter((assignment) => assignment?.zoneId && assignment?.localBodyId)
+      .map((assignment) => ({
+        zone_id: assignment.zoneId,
+        local_body_id: assignment.localBodyId,
+        priority: assignment.priority || 'B',
+        visit_cycle: assignment.visitCycle || 'Bi-Monthly',
+        active: assignment.active !== false,
+      }));
+    const { error } = await supabase.rpc('admin_replace_employee_territory_assignments', {
+      p_employee_id: employeeId,
+      p_assignments: normalizedAssignments,
+    });
+    if (error) throw error;
+    await Promise.all([
+      refreshEntity('employee_territory_assignments'),
+      refreshEntity('employee_visit_places'),
+    ]);
+    showToast('Territory assignments saved.', 'success');
+    return { success: true };
   };
 
   const addUser = async (userData) => {
@@ -1510,6 +1566,8 @@ export const AppProvider = ({ children }) => {
     dailyReports,
     followUps,
     employeeVisitPlaces,
+    territoryAssignments,
+    territoryLocalBodies,
     directorComments,
     notifications,
     activityLogs,
@@ -1523,6 +1581,7 @@ export const AppProvider = ({ children }) => {
     logActivity,
     addUser,
     updateUser,
+    replaceEmployeeTerritoryAssignments,
     toggleUserStatus,
     deleteUser,
     addProduct,

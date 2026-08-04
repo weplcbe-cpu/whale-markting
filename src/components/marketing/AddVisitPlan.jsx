@@ -42,6 +42,8 @@ const parseExpectedTime = (value) => {
 const emptyPlan = () => ({
   visitDate: todayIso(),
   visitPlace: '',
+  district: '',
+  localBodyType: '',
   destinationType: 'General Visit',
   organizationName: '',
   organizationType: '',
@@ -64,6 +66,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     products = [],
     visitPlans = [],
     employeeVisitPlaces = [],
+    territoryAssignments = [],
     orgTypes = [],
     purposes = [],
     addVisitPlan,
@@ -87,6 +90,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     ...(plan ? {
       ...plan,
       visitPlace: plan.area || plan.city || '',
+      district: plan.district || '',
       selectedProducts: plan.products || [],
       ...parseExpectedTime(plan.expectedTime),
     } : {}),
@@ -109,6 +113,23 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       .filter((place, index, list) => list.findIndex((candidate) => candidate.toLocaleLowerCase() === place.toLocaleLowerCase()) === index)
       .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
   }, [currentUser?.employeeId, employeeVisitPlaces]);
+
+  const assignedTerritoryBodies = useMemo(() => {
+    if (!currentUser?.employeeId) return [];
+    return territoryAssignments
+      .filter((assignment) => assignment.employeeId === currentUser.employeeId && assignment.active !== false && assignment.localBody?.active !== false)
+      .filter((assignment, index, rows) => rows.findIndex((candidate) => candidate.localBodyId === assignment.localBodyId) === index)
+      .sort((left, right) => `${left.districtName} ${left.localBodyName}`.localeCompare(`${right.districtName} ${right.localBodyName}`));
+  }, [currentUser?.employeeId, territoryAssignments]);
+
+  const assignedDistricts = useMemo(() => [...new Set(assignedTerritoryBodies.map((assignment) => assignment.districtName).filter(Boolean))], [assignedTerritoryBodies]);
+  const availableLocalBodyTypes = useMemo(() => [...new Set(assignedTerritoryBodies
+    .filter((assignment) => assignment.districtName === formData.district)
+    .map((assignment) => assignment.localBodyType)
+    .filter(Boolean))], [assignedTerritoryBodies, formData.district]);
+  const availableTerritoryPlaces = useMemo(() => assignedTerritoryBodies.filter((assignment) =>
+    assignment.districtName === formData.district && assignment.localBodyType === formData.localBodyType,
+  ), [assignedTerritoryBodies, formData.district, formData.localBodyType]);
 
   // Master data lists
   const organizationTypesList = useMemo(() => {
@@ -174,7 +195,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     if (!formData.visitDate) nextErrors.visitDate = 'Please select a visit date.';
     if (!formData.hour || !formData.minute || !formData.period) nextErrors.expectedTime = 'Please select the visit time.';
     if (!formData.visitPlace) {
-      nextErrors.visitPlace = assignedPlaces.length
+      nextErrors.visitPlace = (assignedTerritoryBodies.length || assignedPlaces.length)
         ? 'Select your assigned visit place.'
         : 'No visit places are assigned to your account. Please contact Admin.';
     }
@@ -201,6 +222,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     mobileNumber: formData.mobileNumber || null,
     area: formData.visitPlace,
     city: formData.visitPlace,
+    district: formData.district || null,
     state: 'Tamil Nadu',
     visitPurpose: formData.visitPurpose === 'Other'
       ? formData.customVisitPurpose
@@ -325,8 +347,40 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
           {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
         </div>
 
-        {/* Visit Place (Assigned Places ONLY) */}
-        <div className="ds-field">
+        {/* Assigned Territory selectors with legacy flat-place fallback. */}
+        {assignedTerritoryBodies.length > 0 ? <>
+          <SelectField
+            label="District"
+            required
+            value={formData.district}
+            onChange={(event) => setFormData((current) => ({ ...current, district: event.target.value, localBodyType: '', visitPlace: '' }))}
+          >
+            <option value="">-- Select assigned district --</option>
+            {assignedDistricts.map((district) => <option key={district} value={district}>{district}</option>)}
+          </SelectField>
+          <SelectField
+            label="Local Body Type"
+            required
+            disabled={!formData.district}
+            value={formData.localBodyType}
+            onChange={(event) => setFormData((current) => ({ ...current, localBodyType: event.target.value, visitPlace: '' }))}
+          >
+            <option value="">-- Select local body type --</option>
+            {availableLocalBodyTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+          </SelectField>
+          <SelectField
+            label="Visit Place"
+            required
+            disabled={!formData.localBodyType}
+            value={formData.visitPlace}
+            onChange={(event) => update('visitPlace', event.target.value)}
+            error={errors.visitPlace}
+            hint="Only active locations assigned to you are listed."
+          >
+            <option value="">-- Select assigned local body --</option>
+            {availableTerritoryPlaces.map((assignment) => <option key={assignment.localBodyId} value={assignment.localBodyName}>{assignment.localBodyName}</option>)}
+          </SelectField>
+        </> : <div className="ds-field">
           <SelectField
             label="Visit Place"
             required
@@ -345,7 +399,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
               ⚠️ No visit places are assigned to your account. Please contact your Administrator to assign visit places.
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Customer / Organization Name */}
         <div className="ds-field">

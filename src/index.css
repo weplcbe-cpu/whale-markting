@@ -4074,6 +4074,68 @@ body {
   cursor: pointer;
 }
 
+.territory-assignment-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(117, 139, 253, .04);
+}
+
+.territory-assignment__heading,
+.territory-assignment__footer,
+.territory-district-card__actions,
+.territory-location-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.territory-assignment__heading { justify-content: space-between; }
+.territory-assignment__heading h3 { margin: 0; color: var(--primary-dark); font-size: 1rem; }
+.territory-assignment__heading p { margin: 3px 0 0; color: var(--text-muted); font-size: .85rem; }
+.territory-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.territory-summary-grid span { padding: 9px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-muted); font-size: .76rem; }
+.territory-summary-grid strong { display: block; color: var(--primary-dark); font-size: 1rem; }
+.territory-district-list { display: grid; gap: 8px; }
+.territory-district-card { border: 1px solid var(--border-color); border-radius: 6px; background: #fff; overflow: hidden; }
+.territory-district-card summary { display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; cursor: pointer; color: var(--text-main); font-weight: 700; }
+.territory-district-card summary small { color: var(--text-muted); font-weight: 500; }
+.territory-district-card__actions { padding: 0 12px 10px; }
+.territory-location-list { display: grid; border-top: 1px solid var(--border-color); }
+.territory-location-row { display: grid; grid-template-columns: minmax(160px, 1fr) auto 112px 132px; padding: 9px 12px; border-bottom: 1px solid var(--border-color); }
+.territory-location-row:last-child { border-bottom: 0; }
+.territory-location-row label { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text-main); font-size: .85rem; }
+.territory-location-row input { inline-size: 16px; block-size: 16px; accent-color: var(--primary-blue); }
+.territory-location-row select { min-width: 0; padding: 7px 8px; border: 1px solid var(--border-color); border-radius: 5px; background: var(--surface, #fff); color: var(--text-main); font-size: .78rem; }
+.territory-type-badge { padding: 3px 7px; border-radius: 999px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.territory-type-badge--corporation { background: rgba(12, 168, 133, .13); color: #087b61; }
+.territory-type-badge--municipality { background: rgba(117, 139, 253, .13); color: var(--primary-dark); }
+.territory-assignment__footer { justify-content: flex-end; }
+
+[data-theme="dark"] .territory-assignment-field,
+[data-theme="dark"] .territory-district-card { background: var(--surface-2); border-color: var(--border-subtle); }
+[data-theme="dark"] .territory-assignment__heading h3,
+[data-theme="dark"] .territory-summary-grid strong,
+[data-theme="dark"] .territory-location-row label { color: var(--text-primary); }
+[data-theme="dark"] .territory-district-card summary { color: var(--text-primary); }
+[data-theme="dark"] .territory-summary-grid span,
+[data-theme="dark"] .territory-district-card summary small { border-color: var(--border-subtle); color: var(--text-secondary); }
+[data-theme="dark"] .territory-location-list,
+[data-theme="dark"] .territory-location-row { border-color: var(--border-subtle); }
+[data-theme="dark"] .territory-location-row select { background: #0D1427; color: var(--text-primary); border-color: var(--border-default); }
+[data-theme="dark"] .territory-type-badge--municipality { color: #b8c2ff; }
+
+@media (max-width: 720px) {
+  .territory-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .territory-location-row { grid-template-columns: 1fr auto; }
+  .territory-location-row select { width: 100%; }
+  .territory-location-row select:nth-of-type(1) { grid-column: 1; }
+  .territory-location-row select:nth-of-type(2) { grid-column: 2; }
+}
+
 @media (max-width: 767px) {
   .ds-modal--visit-plan {
     width: 100vw;
