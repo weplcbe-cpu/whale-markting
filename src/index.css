@@ -3984,6 +3984,119 @@ body {
   }
 }
 
+/* Create Visit Plan dark-theme controls. */
+.ds-modal--visit-plan .ds-modal__body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  scrollbar-color: var(--surface-hover) var(--surface-1);
+  scrollbar-width: thin;
+}
+
+.ds-modal--visit-plan .ds-modal__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ds-modal--visit-plan .ds-modal__body::-webkit-scrollbar-track {
+  background: var(--surface-1);
+}
+
+.ds-modal--visit-plan .ds-modal__body::-webkit-scrollbar-thumb {
+  background: var(--surface-hover);
+  border: 2px solid var(--surface-1);
+  border-radius: 999px;
+}
+
+.ds-modal--visit-plan .ds-modal__body::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.ds-modal--visit-plan .ds-modal__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ds-modal--visit-plan .ds-field > label,
+.ds-modal--visit-plan .visit-toggle-field legend,
+.ds-modal--visit-plan .visit-products-field legend {
+  color: var(--text-secondary);
+}
+
+.ds-modal--visit-plan .ds-field input::placeholder,
+.ds-modal--visit-plan .ds-field textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.ds-modal--visit-plan .visit-toggle-group button,
+.ds-modal--visit-plan .visit-product-grid button {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+
+.ds-modal--visit-plan .visit-toggle-group button:hover:not(:disabled),
+.ds-modal--visit-plan .visit-product-grid button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.ds-modal--visit-plan .visit-toggle-group button.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(91, 124, 255, .16);
+}
+
+.ds-modal--visit-plan .visit-product-grid button.selected {
+  background: linear-gradient(135deg, rgba(91, 124, 255, .24), rgba(109, 92, 255, .20));
+  border-color: var(--primary);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+.ds-modal--visit-plan .visit-toggle-group button:disabled,
+.ds-modal--visit-plan .visit-product-grid button:disabled,
+.ds-modal--visit-plan .visit-toggle-group button.selected:disabled,
+.ds-modal--visit-plan .visit-product-grid button.selected:disabled {
+  background: var(--surface-1);
+  border-color: var(--border-default);
+  color: var(--text-disabled);
+  box-shadow: none;
+  opacity: .65;
+}
+
+.ds-modal--visit-plan .visit-products-field {
+  margin: 0;
+  padding: 18px 14px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.ds-modal--visit-plan .visit-products-field legend {
+  padding: 0 8px;
+  background: var(--surface-1);
+}
+
+.ds-modal--visit-plan .visit-product-grid button {
+  min-width: 0;
+}
+
+.ds-modal--visit-plan .visit-product-grid button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 575px) {
+  .ds-modal--visit-plan .ds-modal__footer {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
 @keyframes dsStepIn {
   from {
     opacity: 0;
