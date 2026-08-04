@@ -181,6 +181,9 @@ export const AppProvider = ({ children }) => {
   const [employeeVisitPlaces, setEmployeeVisitPlaces] = useState([]);
   const [territoryAssignments, setTerritoryAssignments] = useState([]);
   const [territoryLocalBodies, setTerritoryLocalBodies] = useState([]);
+  const [territoryZones, setTerritoryZones] = useState([]);
+  const [territoryDistricts, setTerritoryDistricts] = useState([]);
+  const [territoryPlanningGroups, setTerritoryPlanningGroups] = useState([]);
   const [directorComments, setDirectorComments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -366,6 +369,8 @@ export const AppProvider = ({ children }) => {
       console.log('Marketing assigned places currentUser.id', currentUser?.id);
       console.log('Marketing assigned place query payload', assignedPlaceQueryPayload);
     }
+    let territoryLocalBodiesQuery = supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name, zone_id, territory_zones(id, zone_name))');
+    if (currentUser?.role !== 'Admin') territoryLocalBodiesQuery = territoryLocalBodiesQuery.eq('active', true);
     const queries = [
       ['users', supabase.from('profiles').select('*')],
       ['products', supabase.from('products').select('*').order('display_order')],
@@ -377,7 +382,10 @@ export const AppProvider = ({ children }) => {
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
       ['employeeVisitPlaces', assignedPlaceQuery],
       ['territoryAssignments', supabase.from('employee_territory_assignments').select('id, employee_id, zone_id, local_body_id, priority, visit_cycle, active, assigned_at, territory_zones(id, zone_name), local_bodies(id, district_id, local_body_name, local_body_type, active, districts(id, district_name))').eq('active', true)],
-      ['territoryLocalBodies', supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name)').eq('active', true)],
+      ['territoryLocalBodies', territoryLocalBodiesQuery],
+      ['territoryZones', supabase.from('territory_zones').select('id, zone_name, active').order('zone_name')],
+      ['territoryDistricts', supabase.from('districts').select('id, district_name, zone_id, active, territory_zones(id, zone_name)').order('district_name')],
+      ['territoryPlanningGroups', supabase.from('territory_planning_groups').select('id, zone_id, group_name, display_order, active, territory_zones(id, zone_name)').order('display_order')],
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -418,6 +426,9 @@ export const AppProvider = ({ children }) => {
       const normalized = rowToCamel(localBody);
       return { ...normalized, district: rowToCamel(localBody.districts) };
     }));
+    setTerritoryZones(rowsToCamel(results.territoryZones));
+    setTerritoryDistricts((results.territoryDistricts || []).map((district) => ({ ...rowToCamel(district), zone: rowToCamel(district.territory_zones) })));
+    setTerritoryPlanningGroups((results.territoryPlanningGroups || []).map((group) => ({ ...rowToCamel(group), zone: rowToCamel(group.territory_zones) })));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
@@ -447,7 +458,14 @@ export const AppProvider = ({ children }) => {
         return query;
       }, setEmployeeVisitPlaces],
       employee_territory_assignments: [() => supabase.from('employee_territory_assignments').select('id, employee_id, zone_id, local_body_id, priority, visit_cycle, active, assigned_at, territory_zones(id, zone_name), local_bodies(id, district_id, local_body_name, local_body_type, active, districts(id, district_name))').eq('active', true), setTerritoryAssignments],
-      local_bodies: [() => supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name)').eq('active', true), setTerritoryLocalBodies],
+      local_bodies: [() => {
+        let query = supabase.from('local_bodies').select('id, district_id, local_body_name, local_body_type, active, districts(id, district_name, zone_id, territory_zones(id, zone_name))');
+        if (currentUser?.role !== 'Admin') query = query.eq('active', true);
+        return query;
+      }, setTerritoryLocalBodies],
+      territory_zones: [() => supabase.from('territory_zones').select('id, zone_name, active').order('zone_name'), setTerritoryZones],
+      districts: [() => supabase.from('districts').select('id, district_name, zone_id, active, territory_zones(id, zone_name)').order('district_name'), setTerritoryDistricts],
+      territory_planning_groups: [() => supabase.from('territory_planning_groups').select('id, zone_id, group_name, display_order, active, territory_zones(id, zone_name)').order('display_order'), setTerritoryPlanningGroups],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -472,6 +490,10 @@ export const AppProvider = ({ children }) => {
               const normalized = rowToCamel(localBody);
               return { ...normalized, district: rowToCamel(localBody.districts) };
             })
+          : table === 'districts'
+            ? (data || []).map((district) => ({ ...rowToCamel(district), zone: rowToCamel(district.territory_zones) }))
+            : table === 'territory_planning_groups'
+              ? (data || []).map((group) => ({ ...rowToCamel(group), zone: rowToCamel(group.territory_zones) }))
           : table === 'company_info'
             ? (mapped[0] || null)
             : mapped;
@@ -488,7 +510,7 @@ export const AppProvider = ({ children }) => {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
-      setFollowUps([]); setEmployeeVisitPlaces([]); setTerritoryAssignments([]); setTerritoryLocalBodies([]); setDirectorComments([]); setNotifications([]);
+      setFollowUps([]); setEmployeeVisitPlaces([]); setTerritoryAssignments([]); setTerritoryLocalBodies([]); setTerritoryZones([]); setTerritoryDistricts([]); setTerritoryPlanningGroups([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -733,6 +755,23 @@ export const AppProvider = ({ children }) => {
     ]);
     showToast('Territory assignments saved.', 'success');
     return { success: true };
+  };
+
+  const manageTerritoryMasterRecord = async (action, record) => {
+    const { data, error } = await supabase.rpc('admin_manage_territory_master', {
+      p_action: action,
+      p_record: record,
+    });
+    if (error) throw error;
+    await Promise.all([
+      refreshEntity('territory_zones'),
+      refreshEntity('districts'),
+      refreshEntity('local_bodies'),
+      refreshEntity('territory_planning_groups'),
+      refreshEntity('employee_territory_assignments'),
+    ]);
+    showToast('Territory master record saved.', 'success');
+    return data;
   };
 
   const addUser = async (userData) => {
@@ -1568,6 +1607,9 @@ export const AppProvider = ({ children }) => {
     employeeVisitPlaces,
     territoryAssignments,
     territoryLocalBodies,
+    territoryZones,
+    territoryDistricts,
+    territoryPlanningGroups,
     directorComments,
     notifications,
     activityLogs,
@@ -1582,6 +1624,7 @@ export const AppProvider = ({ children }) => {
     addUser,
     updateUser,
     replaceEmployeeTerritoryAssignments,
+    manageTerritoryMasterRecord,
     toggleUserStatus,
     deleteUser,
     addProduct,

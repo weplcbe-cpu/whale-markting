@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Plus } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Plus, ChevronDown } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { useModalLayer } from '../ui/modalLayer';
 
@@ -12,6 +12,10 @@ const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
   const message = error.message.trim();
   return message && message !== '{}' ? message : fallback;
 };
+
+const territoryDraftSignature = (draft) => JSON.stringify(Object.values(draft)
+  .map(({ localBodyId, priority, visitCycle, active }) => ({ localBodyId, priority, visitCycle, active: active !== false }))
+  .sort((left, right) => String(left.localBodyId).localeCompare(String(right.localBodyId))));
 
 export const UserManagement = () => {
   const { users, employeeVisitPlaces, territoryAssignments, territoryLocalBodies, addUser, updateUser, replaceEmployeeTerritoryAssignments, toggleUserStatus, deleteUser } = useApp();
@@ -29,6 +33,7 @@ export const UserManagement = () => {
   const [territoryDraft, setTerritoryDraft] = useState({});
   const [isSavingTerritory, setIsSavingTerritory] = useState(false);
   const initialFormDataRef = useRef(null);
+  const initialTerritoryDraftRef = useRef({});
   const submitLockRef = useRef(false);
 
   // Form State
@@ -83,6 +88,9 @@ export const UserManagement = () => {
 
   const isFormDirty = isAddModalOpen && initialFormDataRef.current !== null &&
     JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  const isTerritoryDirty = isSundarTerritoryEditor &&
+    territoryDraftSignature(territoryDraft) !== territoryDraftSignature(initialTerritoryDraftRef.current);
+  const hasUnsavedChanges = isFormDirty || isTerritoryDirty;
   useModalLayer(isAddModalOpen);
 
   useEffect(() => {
@@ -93,7 +101,7 @@ export const UserManagement = () => {
       event.preventDefault();
       if (showDiscardConfirm) {
         setShowDiscardConfirm(false);
-      } else if (isFormDirty) {
+      } else if (hasUnsavedChanges) {
         setShowDiscardConfirm(true);
       } else {
         setIsAddModalOpen(false);
@@ -102,10 +110,10 @@ export const UserManagement = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAddModalOpen, isFormDirty, isSubmitting, showDiscardConfirm]);
+  }, [hasUnsavedChanges, isAddModalOpen, isSubmitting, showDiscardConfirm]);
 
   useEffect(() => {
-    if (!isAddModalOpen || !isFormDirty) return undefined;
+    if (!isAddModalOpen || !hasUnsavedChanges) return undefined;
 
     const handleBeforeUnload = (event) => {
       event.preventDefault();
@@ -114,7 +122,7 @@ export const UserManagement = () => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isAddModalOpen, isFormDirty]);
+  }, [hasUnsavedChanges, isAddModalOpen]);
 
   const closeModal = () => {
     setShowDiscardConfirm(false);
@@ -124,7 +132,7 @@ export const UserManagement = () => {
 
   const requestClose = () => {
     if (isSubmitting) return;
-    if (isFormDirty) {
+    if (hasUnsavedChanges) {
       setShowDiscardConfirm(true);
       return;
     }
@@ -180,12 +188,15 @@ export const UserManagement = () => {
         .map((assignment) => ({ ...assignment, zoneId: territoryZoneId }));
       await replaceEmployeeTerritoryAssignments('EMP004', assignments);
       const selectedIds = new Set(assignments.map((assignment) => assignment.localBodyId));
+      const assignedVisitPlaces = territoryLocalBodies
+        .filter((localBody) => selectedIds.has(localBody.id))
+        .map((localBody) => localBody.localBodyName);
       setFormData((current) => ({
         ...current,
-        assignedVisitPlaces: territoryLocalBodies
-          .filter((localBody) => selectedIds.has(localBody.id))
-          .map((localBody) => localBody.localBodyName),
+        assignedVisitPlaces,
       }));
+      initialTerritoryDraftRef.current = Object.fromEntries(assignments.map((assignment) => [assignment.localBodyId, assignment]));
+      initialFormDataRef.current = { ...initialFormDataRef.current, assignedVisitPlaces };
     } catch (error) {
       setFormError(getCaughtErrorMessage(error, 'Unable to save territory assignments. Please try again.'));
     } finally {
@@ -209,6 +220,7 @@ export const UserManagement = () => {
     };
     setFormData(nextFormData);
     setTerritoryDraft({});
+    initialTerritoryDraftRef.current = {};
     initialFormDataRef.current = nextFormData;
     setEditingUser(null);
     setIsAddModalOpen(true);
@@ -232,7 +244,7 @@ export const UserManagement = () => {
         .map((item) => item.placeName)
     };
     setFormData(nextFormData);
-    setTerritoryDraft(Object.fromEntries(
+    const nextTerritoryDraft = Object.fromEntries(
       territoryAssignments
         .filter((assignment) => assignment.employeeId === user.employeeId)
         .map((assignment) => [assignment.localBodyId, {
@@ -243,7 +255,9 @@ export const UserManagement = () => {
           visitCycle: assignment.visitCycle,
           active: assignment.active !== false,
         }]),
-    ));
+      );
+      setTerritoryDraft(nextTerritoryDraft);
+      initialTerritoryDraftRef.current = nextTerritoryDraft;
     initialFormDataRef.current = nextFormData;
     setIsAddModalOpen(true);
   };
@@ -252,6 +266,11 @@ export const UserManagement = () => {
     e.preventDefault();
     if (submitLockRef.current) return;
     setFormError('');
+
+    if (isTerritoryDirty) {
+      setFormError('You have unsaved territory changes. Save the territory assignment before continuing.');
+      return;
+    }
 
     if (!editingUser && formData.role === 'Marketing Team' && !formData.assignedVisitPlaces.length) {
       setFormError('Assign at least one visit place for a Marketing user.');
@@ -501,7 +520,10 @@ export const UserManagement = () => {
                         <h3 id="territory-assignment-heading">Assigned Territory</h3>
                         <p>{territoryZoneName}</p>
                       </div>
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(territoryLocalBodies, true)} disabled={isSavingTerritory || !territoryLocalBodies.length}>Select All</button>
+                      <div className="territory-assignment__header-actions">
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(territoryLocalBodies, true)} disabled={isSavingTerritory || !territoryLocalBodies.length}>Select All Locations</button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(territoryLocalBodies, false)} disabled={isSavingTerritory || !territoryLocalBodies.length}>Clear All</button>
+                      </div>
                     </div>
                     <div className="territory-summary-grid">
                       <span><strong>{territoryTotals.districts}</strong> Districts</span>
@@ -513,9 +535,10 @@ export const UserManagement = () => {
                       {territoryDistricts.map(({ districtName, localBodies }) => {
                         const assignedCount = localBodies.filter((localBody) => territoryDraft[localBody.id]?.active !== false).length;
                         return <details key={districtName} className="territory-district-card">
-                          <summary>
+                          <summary aria-label={`${districtName}, ${assignedCount} of ${localBodies.length} assigned. Expand or collapse.`}>
                             <span>{districtName}</span>
                             <small>{assignedCount} / {localBodies.length} assigned</small>
+                            <ChevronDown aria-hidden="true" size={16} />
                           </summary>
                           <div className="territory-district-card__actions">
                             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDistrictAssignments(localBodies, true)}>Select Entire District</button>

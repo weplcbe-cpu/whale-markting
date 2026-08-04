@@ -4086,6 +4086,7 @@ body {
 
 .territory-assignment__heading,
 .territory-assignment__footer,
+.territory-assignment__header-actions,
 .territory-district-card__actions,
 .territory-location-row {
   display: flex;
@@ -4094,6 +4095,7 @@ body {
 }
 
 .territory-assignment__heading { justify-content: space-between; }
+.territory-assignment__header-actions { flex-wrap: wrap; justify-content: flex-end; }
 .territory-assignment__heading h3 { margin: 0; color: var(--primary-dark); font-size: 1rem; }
 .territory-assignment__heading p { margin: 3px 0 0; color: var(--text-muted); font-size: .85rem; }
 .territory-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
@@ -4103,6 +4105,8 @@ body {
 .territory-district-card { border: 1px solid var(--border-color); border-radius: 6px; background: #fff; overflow: hidden; }
 .territory-district-card summary { display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; cursor: pointer; color: var(--text-main); font-weight: 700; }
 .territory-district-card summary small { color: var(--text-muted); font-weight: 500; }
+.territory-district-card summary svg { transition: transform .16s ease; }
+.territory-district-card[open] summary svg { transform: rotate(180deg); }
 .territory-district-card__actions { padding: 0 12px 10px; }
 .territory-location-list { display: grid; border-top: 1px solid var(--border-color); }
 .territory-location-row { display: grid; grid-template-columns: minmax(160px, 1fr) auto 112px 132px; padding: 9px 12px; border-bottom: 1px solid var(--border-color); }
@@ -4114,6 +4118,28 @@ body {
 .territory-type-badge--corporation { background: rgba(12, 168, 133, .13); color: #087b61; }
 .territory-type-badge--municipality { background: rgba(117, 139, 253, .13); color: var(--primary-dark); }
 .territory-assignment__footer { justify-content: flex-end; }
+
+.territory-master-toolbar h2 { margin: 0; color: var(--text-main); font-size: 1.2rem; }
+.territory-master-toolbar p { margin: 4px 0 0; color: var(--text-muted); font-size: .85rem; }
+.master-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.territory-master-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.territory-master-summary span { padding: 13px; background: var(--surface, #fff); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: .78rem; }
+.territory-master-summary strong { display: block; color: var(--text-main); font-size: 1.25rem; }
+.territory-master-filters { display: grid; grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(150px, .45fr)); gap: 10px; margin-bottom: 16px; }
+.territory-master-filters label { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text-muted); }
+.territory-master-filters .form-input, .territory-master-filters .form-select { min-width: 0; width: 100%; }
+.territory-master-table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+.territory-master-table { min-width: 860px; margin: 0; }
+.territory-master-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.territory-master-actions .btn { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.territory-master-actions .btn:disabled { cursor: not-allowed; opacity: .45; }
+.territory-master-modal { max-width: 540px; }
+.territory-master-form { display: grid; gap: 14px; }
+.territory-active-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text-main); font-weight: 600; }
+.territory-active-toggle input { inline-size: 16px; block-size: 16px; accent-color: var(--primary-blue); }
+.master-list-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; color: var(--text-main); }
+.master-list-card > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.master-list-card span { padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-size: .85rem; }
 
 [data-theme="dark"] .territory-assignment-field,
 [data-theme="dark"] .territory-district-card { background: var(--surface-2); border-color: var(--border-subtle); }
@@ -4127,6 +4153,9 @@ body {
 [data-theme="dark"] .territory-location-row { border-color: var(--border-subtle); }
 [data-theme="dark"] .territory-location-row select { background: #0D1427; color: var(--text-primary); border-color: var(--border-default); }
 [data-theme="dark"] .territory-type-badge--municipality { color: #b8c2ff; }
+[data-theme="dark"] :is(.territory-master-summary span, .territory-master-table-wrap, .master-list-card span) { background: var(--surface-2); border-color: var(--border-subtle); }
+[data-theme="dark"] :is(.territory-master-summary strong, .territory-master-toolbar h2, .territory-active-toggle, .master-list-card h3, .master-list-card span) { color: var(--text-primary); }
+[data-theme="dark"] .territory-master-modal { background: var(--surface-1); }
 
 @media (max-width: 720px) {
   .territory-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4134,6 +4163,17 @@ body {
   .territory-location-row select { width: 100%; }
   .territory-location-row select:nth-of-type(1) { grid-column: 1; }
   .territory-location-row select:nth-of-type(2) { grid-column: 2; }
+  .territory-assignment__heading { align-items: flex-start; flex-direction: column; }
+  .territory-assignment__header-actions { justify-content: flex-start; }
+  .territory-master-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .territory-master-filters { grid-template-columns: 1fr; }
+  .territory-master-table { min-width: 0; }
+  .territory-master-table thead { display: none; }
+  .territory-master-table tbody, .territory-master-table tr, .territory-master-table td { display: block; width: 100%; }
+  .territory-master-table tr { padding: 10px; border-bottom: 1px solid var(--border-color); }
+  .territory-master-table td { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border: 0; text-align: right; }
+  .territory-master-table td::before { content: attr(data-label); color: var(--text-muted); text-align: left; }
+  .territory-master-actions { justify-content: flex-end; }
 }
 
 @media (max-width: 767px) {
