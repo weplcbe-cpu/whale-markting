@@ -168,7 +168,7 @@ export function AppContent() {
         navbar={<Navbar activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />}
       >
         {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
-        {dataLoading && <div className="director-live-status" role="status">Refreshing portal data…</div>}
+        {dataLoading && <div className="portal-refresh-progress" role="status" aria-live="polite" aria-label="Refreshing portal data" />}
         <ErrorBoundary key={location.pathname}>
           {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
         </ErrorBoundary>
