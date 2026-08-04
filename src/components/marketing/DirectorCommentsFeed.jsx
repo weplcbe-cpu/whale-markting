@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExternalLink, MessageSquare, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { directorFeedbackRoute, resolveDirectorFeedbackRecord } from '../../utils/directorFeedback';
 import { Badge, Button, EmptyState, PageHeader } from '../ui';
-import { EntityDetailsModal, RelatedRecordButton } from '../common/details';
+import { EntityDetailsModal, formatDisplayDateTime, RelatedRecordButton } from '../common/details';
 
 const FILTERS = ['All', 'Unread', 'Read', 'Visit Plans', 'Tour Plans', 'Reports', 'Follow-ups'];
 export const DirectorCommentsFeed = () => {
@@ -23,10 +23,12 @@ export const DirectorCommentsFeed = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState('All');
   const [selected, setSelected] = useState(null);
-  const feedback = useMemo(
-    () => directorComments.filter((item) => item.employeeId === currentUser?.employeeId),
-    [currentUser?.employeeId, directorComments],
-  );
+  const comments = Array.isArray(directorComments) ? directorComments : [];
+  const plans = Array.isArray(visitPlans) ? visitPlans : [];
+  const reports = Array.isArray(visitReports) ? visitReports : [];
+  const reportsByDay = Array.isArray(dailyReports) ? dailyReports : [];
+  const scheduledFollowUps = Array.isArray(followUps) ? followUps : [];
+  const feedback = comments.filter((item) => item && item.employeeId === currentUser?.employeeId);
 
   useEffect(() => {
     const unreadIds = feedback.filter((item) => !item.isRead).map((item) => item.id);
@@ -42,7 +44,12 @@ export const DirectorCommentsFeed = () => {
     }
   }, [feedback, markDirectorFeedbackRead, searchParams]);
 
-  const relatedRecord = (item) => resolveDirectorFeedbackRecord(item, { visitPlans, visitReports, dailyReports, followUps });
+  const relatedRecord = (item) => resolveDirectorFeedbackRecord(item, {
+    visitPlans: plans,
+    visitReports: reports,
+    dailyReports: reportsByDay,
+    followUps: scheduledFollowUps,
+  });
   const recordAvailable = (item) => relatedRecord(item).state === 'available';
   const filtered = feedback.filter((item) => {
     if (filter === 'Unread') return !item.isRead;
@@ -89,7 +96,7 @@ export const DirectorCommentsFeed = () => {
                 <button type="button" className="director-feedback-card__main" onClick={() => openDetails(item)} aria-label={`${item.isRead ? 'Read' : 'Unread'} feedback from ${item.directorName}`}>
                   <span className="director-feedback-card__header">
                     <strong>{item.directorName}</strong>
-                    <time>{formatDate(item.createdAt)}</time>
+                    <time>{formatDisplayDateTime(item.createdAt)}</time>
                   </span>
                   <span className="director-feedback-card__badges">
                     <Badge>{item.targetType}</Badge>
@@ -104,7 +111,7 @@ export const DirectorCommentsFeed = () => {
               </article>
             );
           })}
-          {!filtered.length && <EmptyState icon={MessageSquare} title={filter === 'Unread' ? 'No unread feedback.' : 'No Director feedback yet.'} />}
+          {!filtered.length && <EmptyState icon={MessageSquare} title={filter === 'Unread' ? 'No unread feedback.' : 'No comments available.'} />}
         </div>
       )}
       <EntityDetailsModal open={Boolean(selected)} onClose={closeDetails} type="feedback" entity={selected} relatedState={selected ? relatedRecord(selected).state : null} primaryAction={selected?.targetId ? <RelatedRecordButton disabled={!recordAvailable(selected)} onClick={() => openRelated(selected)} /> : null} />

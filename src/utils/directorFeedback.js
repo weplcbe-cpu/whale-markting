@@ -93,7 +93,11 @@ export const directorFeedbackRoute = (feedback) => {
 export const resolveDirectorFeedbackRecord = (feedback, records = {}) => {
   const targetId = String(feedback?.targetId || '').trim();
   if (!targetId) return { state: 'malformed', record: null };
-  const { visitPlans = [], visitReports = [], dailyReports = [], followUps = [] } = records;
+  const source = records && typeof records === 'object' ? records : {};
+  const visitPlans = Array.isArray(source.visitPlans) ? source.visitPlans : [];
+  const visitReports = Array.isArray(source.visitReports) ? source.visitReports : [];
+  const dailyReports = Array.isArray(source.dailyReports) ? source.dailyReports : [];
+  const followUps = Array.isArray(source.followUps) ? source.followUps : [];
   let record = null;
   switch (feedback.targetType) {
     case 'Visit Plan':

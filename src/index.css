@@ -2709,6 +2709,76 @@ h1, h2, h3, h4, h5, h6,
   animation: refresh-slide 1.2s linear infinite;
 }
 
+/* Marketing Follow-ups filter control. */
+.follow-up-filters {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+}
+
+.follow-up-filters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.follow-up-filters button:hover:not(.active) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.follow-up-filters button.active {
+  background: linear-gradient(135deg, var(--primary), #6B5CFF);
+  color: #FFFFFF;
+  box-shadow: 0 6px 18px rgba(91, 124, 255, .22);
+}
+
+.follow-up-filters button:focus-visible {
+  outline: 3px solid rgba(91, 124, 255, .45);
+  outline-offset: 2px;
+}
+
+.follow-up-filters__count {
+  display: inline-grid;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+@media (max-width: 390px) {
+  .follow-up-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .follow-up-filters button {
+    width: 100%;
+  }
+}
+
 @keyframes refresh-slide {
   from { transform: translateX(-125%); }
   to { transform: translateX(250%); }

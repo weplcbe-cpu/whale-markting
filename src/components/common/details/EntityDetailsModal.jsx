@@ -16,7 +16,7 @@ export const ProductChips = ({ products }) => {
   return values.length ? <div className="entity-product-chips">{values.map((product) => <span key={String(product)}>{product}</span>)}</div> : <span>—</span>;
 };
 export const ReferenceMeta = ({ references = [] }) => {
-  const visible = references.filter((item) => hasDisplayValue(item.value));
+  const visible = (Array.isArray(references) ? references : []).filter((item) => item && hasDisplayValue(item.value));
   if (!visible.length) return null;
   const copy = (value) => navigator.clipboard?.writeText(String(value));
   return <details className="entity-reference"><summary>Technical Reference</summary>{visible.map(({ label, value }) => <div key={label}><span>{label}</span><code title={String(value)}>{truncateReference(value)}</code><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label}`} title={`Copy ${label}`}><Copy size={14} /></button></div>)}</details>;
