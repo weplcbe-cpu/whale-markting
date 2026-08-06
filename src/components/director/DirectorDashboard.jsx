@@ -269,7 +269,7 @@ export const DirectorDashboard = () => {
                     </strong>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       <User size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '3px' }} />
-                      {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Territory'}
+                      {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Location'}
                     </span>
                   </div>
                   <span className={`badge badge-${String(plan.status || 'planned').toLowerCase()}`} style={{ fontSize: '0.68rem', flexShrink: 0 }}>

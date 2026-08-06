@@ -156,7 +156,7 @@ export function AppContent() {
         const Component = getLazyComponent(route);
         return <Route key={route.path} path={route.path} element={<Suspense fallback={<BrandedLoadingScreen label="Loading page…" />}><Component setActiveTab={selectAdminTab} /></Suspense>} />;
       })}
-      <Route path="*" element={<Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to="/admin/master-data" replace />} />
     </Routes>
   );
 
