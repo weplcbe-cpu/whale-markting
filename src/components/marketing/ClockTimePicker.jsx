@@ -15,6 +15,15 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
   const titleId = useId();
   const dialogId = useId();
   const [position, setPosition] = useState({ top: 16, left: 16 });
+  const diagnosticMode = new URLSearchParams(window.location.search).has('clockPickerDiagnostic');
+
+  console.log(`[ClockTimePicker] render open = ${open}`);
+
+  useEffect(() => () => console.log('[ClockTimePicker] unmounted'), []);
+
+  useEffect(() => {
+    if (open) console.log('[ClockTimePicker] portal branch rendered');
+  }, [open]);
 
   useEffect(() => {
     if (!open) setDraft({ hour, minute, period });
@@ -99,16 +108,22 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
     return () => window.removeEventListener('keydown', trapPickerFocus, true);
   }, [open]);
 
-  const close = () => {
+  const close = (reason = 'close') => {
+    if (reason === 'outside click') console.log('[ClockTimePicker] outside click close');
+    if (reason === 'Escape') console.log('[ClockTimePicker] Escape close');
+    if (reason === 'focusout') console.log('[ClockTimePicker] focusout close');
+    console.trace('[ClockTimePicker] setOpen(false) called', reason);
     setOpen(false);
     window.requestAnimationFrame(() => fieldRef.current?.focus());
   };
 
   const openPicker = (event) => {
+    console.log('[ClockTimePicker] openPicker called');
     event.preventDefault();
     event.stopPropagation();
     setDraft({ hour, minute, period });
     setStep('hour');
+    console.log('[ClockTimePicker] setOpen true requested');
     setOpen(true);
   };
 
@@ -161,25 +176,35 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={dialogId}
-        onClick={openPicker}
+        onPointerDown={() => console.log('[ClockTimePicker] trigger pointerdown')}
+        onClick={(event) => {
+          console.log('[ClockTimePicker] trigger click');
+          openPicker(event);
+        }}
       >
         <Clock size={19} aria-hidden="true" />
         <span>{hour}:{minute} {period}</span>
       </button>
 
       {open && createPortal(
-        <div className="clock-time-layer" role="presentation">
-          <button className="clock-time-backdrop" type="button" aria-label="Close time picker" onClick={close} />
+        <div className="clock-time-layer clock-picker-layer" role="presentation">
+          <button className="clock-time-backdrop" type="button" aria-label="Close time picker" onClick={() => close('outside click')} />
           <div
             ref={dialogRef}
-            className="clock-time-popover"
+            className="clock-time-popover clock-picker-panel"
             id={dialogId}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
             onKeyDown={handleKeyDown}
-            style={{ '--clock-popover-top': `${position.top}px`, '--clock-popover-left': `${position.left}px` }}
+            style={diagnosticMode ? {
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999,
+            } : { '--clock-popover-top': `${position.top}px`, '--clock-popover-left': `${position.left}px` }}
           >
             <header className="clock-time-header"><h3 id={titleId}>Select Visit Time</h3><button type="button" onClick={close} aria-label="Close time picker"><X size={18} /></button></header>
             <div className="clock-time-display" aria-live="polite">
