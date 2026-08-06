@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { autoPlacement, autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom';
 import { Clock, X } from 'lucide-react';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
@@ -21,42 +22,48 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
   useEffect(() => {
     if (!open) return undefined;
 
-    const updatePosition = () => {
-      const trigger = fieldRef.current?.getBoundingClientRect();
-      const panel = dialogRef.current?.getBoundingClientRect();
-      if (!trigger || !panel) return;
-      const gap = 8;
-      const horizontalPadding = 16;
-      const verticalPadding = 16;
-      const spaceBelow = window.innerHeight - trigger.bottom - verticalPadding;
-      const shouldFlip = spaceBelow < panel.height + gap && trigger.top > spaceBelow;
-      setPosition({
-        top: Math.max(verticalPadding, Math.min(
-          shouldFlip ? trigger.top - panel.height - gap : trigger.bottom + gap,
-          window.innerHeight - panel.height - verticalPadding,
-        )),
-        left: Math.max(horizontalPadding, Math.min(
-          trigger.left,
-          window.innerWidth - panel.width - horizontalPadding,
-        )),
+    const updatePosition = async () => {
+      if (!fieldRef.current || !dialogRef.current) return;
+      const { x, y } = await computePosition(fieldRef.current, dialogRef.current, {
+        strategy: 'fixed',
+        middleware: [
+          offset(12),
+          flip({ padding: 16 }),
+          shift({ padding: 16 }),
+          autoPlacement({ padding: 16 }),
+          size({
+            padding: 16,
+            apply({ availableWidth, availableHeight, elements }) {
+              Object.assign(elements.floating.style, {
+                maxWidth: `${Math.max(0, availableWidth)}px`,
+                maxHeight: `${Math.max(0, availableHeight)}px`,
+              });
+            },
+          }),
+        ],
       });
+      setPosition({ top: y, left: x });
     };
+
+    const modalBody = fieldRef.current?.closest('.ds-modal__body');
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousModalOverflow = modalBody?.style.overflow;
+    document.body.style.overflow = 'hidden';
+    if (modalBody) modalBody.style.overflow = 'hidden';
 
     let frame = window.requestAnimationFrame(() => {
       updatePosition();
       dialogRef.current?.focus();
     });
-    const schedulePositionUpdate = () => {
+    const cleanupAutoUpdate = autoUpdate(fieldRef.current, dialogRef.current, () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(updatePosition);
-    };
-    const modalBody = fieldRef.current?.closest('.ds-modal__body');
-    window.addEventListener('resize', schedulePositionUpdate);
-    modalBody?.addEventListener('scroll', schedulePositionUpdate, { passive: true });
+    });
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener('resize', schedulePositionUpdate);
-      modalBody?.removeEventListener('scroll', schedulePositionUpdate);
+      cleanupAutoUpdate();
+      document.body.style.overflow = previousBodyOverflow;
+      if (modalBody) modalBody.style.overflow = previousModalOverflow;
     };
   }, [open]);
 
