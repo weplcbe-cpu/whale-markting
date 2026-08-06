@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Clock } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Clock, X } from 'lucide-react';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
@@ -11,13 +12,80 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
   const fieldRef = useRef(null);
   const dialogRef = useRef(null);
   const titleId = useId();
+  const [position, setPosition] = useState({ top: 16, left: 16 });
 
   useEffect(() => {
     if (!open) setDraft({ hour, minute, period });
   }, [hour, minute, open, period]);
 
   useEffect(() => {
-    if (open) dialogRef.current?.focus();
+    if (!open) return undefined;
+
+    const updatePosition = () => {
+      const trigger = fieldRef.current?.getBoundingClientRect();
+      const panel = dialogRef.current?.getBoundingClientRect();
+      if (!trigger || !panel) return;
+      const gap = 8;
+      const horizontalPadding = 16;
+      const verticalPadding = 16;
+      const spaceBelow = window.innerHeight - trigger.bottom - verticalPadding;
+      const shouldFlip = spaceBelow < panel.height + gap && trigger.top > spaceBelow;
+      setPosition({
+        top: Math.max(verticalPadding, Math.min(
+          shouldFlip ? trigger.top - panel.height - gap : trigger.bottom + gap,
+          window.innerHeight - panel.height - verticalPadding,
+        )),
+        left: Math.max(horizontalPadding, Math.min(
+          trigger.left,
+          window.innerWidth - panel.width - horizontalPadding,
+        )),
+      });
+    };
+
+    let frame = window.requestAnimationFrame(() => {
+      updatePosition();
+      dialogRef.current?.focus();
+    });
+    const schedulePositionUpdate = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(updatePosition);
+    };
+    const modalBody = fieldRef.current?.closest('.ds-modal__body');
+    window.addEventListener('resize', schedulePositionUpdate);
+    modalBody?.addEventListener('scroll', schedulePositionUpdate, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', schedulePositionUpdate);
+      modalBody?.removeEventListener('scroll', schedulePositionUpdate);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const trapPickerFocus = (event) => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = [...dialog.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', trapPickerFocus, true);
+    return () => window.removeEventListener('keydown', trapPickerFocus, true);
   }, [open]);
 
   const close = () => {
@@ -44,6 +112,7 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
   const handleKeyDown = (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
+      event.stopPropagation();
       close();
     } else if (event.target === dialogRef.current && event.key === 'Enter') {
       event.preventDefault();
@@ -82,8 +151,8 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
         <span>{hour}:{minute} {period}</span>
       </button>
 
-      {open && (
-        <>
+      {open && createPortal(
+        <div className="clock-time-layer" role="presentation">
           <button className="clock-time-backdrop" type="button" aria-label="Close time picker" onClick={close} />
           <div
             ref={dialogRef}
@@ -93,8 +162,9 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
             aria-labelledby={titleId}
             tabIndex={-1}
             onKeyDown={handleKeyDown}
+            style={{ '--clock-popover-top': `${position.top}px`, '--clock-popover-left': `${position.left}px` }}
           >
-            <h3 id={titleId}>Select Visit Time</h3>
+            <header className="clock-time-header"><h3 id={titleId}>Select Visit Time</h3><button type="button" onClick={close} aria-label="Close time picker"><X size={18} /></button></header>
             <div className="clock-time-display" aria-live="polite">
               <button type="button" className={step === 'hour' ? 'selected' : ''} onClick={() => setStep('hour')} aria-label="Select hour">
                 {draft.hour}
@@ -116,7 +186,7 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
                     type="button"
                     key={value}
                     className={selected === value ? 'selected' : ''}
-                    style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-102px) rotate(${-angle}deg)` }}
+                    style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--clock-face-size) * -0.42)) rotate(${-angle}deg)` }}
                     aria-label={step === 'hour' ? `${Number(value)} o'clock` : `${value} minutes`}
                     aria-pressed={selected === value}
                     onClick={() => {
@@ -153,7 +223,8 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
               <button type="button" className="primary" onClick={confirm}>Set Time</button>
             </div>
           </div>
-        </>
+        </div>,
+        document.body,
       )}
     </div>
   );

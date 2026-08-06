@@ -3769,7 +3769,7 @@ body {
 }
 
 .clock-time-field {
-  position: relative;
+  min-width: 0;
 }
 
 .clock-time-trigger {
@@ -3802,15 +3802,22 @@ body {
 }
 
 .clock-time-popover {
-  position: absolute;
-  z-index: 80;
-  top: calc(100% + 8px);
-  left: 0;
-  width: min(320px, calc(100vw - 40px));
+  --clock-face-size: min(230px, 72vw);
+  position: fixed;
+  z-index: 1110;
+  top: var(--clock-popover-top);
+  left: var(--clock-popover-left);
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(620px, calc(100dvh - 32px));
+  flex-direction: column;
+  gap: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 18px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-default, #e2e8f0);
   border-radius: 18px;
-  background: #fff;
+  background: var(--surface-1, #fff);
   box-shadow: 0 20px 50px rgba(30, 41, 59, .2);
 }
 
@@ -3818,11 +3825,31 @@ body {
   outline: none;
 }
 
+.clock-time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .clock-time-popover h3 {
-  margin: 0 0 10px;
-  color: var(--primary-dark);
+  margin: 0;
+  color: var(--text-primary, var(--primary-dark));
   font-family: var(--font-heading, "Swis721 BlkCn BT", sans-serif);
-  font-size: 20px;
+  font-size: 18px;
+}
+
+.clock-time-header > button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 50%;
+  background: var(--surface-2, #f8fafc);
+  color: var(--text-primary, var(--primary-dark));
+  cursor: pointer;
 }
 
 .clock-time-display {
@@ -3830,7 +3857,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  margin-bottom: 12px;
+  margin: 0;
   font: 700 24px var(--font-primary);
 }
 
@@ -3857,9 +3884,10 @@ body {
 
 .clock-face {
   position: relative;
-  width: 244px;
-  height: 244px;
-  margin: 0 auto 14px;
+  width: var(--clock-face-size);
+  aspect-ratio: 1;
+  height: auto;
+  margin: 0 auto;
   border-radius: 50%;
   background: #f1f5ff;
 }
@@ -3892,7 +3920,7 @@ body {
   left: 50%;
   bottom: 50%;
   width: 3px;
-  height: 84px;
+  height: calc(var(--clock-face-size) * .36);
   border-radius: 3px;
   background: #93c5fd;
   transform-origin: bottom center;
@@ -3941,6 +3969,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  margin-top: auto;
 }
 
 .clock-time-actions button {
@@ -3961,7 +3990,51 @@ body {
 }
 
 .clock-time-backdrop {
-  display: none;
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.clock-time-layer {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  pointer-events: none;
+}
+
+.clock-time-layer > :is(.clock-time-backdrop, .clock-time-popover) {
+  pointer-events: auto;
+}
+
+@media (max-width: 1024px) {
+  .clock-time-popover {
+    --clock-face-size: 210px;
+  }
+}
+
+@media (max-width: 640px) {
+  .clock-time-popover {
+    --clock-face-size: min(210px, 72vw);
+    top: auto;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .clock-time-backdrop {
+    background: rgba(15, 23, 42, .38);
+  }
 }
 
 .visit-toggle-field {
