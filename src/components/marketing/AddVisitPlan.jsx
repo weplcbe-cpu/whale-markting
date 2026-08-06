@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Clock, Save, X } from 'lucide-react';
+import { Check, Save, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, FormField, Modal, SelectField, TextArea } from '../ui';
-import ClockTimePicker from './ClockTimePicker';
+import { to12HourTime, to24HourTime } from '../../utils/timeUtils';
 import VisitDatePicker from './VisitDatePicker';
 
 const LEGACY_DRAFT_KEY = 'marketing-visit-plan-draft';
@@ -30,10 +30,10 @@ const roundedTime = () => {
 };
 
 const parseExpectedTime = (value) => {
-  const match = String(value || '').trim().match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i);
+  const match = to12HourTime(value).match(/^(\d{2}):(\d{2})\s(AM|PM)$/);
   if (!match) return {};
   return {
-    hour: match[1].padStart(2, '0'),
+    hour: match[1],
     minute: match[2],
     period: match[3].toUpperCase(),
   };
@@ -101,9 +101,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [draftStatus, setDraftStatus] = useState('saved');
-  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const submissionKey = useRef(plan?.submissionKey || crypto.randomUUID());
-  const timeTriggerRef = useRef(null);
   const dirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
   // Assigned visit places for current logged-in marketing user ONLY
@@ -185,11 +183,6 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     update('selectedProducts', formData.selectedProducts.filter((item) => item !== name));
   };
 
-  const closeTimePicker = () => {
-    setIsTimePickerOpen(false);
-    window.requestAnimationFrame(() => timeTriggerRef.current?.focus());
-  };
-
   const choosePreviousOrganization = (org) => {
     setFormData((current) => ({
       ...current,
@@ -201,7 +194,14 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     setErrors((current) => ({ ...current, mobileNumber: undefined }));
   };
 
-  const expectedTime = `${formData.hour}:${formData.minute} ${formData.period}`;
+  const expectedTime = to12HourTime(`${formData.hour}:${formData.minute} ${formData.period}`);
+  const time24 = to24HourTime(expectedTime);
+
+  const handleTimeChange = (event) => {
+    const time = parseExpectedTime(event.target.value);
+    setFormData((current) => ({ ...current, hour: time.hour || '', minute: time.minute || '', period: time.period || '' }));
+    setErrors((current) => ({ ...current, expectedTime: undefined }));
+  };
 
   const validate = () => {
     const nextErrors = {};
@@ -347,30 +347,16 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
         {/* Visit Time */}
         <div className="ds-field">
-          <label>Visit Time <span className="ds-required">*</span></label>
-          <button
-            ref={timeTriggerRef}
-            type="button"
-            className={`clock-time-trigger${errors.expectedTime ? ' clock-time-trigger--error' : ''}`}
-            aria-label={`Visit Time, ${formData.hour}:${formData.minute} ${formData.period}`}
-            aria-haspopup="dialog"
-            aria-expanded={isTimePickerOpen}
-            onClick={() => setIsTimePickerOpen(true)}
-          >
-            <Clock size={19} aria-hidden="true" />
-            <span>{formData.hour}:{formData.minute} {formData.period}</span>
-          </button>
-          {isTimePickerOpen && (
-            <ClockTimePicker
-              value={{ hour: formData.hour, minute: formData.minute, period: formData.period }}
-              onCancel={closeTimePicker}
-              onConfirm={(time) => {
-              setFormData((current) => ({ ...current, ...time }));
-              setErrors((current) => ({ ...current, expectedTime: undefined }));
-                closeTimePicker();
-            }}
-            />
-          )}
+          <label htmlFor="visit-time">Visit Time <span className="ds-required">*</span></label>
+          <input
+            id="visit-time"
+            type="time"
+            value={time24}
+            onChange={handleTimeChange}
+            step="300"
+            required
+            aria-invalid={Boolean(errors.expectedTime)}
+          />
           {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
         </div>
 
