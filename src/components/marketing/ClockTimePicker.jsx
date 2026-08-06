@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { autoPlacement, autoUpdate, computePosition, flip, offset, shift, size } from '@floating-ui/dom';
+import { autoPlacement, autoUpdate, computePosition, offset, shift, size } from '@floating-ui/dom';
 import { Clock, X } from 'lucide-react';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
@@ -13,6 +13,7 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
   const fieldRef = useRef(null);
   const dialogRef = useRef(null);
   const titleId = useId();
+  const dialogId = useId();
   const [position, setPosition] = useState({ top: 16, left: 16 });
 
   useEffect(() => {
@@ -24,25 +25,28 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
 
     const updatePosition = async () => {
       if (!fieldRef.current || !dialogRef.current) return;
-      const { x, y } = await computePosition(fieldRef.current, dialogRef.current, {
-        strategy: 'fixed',
-        middleware: [
-          offset(12),
-          flip({ padding: 16 }),
-          shift({ padding: 16 }),
-          autoPlacement({ padding: 16 }),
-          size({
-            padding: 16,
-            apply({ availableWidth, availableHeight, elements }) {
-              Object.assign(elements.floating.style, {
-                maxWidth: `${Math.max(0, availableWidth)}px`,
-                maxHeight: `${Math.max(0, availableHeight)}px`,
-              });
-            },
-          }),
-        ],
-      });
-      setPosition({ top: y, left: x });
+      try {
+        const { x, y } = await computePosition(fieldRef.current, dialogRef.current, {
+          strategy: 'fixed',
+          middleware: [
+            offset(12),
+            autoPlacement({ padding: 16 }),
+            shift({ padding: 16 }),
+            size({
+              padding: 16,
+              apply({ availableWidth, availableHeight, elements }) {
+                Object.assign(elements.floating.style, {
+                  maxWidth: `${Math.max(0, availableWidth)}px`,
+                  maxHeight: `${Math.max(0, availableHeight)}px`,
+                });
+              },
+            }),
+          ],
+        });
+        setPosition({ top: y, left: x });
+      } catch (positionError) {
+        if (import.meta.env.DEV) console.error('[ClockTimePicker] floating position failed', positionError);
+      }
     };
 
     const modalBody = fieldRef.current?.closest('.ds-modal__body');
@@ -100,6 +104,14 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
     window.requestAnimationFrame(() => fieldRef.current?.focus());
   };
 
+  const openPicker = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraft({ hour, minute, period });
+    setStep('hour');
+    setOpen(true);
+  };
+
   const confirm = () => {
     if (!draft.hour || !draft.minute || !draft.period) return;
     onChange(draft);
@@ -148,11 +160,8 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
         aria-label={`Visit Time, ${hour}:${minute} ${period}`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => {
-          setDraft({ hour, minute, period });
-          setStep('hour');
-          setOpen(true);
-        }}
+        aria-controls={dialogId}
+        onClick={openPicker}
       >
         <Clock size={19} aria-hidden="true" />
         <span>{hour}:{minute} {period}</span>
@@ -164,6 +173,7 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
           <div
             ref={dialogRef}
             className="clock-time-popover"
+            id={dialogId}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
