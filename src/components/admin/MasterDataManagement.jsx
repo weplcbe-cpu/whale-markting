@@ -180,10 +180,17 @@ export const MasterDataManagement = () => {
                 return <section className="location-master__type-group" key={type}>
                   <h3>{type === 'Corporation' ? <Building2 size={17} /> : <Landmark size={17} />}{type}</h3>
                   {rows.length ? rows.map((location) => <div className="location-master__row" key={location.id}>
-                    <strong>{location.locationName}</strong>
-                    <StatusBadge tone={type === 'Corporation' ? 'info' : 'neutral'}>{type}</StatusBadge>
-                    <StatusBadge tone={statusTone(location.active !== false)}>{location.active !== false ? 'Active' : 'Inactive'}</StatusBadge>
-                    <div className="location-master__row-actions"><button type="button" onClick={() => openLocation(location)} title={`Edit ${location.locationName}`} aria-label={`Edit ${location.locationName}`}><Edit3 size={16} /></button><button type="button" onClick={() => toggleLocation(location)} title={location.active !== false ? `Deactivate ${location.locationName}` : `Activate ${location.locationName}`} aria-label={location.active !== false ? `Deactivate ${location.locationName}` : `Activate ${location.locationName}`}><Power size={16} /></button></div>
+                    <div className="location-master__row-details">
+                      <strong>{location.locationName}</strong>
+                      <span>{type}</span>
+                    </div>
+                    <div className="location-master__row-controls">
+                      <StatusBadge tone={statusTone(location.active !== false)}>{location.active !== false ? 'Active' : 'Inactive'}</StatusBadge>
+                      <div className="location-master__row-actions">
+                        <button type="button" onClick={() => openLocation(location)} title={`Edit ${location.locationName}`} aria-label={`Edit ${location.locationName}`}><Edit3 size={16} /><span>Edit</span></button>
+                        <button type="button" onClick={() => toggleLocation(location)} title={location.active !== false ? `Deactivate ${location.locationName}` : `Activate ${location.locationName}`} aria-label={location.active !== false ? `Deactivate ${location.locationName}` : `Activate ${location.locationName}`}><Power size={16} /><span>{location.active !== false ? 'Deactivate' : 'Activate'}</span></button>
+                      </div>
+                    </div>
                   </div>) : <p className="location-master__empty">No {type.toLocaleLowerCase()} locations match these filters.</p>}
                 </section>;
               })}
