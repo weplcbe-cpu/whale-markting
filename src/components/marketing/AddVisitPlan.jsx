@@ -42,6 +42,7 @@ const parseExpectedTime = (value) => {
 const emptyPlan = () => ({
   visitDate: todayIso(),
   visitPlace: '',
+  district: '',
   destinationType: 'General Visit',
   organizationName: '',
   organizationType: '',
@@ -64,6 +65,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     products = [],
     visitPlans = [],
     employeeVisitPlaces = [],
+    locations = [],
     orgTypes = [],
     purposes = [],
     addVisitPlan,
@@ -110,6 +112,17 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       .filter((place, index, list) => list.findIndex((candidate) => candidate.toLocaleLowerCase() === place.toLocaleLowerCase()) === index)
       .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
   }, [currentUser?.employeeId, employeeVisitPlaces]);
+  const availableAssignedPlaces = useMemo(() => assignedPlaces.flatMap((place) => {
+    const matchingLocations = locations.filter((item) => item.locationName?.toLocaleLowerCase() === place.toLocaleLowerCase());
+    if (matchingLocations.length && !matchingLocations.some((item) => item.active !== false)) return [];
+    const location = matchingLocations.find((item) => item.active !== false);
+    return [{ place, districtName: location?.district?.districtName || 'Assigned Visit Places' }];
+  }), [assignedPlaces, locations]);
+  const assignedPlaceGroups = useMemo(() => availableAssignedPlaces.reduce((groups, option) => {
+    const { place, districtName } = option;
+    groups.set(districtName, [...(groups.get(districtName) || []), { place, districtName }]);
+    return groups;
+  }, new Map()), [availableAssignedPlaces]);
 
   // Master data lists
   const organizationTypesList = useMemo(() => {
@@ -202,7 +215,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     mobileNumber: formData.mobileNumber || null,
     area: formData.visitPlace,
     city: formData.visitPlace,
-    district: null,
+    district: formData.district || null,
     state: 'Tamil Nadu',
     visitPurpose: formData.visitPurpose === 'Other'
       ? formData.customVisitPurpose
@@ -285,7 +298,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       </div>
       <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
       <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>
-      <Button onClick={submit} loading={submitting} disabled={submitting || !assignedPlaces.length}>
+      <Button onClick={submit} loading={submitting} disabled={submitting || !availableAssignedPlaces.length}>
         <Save size={16} /> Submit Visit Plan
       </Button>
     </>
@@ -331,17 +344,22 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
           <SelectField
             label="Visit Place"
             required
-            disabled={!assignedPlaces.length}
+            disabled={!availableAssignedPlaces.length}
             value={formData.visitPlace}
-            onChange={(event) => update('visitPlace', event.target.value)}
+            onChange={(event) => {
+              const place = event.target.value;
+              const location = locations.find((item) => item.active !== false && item.locationName?.toLocaleLowerCase() === place.toLocaleLowerCase());
+              setFormData((current) => ({ ...current, visitPlace: place, district: location?.district?.districtName || '' }));
+              setErrors((current) => ({ ...current, visitPlace: undefined }));
+            }}
             error={errors.visitPlace}
-            hint={assignedPlaces.length ? 'Only assigned visit places are listed.' : undefined}
+            hint={availableAssignedPlaces.length ? 'Only assigned visit places are listed.' : undefined}
           >
             <option value="">-- Select assigned place --</option>
-            {assignedPlaces.map((place) => <option key={place} value={place}>{place}</option>)}
+            {[...assignedPlaceGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, places]) => <optgroup key={districtName} label={districtName}>{places.map(({ place }) => <option key={place} value={place}>{place}</option>)}</optgroup>)}
           </SelectField>
 
-          {!assignedPlaces.length && (
+          {!availableAssignedPlaces.length && (
             <div className="ds-field--full" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '6px', fontSize: '0.85rem', color: 'var(--accent-rose)' }}>
               ⚠️ No visit places are assigned to your account. Please contact your Administrator to assign visit places.
             </div>

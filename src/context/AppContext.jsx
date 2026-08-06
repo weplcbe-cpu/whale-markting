@@ -164,6 +164,8 @@ export const AppProvider = ({ children }) => {
   const [dailyReports, setDailyReports] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [employeeVisitPlaces, setEmployeeVisitPlaces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [directorComments, setDirectorComments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -349,6 +351,10 @@ export const AppProvider = ({ children }) => {
       console.log('Marketing assigned places currentUser.id', currentUser?.id);
       console.log('Marketing assigned place query payload', assignedPlaceQueryPayload);
     }
+    const locationMasterQueries = [
+      ['districts', supabase.from('districts').select('id, district_name, active').order('district_name')],
+      ['locations', supabase.from('locations').select('id, district_id, location_name, location_type, active, districts(id, district_name, active)').order('location_name')],
+    ];
     const queries = [
       ['users', supabase.from('profiles').select('*')],
       ['products', supabase.from('products').select('*').order('display_order')],
@@ -359,6 +365,7 @@ export const AppProvider = ({ children }) => {
       ['dailyReports', supabase.from('daily_reports').select('*').order('submitted_at', { ascending: false })],
       ['followUps', supabase.from('follow_ups').select('*').order('follow_up_date', { ascending: false })],
       ['employeeVisitPlaces', assignedPlaceQuery],
+      ...locationMasterQueries,
       ['directorComments', supabase.from('director_comments').select('*').order('created_at', { ascending: false })],
       ['notifications', supabase.from('notifications').select('*').order('created_at', { ascending: false })],
       ['activityLogs', supabase.from('activity_logs').select('*').order('created_at', { ascending: false })],
@@ -394,6 +401,11 @@ export const AppProvider = ({ children }) => {
     setFollowUps(rowsToCamel(results.followUps));
     if (import.meta.env.DEV) console.log('Marketing assigned place returned rows', results.employeeVisitPlaces || []);
     setEmployeeVisitPlaces(rowsToCamel(results.employeeVisitPlaces));
+    setDistricts(rowsToCamel(results.districts));
+    setLocations((results.locations || []).map((location) => ({
+      ...rowToCamel(location),
+      district: rowToCamel(location.districts),
+    })));
     setDirectorComments(normalizeDirectorFeedbackList(rowsToCamel(results.directorComments)));
     setNotifications(rowsToCamel(results.notifications));
     setActivityLogs(rowsToCamel(results.activityLogs));
@@ -422,6 +434,8 @@ export const AppProvider = ({ children }) => {
         }
         return query;
       }, setEmployeeVisitPlaces],
+      districts: [() => supabase.from('districts').select('id, district_name, active').order('district_name'), setDistricts],
+      locations: [() => supabase.from('locations').select('id, district_id, location_name, location_type, active, districts(id, district_name, active)').order('location_name'), setLocations],
       director_comments: [() => supabase.from('director_comments').select('*').order('created_at', { ascending: false }), setDirectorComments],
       notifications: [() => supabase.from('notifications').select('*').order('created_at', { ascending: false }), setNotifications],
       activity_logs: [() => supabase.from('activity_logs').select('*').order('created_at', { ascending: false }), setActivityLogs],
@@ -439,6 +453,11 @@ export const AppProvider = ({ children }) => {
         ? mapped.map(normalizeVisitPlan)
         : table === 'director_comments'
           ? normalizeDirectorFeedbackList(mapped)
+            : table === 'locations'
+              ? (data || []).map((location) => ({
+                ...rowToCamel(location),
+                district: rowToCamel(location.districts),
+              }))
           : table === 'company_info'
             ? (mapped[0] || null)
             : mapped;
@@ -455,7 +474,7 @@ export const AppProvider = ({ children }) => {
       // Logged out — clear all previously loaded data from memory.
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
-      setFollowUps([]); setEmployeeVisitPlaces([]); setDirectorComments([]); setNotifications([]);
+      setFollowUps([]); setEmployeeVisitPlaces([]); setDistricts([]); setLocations([]); setDirectorComments([]); setNotifications([]);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -661,22 +680,23 @@ export const AppProvider = ({ children }) => {
   // ---------------------------------------------------------------------
   const syncEmployeeVisitPlaces = async (employeeId, places = []) => {
     const normalizedPlaces = [...new Set(places.map((place) => String(place).trim()).filter(Boolean))];
-    const { error: deleteError } = await supabase
-      .from('employee_visit_places')
-      .delete()
-      .eq('employee_id', employeeId);
-    if (deleteError) throw deleteError;
-    if (normalizedPlaces.length) {
-      const { error: insertError } = await supabase
-        .from('employee_visit_places')
-        .insert(normalizedPlaces.map((placeName) => ({
-          employee_id: employeeId,
-          place_name: placeName,
-          is_active: true,
-        })));
-      if (insertError) throw insertError;
-    }
+    const { error } = await supabase.rpc('admin_replace_employee_visit_places', {
+      p_employee_id: employeeId,
+      p_visit_places: normalizedPlaces,
+    });
+    if (error) throw error;
     await refreshEntity('employee_visit_places');
+  };
+
+  const manageLocationMaster = async (action, record) => {
+    const { data, error } = await supabase.rpc('admin_manage_location_master', {
+      p_action: action,
+      p_record: record,
+    });
+    if (error) throw error;
+    await Promise.all([refreshEntity('districts'), refreshEntity('locations')]);
+    showToast(action.startsWith('set_') ? 'Location status updated.' : 'Location master saved.', 'success');
+    return data;
   };
 
   const addUser = async (userData) => {
@@ -1510,6 +1530,8 @@ export const AppProvider = ({ children }) => {
     dailyReports,
     followUps,
     employeeVisitPlaces,
+    districts,
+    locations,
     directorComments,
     notifications,
     activityLogs,
@@ -1523,6 +1545,7 @@ export const AppProvider = ({ children }) => {
     logActivity,
     addUser,
     updateUser,
+    manageLocationMaster,
     toggleUserStatus,
     deleteUser,
     addProduct,

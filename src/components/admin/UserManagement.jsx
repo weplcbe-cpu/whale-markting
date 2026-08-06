@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Plus } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Check, Search } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { useModalLayer } from '../ui/modalLayer';
 
@@ -14,7 +14,7 @@ const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
 };
 
 export const UserManagement = () => {
-  const { users, employeeVisitPlaces, addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
+  const { users, employeeVisitPlaces, locations = [], addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   
@@ -24,7 +24,9 @@ export const UserManagement = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [placeInput, setPlaceInput] = useState('');
+  const [isPlacePickerOpen, setIsPlacePickerOpen] = useState(false);
+  const [placeSearch, setPlaceSearch] = useState('');
+  const [selectedPlaceNames, setSelectedPlaceNames] = useState([]);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const initialFormDataRef = useRef(null);
   const submitLockRef = useRef(false);
@@ -106,16 +108,29 @@ export const UserManagement = () => {
     setFormData((current) => ({ ...current, [field]: value }));
     if (formError) setFormError('');
   };
-  const availablePlaceNames = [...new Set(employeeVisitPlaces.map((item) => item.placeName))].sort();
-  const addAssignedPlace = () => {
-    const place = placeInput.trim();
-    if (!place || formData.assignedVisitPlaces.includes(place)) return;
-    updateFormField('assignedVisitPlaces', [...formData.assignedVisitPlaces, place]);
-    setPlaceInput('');
+  const locationGroups = useMemo(() => locations
+    .filter((location) => location.active !== false)
+    .filter((location) => `${location.district?.districtName || ''} ${location.locationName || ''}`.toLocaleLowerCase().includes(placeSearch.trim().toLocaleLowerCase()))
+    .reduce((groups, location) => {
+      const districtName = location.district?.districtName || 'Other locations';
+      groups.set(districtName, [...(groups.get(districtName) || []), location]);
+      return groups;
+    }, new Map()), [locations, placeSearch]);
+  const openPlacePicker = () => {
+    setPlaceSearch('');
+    setSelectedPlaceNames(formData.assignedVisitPlaces);
+    setIsPlacePickerOpen(true);
+  };
+  const toggleSelectedPlace = (placeName) => setSelectedPlaceNames((current) => current.some((place) => place.toLocaleLowerCase() === placeName.toLocaleLowerCase())
+    ? current.filter((place) => place.toLocaleLowerCase() !== placeName.toLocaleLowerCase())
+    : [...current, placeName]);
+  const assignSelectedPlaces = () => {
+    updateFormField('assignedVisitPlaces', selectedPlaceNames);
+    setIsPlacePickerOpen(false);
   };
   const removeAssignedPlace = (place) => updateFormField(
     'assignedVisitPlaces',
-    formData.assignedVisitPlaces.filter((item) => item !== place),
+    formData.assignedVisitPlaces.filter((item) => item.toLocaleLowerCase() !== place.toLocaleLowerCase()),
   );
 
   const handleOpenAdd = () => {
@@ -375,26 +390,7 @@ export const UserManagement = () => {
                 {formData.role === 'Marketing Team' && (
                   <div className="form-group user-places-field">
                     <label className="form-label">Assigned Visit Places <span className="required-marker">*</span></label>
-                    <div className="user-places-input">
-                      <input
-                        type="search"
-                        className="form-input"
-                        list="visit-place-suggestions"
-                        placeholder="Search or enter a place"
-                        value={placeInput}
-                        onChange={(event) => setPlaceInput(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            addAssignedPlace();
-                          }
-                        }}
-                      />
-                      <button type="button" className="btn btn-secondary" onClick={addAssignedPlace}><Plus size={16} /> Add</button>
-                      <datalist id="visit-place-suggestions">
-                        {availablePlaceNames.map((place) => <option value={place} key={place} />)}
-                      </datalist>
-                    </div>
+                    <div className="user-places-input"><button type="button" className="btn btn-secondary" onClick={openPlacePicker}><Search size={16} /> Add Place</button></div>
                     <div className="user-places-chips">
                       {formData.assignedVisitPlaces.map((place) => (
                         <button type="button" key={place} onClick={() => removeAssignedPlace(place)} title={`Remove ${place}`}>
@@ -518,6 +514,25 @@ export const UserManagement = () => {
           )}
         </div>,
         document.body
+      )}
+
+      {isPlacePickerOpen && (
+        <ModalPortal onClose={() => setIsPlacePickerOpen(false)}>
+          <section className="modal-content location-picker" onClick={(event) => event.stopPropagation()}>
+            <header className="modal-header"><h3>Assigned Visit Places</h3><button type="button" className="user-modal__close" onClick={() => setIsPlacePickerOpen(false)} aria-label="Close"><X size={18} /></button></header>
+            <div className="modal-body">
+              <label className="location-picker__search"><Search size={16} /><span className="sr-only">Search locations</span><input className="form-input" value={placeSearch} onChange={(event) => setPlaceSearch(event.target.value)} placeholder="Search locations" /></label>
+              <div className="location-picker__groups">
+                {[...locationGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, districtLocations]) => <section key={districtName}><h4>{districtName}</h4>{districtLocations.sort((left, right) => left.locationName.localeCompare(right.locationName)).map((location) => {
+                  const selected = selectedPlaceNames.some((place) => place.toLocaleLowerCase() === location.locationName.toLocaleLowerCase());
+                  return <button type="button" className={selected ? 'selected' : ''} key={location.id} onClick={() => toggleSelectedPlace(location.locationName)}>{selected && <Check size={16} />}{location.locationName}<small>{location.locationType}</small></button>;
+                })}</section>)}
+                {!locationGroups.size && <p className="location-picker__empty">No active locations are available.</p>}
+              </div>
+            </div>
+            <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setIsPlacePickerOpen(false)}>Cancel</button><button type="button" className="btn btn-primary" onClick={assignSelectedPlaces}>Assign Selected</button></footer>
+          </section>
+        </ModalPortal>
       )}
 
       {/* Delete User Confirmation Modal */}
