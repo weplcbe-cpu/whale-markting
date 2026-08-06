@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Save, X } from 'lucide-react';
+import { Check, Clock, Save, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, FormField, Modal, SelectField, TextArea } from '../ui';
 import { to12HourTime, to24HourTime } from '../../utils/timeUtils';
 import VisitDatePicker from './VisitDatePicker';
+import VisitTimeDialog from './VisitTimeDialog';
 
 const LEGACY_DRAFT_KEY = 'marketing-visit-plan-draft';
 const DEFAULT_ORGANIZATION_TYPES = ['Corporation', 'Municipality', 'Government Department', 'Private Company', 'Contractor', 'Dealer', 'Consultant', 'Other'];
@@ -101,7 +102,9 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [draftStatus, setDraftStatus] = useState('saved');
+  const [isTimeDialogOpen, setIsTimeDialogOpen] = useState(false);
   const submissionKey = useRef(plan?.submissionKey || crypto.randomUUID());
+  const timeTriggerRef = useRef(null);
   const dirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
   // Assigned visit places for current logged-in marketing user ONLY
@@ -197,10 +200,17 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const expectedTime = to12HourTime(`${formData.hour}:${formData.minute} ${formData.period}`);
   const time24 = to24HourTime(expectedTime);
 
-  const handleTimeChange = (event) => {
-    const time = parseExpectedTime(event.target.value);
+  const setTime24 = (value) => {
+    const time = parseExpectedTime(value);
     setFormData((current) => ({ ...current, hour: time.hour || '', minute: time.minute || '', period: time.period || '' }));
     setErrors((current) => ({ ...current, expectedTime: undefined }));
+  };
+
+  const handleTimeChange = (event) => setTime24(event.target.value);
+
+  const closeTimeDialog = () => {
+    setIsTimeDialogOpen(false);
+    window.requestAnimationFrame(() => timeTriggerRef.current?.focus());
   };
 
   const validate = () => {
@@ -347,7 +357,19 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
         {/* Visit Time */}
         <div className="ds-field">
-          <label htmlFor="visit-time">Visit Time <span className="ds-required">*</span></label>
+          <label htmlFor="visit-time-button">Visit Time <span className="ds-required">*</span></label>
+          <button
+            ref={timeTriggerRef}
+            id="visit-time-button"
+            type="button"
+            className={`visit-time-trigger${errors.expectedTime ? ' visit-time-trigger--error' : ''}`}
+            aria-haspopup="dialog"
+            aria-expanded={isTimeDialogOpen}
+            onClick={() => setIsTimeDialogOpen(true)}
+          >
+            <Clock size={19} aria-hidden="true" />
+            <span>{to12HourTime(time24) || 'Select visit time'}</span>
+          </button>
           <input
             id="visit-time"
             type="time"
@@ -355,8 +377,20 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
             onChange={handleTimeChange}
             step="300"
             required
+            tabIndex={-1}
+            className="visit-time-native-input"
             aria-invalid={Boolean(errors.expectedTime)}
           />
+          {isTimeDialogOpen && (
+            <VisitTimeDialog
+              value={time24}
+              onCancel={closeTimeDialog}
+              onConfirm={(nextTime) => {
+                setTime24(nextTime);
+                closeTimeDialog();
+              }}
+            />
+          )}
           {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
         </div>
 

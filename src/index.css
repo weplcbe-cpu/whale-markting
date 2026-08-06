@@ -4099,6 +4099,246 @@ body {
   color-scheme: dark;
 }
 
+.visit-time-trigger {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: #0D1427;
+  color: var(--text-primary);
+  font: 600 14px var(--font-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.visit-time-trigger svg {
+  color: var(--primary);
+}
+
+.visit-time-trigger:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(91, 124, 255, .18);
+}
+
+.visit-time-trigger--error {
+  border-color: #dc2626;
+}
+
+.visit-time-native-input {
+  display: none;
+}
+
+.clock-dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(2, 6, 23, .68);
+}
+
+.clock-dialog-panel {
+  --clock-dialog-size: 220px;
+  position: relative;
+  z-index: 1110;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 20px;
+  background: #10182C;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.clock-dialog-panel:focus {
+  outline: none;
+}
+
+.clock-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clock-dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.clock-dialog-header > button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.clock-dialog-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: 700 26px var(--font-primary);
+}
+
+.clock-dialog-display button {
+  min-width: 58px;
+  padding: 7px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.clock-dialog-display button.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.clock-dialog-display strong {
+  margin-left: 4px;
+  color: var(--primary);
+  font-size: 15px;
+}
+
+.clock-dialog-face {
+  position: relative;
+  width: var(--clock-dialog-size);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--surface-2);
+}
+
+.clock-dialog-face button {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 700 13px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-dialog-face button.selected {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(91, 124, 255, .3);
+}
+
+.clock-dialog-hand {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 50%;
+  width: 3px;
+  height: calc(var(--clock-dialog-size) * .36);
+  border-radius: 3px;
+  background: var(--primary);
+  transform-origin: bottom center;
+}
+
+.clock-dialog-center {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  transform: translate(-50%, -50%);
+}
+
+.clock-dialog-period {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+.clock-dialog-period button,
+.clock-dialog-actions button {
+  min-height: 42px;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: 700 14px var(--font-primary);
+  cursor: pointer;
+}
+
+.clock-dialog-period button + button {
+  border-left: 1px solid var(--border-default);
+}
+
+.clock-dialog-period button.selected,
+.clock-dialog-actions button.primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.clock-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 2px;
+  background: #10182C;
+}
+
+.clock-dialog-actions button {
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+.clock-dialog-actions button.primary {
+  border-color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .clock-dialog-layer {
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .clock-dialog-panel {
+    --clock-dialog-size: min(210px, 70vw);
+    width: 100%;
+    max-height: 90dvh;
+    border-radius: 20px;
+  }
+}
+
 .ds-modal--visit-plan .ds-modal__body::-webkit-scrollbar {
   width: 8px;
 }
