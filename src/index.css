@@ -3802,14 +3802,14 @@ body {
 }
 
 .clock-time-popover {
-  --clock-face-size: min(230px, 72vw);
+  --clock-face-size: min(220px, 72vw);
   position: fixed;
   z-index: 1110;
-  top: var(--clock-popover-top);
-  left: var(--clock-popover-left);
+  top: 50%;
+  left: 50%;
   display: flex;
   width: min(360px, calc(100vw - 32px));
-  max-height: min(620px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
   flex-direction: column;
   gap: 16px;
   overflow-x: hidden;
@@ -3819,6 +3819,7 @@ body {
   border-radius: 18px;
   background: var(--surface-1, #fff);
   box-shadow: 0 20px 50px rgba(30, 41, 59, .2);
+  transform: translate(-50%, -50%);
 }
 
 .clock-time-popover:focus {
@@ -3998,7 +3999,7 @@ body {
   height: 100%;
   padding: 0;
   border: 0;
-  background: transparent;
+  background: rgba(2, 6, 23, .62);
   cursor: default;
 }
 
@@ -4027,13 +4028,10 @@ body {
     bottom: max(12px, env(safe-area-inset-bottom));
     left: 12px;
     width: auto;
-    max-height: calc(100dvh - 24px);
+    max-height: 90dvh;
     padding: 16px;
     border-radius: 16px;
-  }
-
-  .clock-time-backdrop {
-    background: rgba(15, 23, 42, .38);
+    transform: none;
   }
 }
 
