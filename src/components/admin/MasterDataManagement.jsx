@@ -160,7 +160,7 @@ export const MasterDataManagement = () => {
       </section>
 
       <section className="location-master__filters" aria-label="Location filters">
-        <label className="location-master__search"><Search size={17} /><span className="sr-only">Search locations</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search district or location" /></label>
+        <label className="location-master__search"><span>Search locations</span><div><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search district or location" /></div></label>
         <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filter by location type"><option value="All">All types</option><option value="Corporation">Corporation</option><option value="Municipality">Municipality</option></select>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status"><option value="All">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
       </section>

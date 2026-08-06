@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Check, Search } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Search } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { useModalLayer } from '../ui/modalLayer';
 
@@ -519,18 +519,18 @@ export const UserManagement = () => {
       {isPlacePickerOpen && (
         <ModalPortal onClose={() => setIsPlacePickerOpen(false)}>
           <section className="modal-content location-picker" onClick={(event) => event.stopPropagation()}>
-            <header className="modal-header"><h3>Assigned Visit Places</h3><button type="button" className="user-modal__close" onClick={() => setIsPlacePickerOpen(false)} aria-label="Close"><X size={18} /></button></header>
-            <div className="modal-body">
-              <label className="location-picker__search"><Search size={16} /><span className="sr-only">Search locations</span><input className="form-input" value={placeSearch} onChange={(event) => setPlaceSearch(event.target.value)} placeholder="Search locations" /></label>
+            <header className="modal-header location-picker__header"><div><h3>Assigned Visit Places</h3><p>Select active visit places to assign to this employee.</p></div><button type="button" className="location-picker__close" onClick={() => setIsPlacePickerOpen(false)} aria-label="Close"><X size={18} /></button></header>
+            <div className="modal-body location-picker__body">
+              <label className="assignment-picker-search"><span>Search locations</span><div><Search size={16} /><input className="form-input" value={placeSearch} onChange={(event) => setPlaceSearch(event.target.value)} placeholder="Search district or location name..." /></div></label>
               <div className="location-picker__groups">
-                {[...locationGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, districtLocations]) => <section key={districtName}><h4>{districtName}</h4>{districtLocations.sort((left, right) => left.locationName.localeCompare(right.locationName)).map((location) => {
+                {[...locationGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, districtLocations]) => <section key={districtName}><header><h4>{districtName}</h4><span>{districtLocations.length} {districtLocations.length === 1 ? 'location' : 'locations'}</span></header>{districtLocations.sort((left, right) => left.locationName.localeCompare(right.locationName)).map((location) => {
                   const selected = selectedPlaceNames.some((place) => place.toLocaleLowerCase() === location.locationName.toLocaleLowerCase());
-                  return <button type="button" className={selected ? 'selected' : ''} key={location.id} onClick={() => toggleSelectedPlace(location.locationName)}>{selected && <Check size={16} />}{location.locationName}<small>{location.locationType}</small></button>;
+                  return <label className={`assignment-location-row${selected ? ' selected' : ''}`} key={location.id}><input type="checkbox" checked={selected} onChange={() => toggleSelectedPlace(location.locationName)} aria-label={`Assign ${location.locationName}`} /><span className="assignment-location-main"><span className="assignment-location-name">{location.locationName}</span><span className="assignment-location-type">{location.locationType}</span></span></label>;
                 })}</section>)}
                 {!locationGroups.size && <p className="location-picker__empty">No active locations are available.</p>}
               </div>
             </div>
-            <footer className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setIsPlacePickerOpen(false)}>Cancel</button><button type="button" className="btn btn-primary" onClick={assignSelectedPlaces}>Assign Selected</button></footer>
+            <footer className="modal-footer location-picker__footer"><button type="button" className="btn btn-secondary" onClick={() => setIsPlacePickerOpen(false)}>Cancel</button><button type="button" className="btn btn-primary" onClick={assignSelectedPlaces} disabled={!selectedPlaceNames.length}>Assign Selected ({selectedPlaceNames.length})</button></footer>
           </section>
         </ModalPortal>
       )}
