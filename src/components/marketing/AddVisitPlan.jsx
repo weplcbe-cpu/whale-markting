@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Save, X } from 'lucide-react';
+import { Check, Clock, Save, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button, FormField, Modal, SelectField, TextArea } from '../ui';
 import ClockTimePicker from './ClockTimePicker';
@@ -101,7 +101,9 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [draftStatus, setDraftStatus] = useState('saved');
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const submissionKey = useRef(plan?.submissionKey || crypto.randomUUID());
+  const timeTriggerRef = useRef(null);
   const dirty = JSON.stringify(formData) !== JSON.stringify(initialData);
 
   // Assigned visit places for current logged-in marketing user ONLY
@@ -181,6 +183,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
   const removeProductChip = (name) => {
     update('selectedProducts', formData.selectedProducts.filter((item) => item !== name));
+  };
+
+  const closeTimePicker = () => {
+    setIsTimePickerOpen(false);
+    window.requestAnimationFrame(() => timeTriggerRef.current?.focus());
   };
 
   const choosePreviousOrganization = (org) => {
@@ -341,16 +348,29 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
         {/* Visit Time */}
         <div className="ds-field">
           <label>Visit Time <span className="ds-required">*</span></label>
-          <ClockTimePicker
-            hour={formData.hour}
-            minute={formData.minute}
-            period={formData.period}
-            error={errors.expectedTime}
-            onChange={(time) => {
+          <button
+            ref={timeTriggerRef}
+            type="button"
+            className={`clock-time-trigger${errors.expectedTime ? ' clock-time-trigger--error' : ''}`}
+            aria-label={`Visit Time, ${formData.hour}:${formData.minute} ${formData.period}`}
+            aria-haspopup="dialog"
+            aria-expanded={isTimePickerOpen}
+            onClick={() => setIsTimePickerOpen(true)}
+          >
+            <Clock size={19} aria-hidden="true" />
+            <span>{formData.hour}:{formData.minute} {formData.period}</span>
+          </button>
+          {isTimePickerOpen && (
+            <ClockTimePicker
+              value={{ hour: formData.hour, minute: formData.minute, period: formData.period }}
+              onCancel={closeTimePicker}
+              onConfirm={(time) => {
               setFormData((current) => ({ ...current, ...time }));
               setErrors((current) => ({ ...current, expectedTime: undefined }));
+                closeTimePicker();
             }}
-          />
+            />
+          )}
           {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
         </div>
 
@@ -577,6 +597,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
           value={formData.notes}
           onChange={(event) => update('notes', event.target.value)}
         />
+        <div className="visit-plan-form-end-spacer" aria-hidden="true" />
       </div>
     </Modal>
   );

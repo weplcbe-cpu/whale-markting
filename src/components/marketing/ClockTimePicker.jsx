@@ -1,48 +1,29 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 
-export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
-  const [open, setOpen] = useState(false);
+export const ClockTimePicker = ({ value, onCancel, onConfirm }) => {
   const [step, setStep] = useState('hour');
-  const [draft, setDraft] = useState({ hour, minute, period });
-  const fieldRef = useRef(null);
+  const [draft, setDraft] = useState(value);
   const dialogRef = useRef(null);
   const titleId = useId();
-  const dialogId = useId();
 
   useEffect(() => {
-    if (!open) setDraft({ hour, minute, period });
-  }, [hour, minute, open, period]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const modalBody = fieldRef.current?.closest('.ds-modal__body');
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousModalOverflow = modalBody?.style.overflow;
-    document.body.style.overflow = 'hidden';
-    if (modalBody) modalBody.style.overflow = 'hidden';
-
     const frame = window.requestAnimationFrame(() => dialogRef.current?.focus());
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousBodyOverflow;
-      if (modalBody) modalBody.style.overflow = previousModalOverflow;
-    };
-  }, [open]);
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
-    if (!open) return undefined;
     const trapPickerFocus = (event) => {
       const dialog = dialogRef.current;
       if (!dialog) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        close();
+        onCancel();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -60,25 +41,11 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
     };
     window.addEventListener('keydown', trapPickerFocus, true);
     return () => window.removeEventListener('keydown', trapPickerFocus, true);
-  }, [open]);
-
-  const close = () => {
-    setOpen(false);
-    window.requestAnimationFrame(() => fieldRef.current?.focus());
-  };
-
-  const openPicker = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDraft({ hour, minute, period });
-    setStep('hour');
-    setOpen(true);
-  };
+  }, [onCancel]);
 
   const confirm = () => {
     if (!draft.hour || !draft.minute || !draft.period) return;
-    onChange(draft);
-    close();
+    onConfirm(draft);
   };
 
   const moveValue = (direction) => {
@@ -95,7 +62,7 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      close();
+      onCancel();
     } else if (event.target === dialogRef.current && event.key === 'Enter') {
       event.preventDefault();
       confirm();
@@ -114,36 +81,20 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
     ? (Number(draft.hour) % 12) * 30
     : (Number(draft.minute) / 5) * 30;
 
-  return (
-    <div className="clock-time-field">
-      <button
-        ref={fieldRef}
-        type="button"
-        className={`clock-time-trigger${error ? ' clock-time-trigger--error' : ''}`}
-        aria-label={`Visit Time, ${hour}:${minute} ${period}`}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={dialogId}
-        onClick={openPicker}
-      >
-        <Clock size={19} aria-hidden="true" />
-        <span>{hour}:{minute} {period}</span>
-      </button>
-
-      {open && createPortal(
-        <div className="clock-time-layer" role="presentation">
-          <button className="clock-time-backdrop" type="button" aria-label="Close time picker" onClick={close} />
-          <div
+  return createPortal(
+    <div className="clock-time-layer" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onCancel();
+    }}>
+      <div
             ref={dialogRef}
             className="clock-time-popover"
-            id={dialogId}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
             onKeyDown={handleKeyDown}
           >
-            <header className="clock-time-header"><h3 id={titleId}>Select Visit Time</h3><button type="button" onClick={close} aria-label="Close time picker"><X size={18} /></button></header>
+            <header className="clock-time-header"><h3 id={titleId}>Select Visit Time</h3><button type="button" onClick={onCancel} aria-label="Close time picker"><X size={18} /></button></header>
             <div className="clock-time-display" aria-live="polite">
               <button type="button" className={step === 'hour' ? 'selected' : ''} onClick={() => setStep('hour')} aria-label="Select hour">
                 {draft.hour}
@@ -198,14 +149,12 @@ export const ClockTimePicker = ({ hour, minute, period, error, onChange }) => {
             </div>
 
             <div className="clock-time-actions">
-              <button type="button" onClick={close}>Cancel</button>
+              <button type="button" onClick={onCancel}>Cancel</button>
               <button type="button" className="primary" onClick={confirm}>Set Time</button>
             </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 };
 
