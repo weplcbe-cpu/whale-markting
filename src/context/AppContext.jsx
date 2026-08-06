@@ -171,6 +171,7 @@ export const AppProvider = ({ children }) => {
   const [activityLogs, setActivityLogs] = useState([]);
   const [companyInfo, setCompanyInfo] = useState(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [assignedPlacesLoading, setAssignedPlacesLoading] = useState(false);
   const [dataError, setDataError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -333,6 +334,7 @@ export const AppProvider = ({ children }) => {
   // ---------------------------------------------------------------------
   const loadAllData = useCallback(async () => {
     setDataLoading(true);
+    setAssignedPlacesLoading(true);
     setDataError(null);
     const assignedPlaceQueryPayload = {
       employee_id: currentUser?.role === 'Marketing Team' ? currentUser.employeeId : null,
@@ -401,6 +403,7 @@ export const AppProvider = ({ children }) => {
     setFollowUps(rowsToCamel(results.followUps));
     if (import.meta.env.DEV) console.log('Marketing assigned place returned rows', results.employeeVisitPlaces || []);
     setEmployeeVisitPlaces(rowsToCamel(results.employeeVisitPlaces));
+    setAssignedPlacesLoading(false);
     setDistricts(rowsToCamel(results.districts));
     setLocations((results.locations || []).map((location) => ({
       ...rowToCamel(location),
@@ -444,7 +447,9 @@ export const AppProvider = ({ children }) => {
     const entry = config[table];
     if (!entry) return;
     const [query, setter] = entry;
+    if (table === 'employee_visit_places') setAssignedPlacesLoading(true);
     const { data, error } = await query();
+    if (table === 'employee_visit_places') setAssignedPlacesLoading(false);
     if (error) { console.error(`Failed to refresh ${table}:`, error); setDataError(`Unable to refresh ${table.replaceAll('_', ' ')}.`); return; }
     const mapped = rowsToCamel(data);
     const normalized = table === 'profiles'
@@ -475,6 +480,7 @@ export const AppProvider = ({ children }) => {
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
       setFollowUps([]); setEmployeeVisitPlaces([]); setDistricts([]); setLocations([]); setDirectorComments([]); setNotifications([]);
+      setAssignedPlacesLoading(false);
       setActivityLogs([]); setCompanyInfo(null);
     }
     // Depend on the user's id (not the whole object) — a token refresh
@@ -488,7 +494,7 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
     // Keep this channel limited to tables that are actually in the Realtime
     // publication. visit_plans has its own isolated subscription below.
-    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups'];
+    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
 
@@ -1517,6 +1523,7 @@ export const AppProvider = ({ children }) => {
     authLoading,
     authError,
     dataLoading,
+    assignedPlacesLoading,
     dataError,
     lastUpdated,
     refreshEntity,

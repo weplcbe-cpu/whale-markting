@@ -66,6 +66,8 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     visitPlans = [],
     employeeVisitPlaces = [],
     locations = [],
+    assignedPlacesLoading,
+    refreshEntity,
     orgTypes = [],
     purposes = [],
     addVisitPlan,
@@ -113,8 +115,19 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
   }, [currentUser?.employeeId, employeeVisitPlaces]);
   const availableAssignedPlaces = useMemo(() => assignedPlaces.flatMap((place) => {
-    const matchingLocations = locations.filter((item) => item.locationName?.toLocaleLowerCase() === place.toLocaleLowerCase());
-    if (matchingLocations.length && !matchingLocations.some((item) => item.active !== false)) return [];
+    const normalizedPlace = place.trim().toLocaleLowerCase();
+    const matchingLocations = locations.filter((item) => item.locationName?.trim().toLocaleLowerCase() === normalizedPlace);
+    const masterFound = matchingLocations.length > 0;
+    const masterActive = matchingLocations.some((item) => item.active !== false);
+    const included = !masterFound || masterActive;
+    if (import.meta.env.DEV) console.log('Marketing assigned place eligibility', {
+      placeName: place,
+      assignedActive: true,
+      masterFound,
+      masterActive,
+      included,
+    });
+    if (!included) return [];
     const location = matchingLocations.find((item) => item.active !== false);
     return [{ place, districtName: location?.district?.districtName || 'Assigned Visit Places' }];
   }), [assignedPlaces, locations]);
@@ -260,6 +273,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
   useEffect(() => {
     if (!open) return;
+    refreshEntity?.('employee_visit_places');
     if (!draftKey) {
       setFormData(initialData);
       setErrors({});
@@ -279,7 +293,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       localStorage.removeItem(draftKey);
       setFormData(initialData);
     }
-  }, [draftKey, initialData, open, plan]);
+  }, [draftKey, initialData, open, plan, refreshEntity]);
 
   useEffect(() => {
     if (!open || !dirty || !draftKey) return undefined;
@@ -298,7 +312,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       </div>
       <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
       <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>
-      <Button onClick={submit} loading={submitting} disabled={submitting || !availableAssignedPlaces.length}>
+      <Button onClick={submit} loading={submitting} disabled={submitting || assignedPlacesLoading || !availableAssignedPlaces.length}>
         <Save size={16} /> Submit Visit Plan
       </Button>
     </>
@@ -344,7 +358,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
           <SelectField
             label="Visit Place"
             required
-            disabled={!availableAssignedPlaces.length}
+            disabled={assignedPlacesLoading || !availableAssignedPlaces.length}
             value={formData.visitPlace}
             onChange={(event) => {
               const place = event.target.value;
@@ -353,13 +367,18 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
               setErrors((current) => ({ ...current, visitPlace: undefined }));
             }}
             error={errors.visitPlace}
-            hint={availableAssignedPlaces.length ? 'Only assigned visit places are listed.' : undefined}
+            hint={assignedPlacesLoading ? 'Loading assigned places...' : availableAssignedPlaces.length ? 'Only assigned visit places are listed.' : undefined}
           >
             <option value="">-- Select assigned place --</option>
             {[...assignedPlaceGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, places]) => <optgroup key={districtName} label={districtName}>{places.map(({ place }) => <option key={place} value={place}>{place}</option>)}</optgroup>)}
           </SelectField>
 
-          {!availableAssignedPlaces.length && (
+          {assignedPlacesLoading && (
+            <div className="ds-field--full" style={{ padding: '12px', marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Loading assigned places...
+            </div>
+          )}
+          {!assignedPlacesLoading && !availableAssignedPlaces.length && (
             <div className="ds-field--full" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '6px', fontSize: '0.85rem', color: 'var(--accent-rose)' }}>
               ⚠️ No visit places are assigned to your account. Please contact your Administrator to assign visit places.
             </div>
