@@ -11,15 +11,15 @@
     <script>
       (function () {
         try {
-          var theme = localStorage.getItem('kw_vmm_theme') || 'dark';
-          var isDark = theme === 'dark';
+          var theme = 'dark';
           var root = document.documentElement;
-          root.classList.toggle('dark', isDark);
+          localStorage.setItem('kw_vmm_theme', theme);
+          root.classList.add('dark');
           root.dataset.theme = theme;
           root.style.colorScheme = theme;
           if (document.body) {
             document.body.dataset.theme = theme;
-            document.body.classList.toggle('theme-light', !isDark);
+            document.body.classList.remove('theme-light');
           }
         } catch (error) {
           document.documentElement.classList.add('dark');

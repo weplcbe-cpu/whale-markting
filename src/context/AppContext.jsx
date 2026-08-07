@@ -12,6 +12,7 @@ const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
 const NOTIFICATION_SOUND_PREF_KEY = 'kw_notification_sound';
+const SUPPORTED_THEME = 'dark';
 const ADD_USER_ERROR_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'This email address is already registered.',
   EMPLOYEE_ID_ALREADY_EXISTS: 'This employee ID already exists.',
@@ -47,6 +48,8 @@ const RESET_PASSWORD_ERROR_MESSAGES = {
   AUTH_UPDATE_FAILED: 'Unable to update password. Please try again.',
   INTERNAL_ERROR: 'Unable to update password. Please try again.',
 };
+
+const resolveSupportedTheme = () => SUPPORTED_THEME;
 
 const inferUpdateHttpStatus = (error) => {
   if (Number.isInteger(error?.status)) return error.status;
@@ -214,7 +217,7 @@ export const AppProvider = ({ children }) => {
   const [dataError, setDataError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('kw_vmm_theme') || 'dark');
+  const [theme, setTheme] = useState(resolveSupportedTheme);
   const [toasts, setToasts] = useState([]);
   const [realtimeNotifications, setRealtimeNotifications] = useState([]);
   const [desktopNotificationPermission, setDesktopNotificationPermission] = useState(
@@ -228,17 +231,21 @@ export const AppProvider = ({ children }) => {
   const currentRole = currentUser ? normalizeRole(currentUser.role) : null;
 
   useLayoutEffect(() => {
-    localStorage.setItem('kw_vmm_theme', theme);
-    const isDarkTheme = theme === 'dark';
-    document.documentElement.classList.toggle('dark', isDarkTheme);
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    document.body.dataset.theme = theme;
-    document.body.classList.toggle('theme-light', !isDarkTheme);
+    const resolvedTheme = resolveSupportedTheme();
+    if (theme !== resolvedTheme) {
+      setTheme(resolvedTheme);
+      return;
+    }
+    localStorage.setItem('kw_vmm_theme', resolvedTheme);
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = resolvedTheme;
+    document.documentElement.style.colorScheme = resolvedTheme;
+    document.body.dataset.theme = resolvedTheme;
+    document.body.classList.remove('theme-light');
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(SUPPORTED_THEME);
   };
 
   useEffect(() => {

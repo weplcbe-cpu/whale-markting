@@ -12,9 +12,7 @@ import {
   X,
   Search,
   Menu,
-  Settings2,
-  Sun,
-  Moon
+  Settings2
 } from 'lucide-react';
 
 // Mapping for portal titles based on role
@@ -41,7 +39,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, refreshEntity, markNotificationRead, showToast, theme, toggleTheme } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, refreshEntity, markNotificationRead, showToast } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -105,7 +103,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
     ...[...visitReports, ...dailyReports].filter(item => `${item.fullName || item.employeeName || ''} ${item.customerName || ''}`.toLowerCase().includes(globalSearch.toLowerCase())).slice(0, 3).map(item => ({ id: `report-${item.id}`, label: item.customerName || `${item.fullName || item.employeeName || 'Marketing Employee'} report`, group: 'Reports', path: '/director/visit-reports' }))
   ];
 
-  // Theme toggle – adds/removes `dark` class on <html>
   // Build breadcrumb based on activeTab (portal name is shown as the primary heading instead)
   const generateBreadcrumb = () => {
     if (currentRole === 'Marketing Team') {
@@ -126,8 +123,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
 
   const breadcrumb = generateBreadcrumb();
   const pageTitle = portalTitleMap[currentRole] || 'Portal';
-  const themeToggleLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
-
   return (
     <header className="top-navbar">
       {/* Left: hamburger (mobile/tablet only) */}
@@ -181,11 +176,6 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
           onClick={() => currentRole === 'Director' ? navigate('/director/profile') : currentRole === 'Marketing Team' ? navigate('/marketing/profile') : navigate('/admin/settings')}
         >
           <Settings2 size={20} strokeWidth={2.5} />
-        </button>
-
-        {/* Theme toggle */}
-        <button className="icon-btn" type="button" title={themeToggleLabel} aria-label={themeToggleLabel} aria-pressed={theme === 'dark'} onClick={toggleTheme}>
-          {theme === 'light' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
         </button>
 
         {/* Notifications */}
