@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatSafeDate, formatUpdateDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
+import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { getPendingDailyReports, getPendingFollowUps, getPendingVisitReports } from '../../utils/reportSelectors';
 
 export const DirectorDashboard = () => {
@@ -62,7 +63,7 @@ export const DirectorDashboard = () => {
     const list = [];
 
     // 1. Notifications
-    (notifications || []).forEach((n) => {
+    filterActiveNotifications(notifications || []).forEach((n) => {
       list.push({
         id: `notif-${n.id || Math.random()}`,
         title: n.title || n.type || 'Notification Update',

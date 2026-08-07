@@ -1,12 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { BriefcaseBusiness, Eye, EyeOff, IdCard, Mail, Phone, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { BellRing, BriefcaseBusiness, Eye, EyeOff, IdCard, Mail, Phone, Save, ShieldCheck, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Button } from '../ui';
 
 const provided = (value) => value || 'Not provided';
 export const ProfilePage = () => {
-  const { currentUser, showToast } = useApp();
+  const {
+    currentUser,
+    showToast,
+    desktopNotificationPermission,
+    requestDesktopNotificationPermission,
+    notificationSoundEnabled,
+    setNotificationSoundEnabled,
+    testNotificationExperience,
+  } = useApp();
   const [form, setForm] = useState({ current: '', next: '', confirm: '' });
   const [showPasswords, setShowPasswords] = useState({ current: false, next: false, confirm: false });
   const [isSaving, setIsSaving] = useState(false);
@@ -88,6 +96,27 @@ export const ProfilePage = () => {
       [field]: !current[field]
     }));
   };
+
+  const enableDesktopNotifications = async () => {
+    const permission = await requestDesktopNotificationPermission();
+    if (permission === 'granted') {
+      showToast('Desktop notifications enabled.', 'success');
+      return;
+    }
+    if (permission === 'denied') {
+      showToast('Desktop notifications were blocked by browser settings.', 'warning');
+      return;
+    }
+    showToast('Desktop notifications are not supported in this browser.', 'error');
+  };
+
+  const desktopLabel = desktopNotificationPermission === 'granted'
+    ? 'Enabled'
+    : desktopNotificationPermission === 'denied'
+      ? 'Disabled'
+      : desktopNotificationPermission === 'default'
+        ? 'Not enabled'
+        : 'Unsupported';
 
   return (
     <div className="ds-page profile-page mp-profile-page">
@@ -258,6 +287,54 @@ export const ProfilePage = () => {
               </Button>
             </div>
           </form>
+        </section>
+
+        <section className="mp-profile-card" aria-labelledby="notification-settings-title">
+          <header className="mp-card-header">
+            <h2 id="notification-settings-title"><BellRing size={18} aria-hidden="true" /> Notification Settings</h2>
+            <p>Enable desktop alerts and control notification sound.</p>
+          </header>
+          <div className="mp-notification-settings">
+            <div className="mp-setting-row">
+              <div>
+                <strong>Desktop Notifications</strong>
+                <p>Status: {desktopLabel}</p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={enableDesktopNotifications}
+                disabled={desktopNotificationPermission === 'granted' || desktopNotificationPermission === 'unsupported'}
+              >
+                Enable Notifications
+              </Button>
+            </div>
+
+            <div className="mp-setting-row">
+              <div>
+                <strong>Notification Sound</strong>
+                <p>{notificationSoundEnabled ? 'On' : 'Off'}</p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setNotificationSoundEnabled(!notificationSoundEnabled)}
+              >
+                {notificationSoundEnabled ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+                {notificationSoundEnabled ? 'Sound On' : 'Sound Off'}
+              </Button>
+            </div>
+
+            <div className="mp-setting-row">
+              <div>
+                <strong>Test Notification</strong>
+                <p>Local preview only. No database record will be created.</p>
+              </div>
+              <Button type="button" onClick={() => testNotificationExperience()}>
+                Test Notification
+              </Button>
+            </div>
+          </div>
         </section>
       </div>
     </div>

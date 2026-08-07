@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { directorRoutes, marketingRoutes } from '../../routes';
 import { isLegacyApprovalNotification } from '../../utils/directorFeedback';
+import { filterActiveNotifications, getNotificationRoute } from '../../utils/notificationUtils';
 import { CompanyLogo } from './CompanyLogo';
 import NotificationPopover from './NotificationPopover';
 import {
@@ -49,34 +50,15 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
   const notificationBellRef = useRef(null);
 
   // Filter notifications relevant to this user
-  const userNotifs = notifications.filter(
+  const activeNotifications = useMemo(() => filterActiveNotifications(notifications), [notifications]);
+  const userNotifs = activeNotifications.filter(
     n => !n.userId || n.userId === currentUser?.employeeId
   ).filter((notification) => {
     const text = `${notification.type || ''} ${notification.title || ''} ${notification.message || ''}`.toLowerCase();
     return !text.includes('tender') && (currentRole !== 'Marketing Team' || !isLegacyApprovalNotification(notification));
   });
   const unreadCount = userNotifs.filter(n => !n.isRead).length;
-  const notificationPath = (notification) => {
-    const text = `${notification.type || ''} ${notification.title || ''}`.toLowerCase();
-    if (currentRole === 'Marketing Team') {
-      if (text.includes('comment') || text.includes('director_feedback') || text.includes('director feedback')) {
-        return `/marketing/director-comments${notification.referenceId ? `?feedbackId=${encodeURIComponent(notification.referenceId)}` : ''}`;
-      }
-      if (text.includes('report')) return '/marketing/reports';
-      return '/marketing/visits';
-    }
-    if (currentRole === 'Admin') {
-      if (text.includes('user') || text.includes('employee')) return '/admin/users';
-      return '/admin/reports';
-    }
-    if (text.includes('new visit plan submitted')) {
-      return `/director/visit-plans${notification.referenceId ? `?planId=${encodeURIComponent(notification.referenceId)}` : ''}`;
-    }
-    if (text.includes('report')) return '/director/visit-reports';
-    if (text.includes('comment')) return '/director/comments';
-    if (text.includes('plan') || text.includes('visit')) return '/director/tour-plans';
-    return '/director/notifications';
-  };
+  const notificationPath = (notification) => getNotificationRoute(notification, currentRole);
 
   const openNotification = async (notification, kind) => {
     await markNotificationRead(notification.id);

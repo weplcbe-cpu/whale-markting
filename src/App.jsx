@@ -4,6 +4,7 @@ import { Sidebar } from './components/common/Sidebar';
 import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
+import { RealtimeNotificationToasts } from './components/common/RealtimeNotificationToasts';
 import { AppShell } from './components/ui';
 import { LoginPage } from './components/auth/LoginPage';
 import { BrandedLoadingScreen, CompanyLogo } from './components/common/CompanyLogo';
@@ -177,6 +178,7 @@ export function AppContent() {
       {/* Mobile Native 1-Thumb Bottom Navigation */}
       <MobileBottomNav activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />
       <ToastContainer />
+      <RealtimeNotificationToasts />
     </>
   );
 }

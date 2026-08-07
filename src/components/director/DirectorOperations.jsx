@@ -4,6 +4,7 @@ import { Bell, Calendar, Clock, Download, FileText, MapPin, Package, Printer, Se
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, SectionCard, SelectField, TextArea } from '../ui';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { CompanyLogo } from '../common/CompanyLogo';
 import { getPendingDailyReports, getPendingFollowUps } from '../../utils/reportSelectors';
@@ -104,7 +105,7 @@ export const DirectorOperations = () => {
     return <div className="ds-page"><div className="report-brand"><CompanyLogo /><span>Whale Enterprise PVT Ltd</span></div><PageHeader title="Director Reports" description="Team, employee, area, product, organization, follow-up, and visit reporting." actions={<><Button variant="secondary" onClick={downloadCsv}><Download size={16} /> Excel / CSV</Button><Button variant="secondary" onClick={() => window.print()}><Printer size={16} /> PDF / Print</Button></>} />{filterBar}<DataTable rows={rows} columns={[{ key: 'employee', label: 'Employee' }, { key: 'date', label: 'Date' }, { key: 'area', label: 'Area' }, { key: 'customer', label: 'Organization' }, { key: 'products', label: 'Products' }, { key: 'status', label: 'Status' }]} empty={<EmptyState icon={FileText} title="No report data found" />} /></div>;
   }
 
-  const rows = notifications.filter((notification) => !notification.userId || notification.userId === currentUser?.employeeId).filter((notification) => !`${notification.type || ''} ${notification.title || ''} ${notification.message || ''}`.toLowerCase().includes('tender')).filter(matches);
+  const rows = filterActiveNotifications(notifications).filter((notification) => !notification.userId || notification.userId === currentUser?.employeeId).filter((notification) => !`${notification.type || ''} ${notification.title || ''} ${notification.message || ''}`.toLowerCase().includes('tender')).filter(matches);
   return <div className="ds-page"><PageHeader title="Notifications" description="View plan, visit, report, follow-up, and Admin updates." actions={<Badge tone="warning">{rows.filter((row) => !row.isRead).length} unread</Badge>} /><SectionCard><DataTable rows={rows} columns={[{ key: 'title', label: 'Notification', render: (row) => <><strong>{text(row.title)}</strong><small>{text(row.message)}</small></> }, { key: 'type', label: 'Type', render: (row) => text(row.type) }, { key: 'time', label: 'Time', render: (row) => row.timestamp || row.createdAt }, { key: 'status', label: 'Status', render: (row) => <Badge tone={row.isRead ? 'neutral' : 'warning'}>{row.isRead ? 'Read' : 'Unread'}</Badge> }, { key: 'action', label: 'Details', render: (row) => <Button variant="secondary" onClick={() => setSelected({ type: 'notification', entity: row })}>View Details</Button> }]} empty={<EmptyState icon={Bell} title="No notifications" />} /></SectionCard>{detailModal}</div>;
 };
 

@@ -1,15 +1,17 @@
 /* oxlint-disable react/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
 import { isDatabaseVisitPlanId, removeVisitPlanFromDraftCaches } from '../utils/visitPlanDraftCache';
 import { normalizeDirectorFeedback, normalizeDirectorFeedbackList } from '../utils/directorFeedback';
+import { filterActiveNotifications, getNotificationRoute, isActiveNotification, notificationTimestamp } from '../utils/notificationUtils';
 
 const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
+const NOTIFICATION_SOUND_PREF_KEY = 'kw_notification_sound';
 const ADD_USER_ERROR_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'This email address is already registered.',
   EMPLOYEE_ID_ALREADY_EXISTS: 'This employee ID already exists.',
@@ -177,6 +179,15 @@ export const AppProvider = ({ children }) => {
 
   const [theme, setTheme] = useState(() => localStorage.getItem('kw_vmm_theme') || 'dark');
   const [toasts, setToasts] = useState([]);
+  const [realtimeNotifications, setRealtimeNotifications] = useState([]);
+  const [desktopNotificationPermission, setDesktopNotificationPermission] = useState(
+    () => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
+  );
+  const [notificationSoundEnabled, setNotificationSoundEnabledState] = useState(
+    () => localStorage.getItem(NOTIFICATION_SOUND_PREF_KEY) !== 'off'
+  );
+  const notificationAudioRef = useRef(null);
+  const seenNotificationIdsRef = useRef(new Set());
   const currentRole = currentUser ? normalizeRole(currentUser.role) : null;
 
   useEffect(() => {
@@ -192,6 +203,135 @@ export const AppProvider = ({ children }) => {
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  useEffect(() => {
+    localStorage.setItem(NOTIFICATION_SOUND_PREF_KEY, notificationSoundEnabled ? 'on' : 'off');
+  }, [notificationSoundEnabled]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+      setDesktopNotificationPermission('unsupported');
+      return undefined;
+    }
+    const syncPermission = () => {
+      setDesktopNotificationPermission(Notification.permission);
+    };
+    syncPermission();
+    window.addEventListener('focus', syncPermission);
+    document.addEventListener('visibilitychange', syncPermission);
+    return () => {
+      window.removeEventListener('focus', syncPermission);
+      document.removeEventListener('visibilitychange', syncPermission);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof Audio === 'undefined') return;
+    const audio = new Audio('/sounds/kaiser-notification.wav');
+    audio.preload = 'auto';
+    notificationAudioRef.current = audio;
+    return () => {
+      notificationAudioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      seenNotificationIdsRef.current = new Set();
+      return;
+    }
+    const ids = filterActiveNotifications(notifications).map((notification) => String(notification.id));
+    seenNotificationIdsRef.current = new Set(ids);
+  }, [currentUser?.id, notifications]);
+
+  const enqueueRealtimeNotification = useCallback((notification) => {
+    if (!notification?.id) return;
+    setRealtimeNotifications((previous) => {
+      if (previous.some((item) => String(item.id) === String(notification.id))) return previous;
+      return [...previous, notification];
+    });
+  }, []);
+
+  const dismissRealtimeNotification = useCallback((id) => {
+    setRealtimeNotifications((previous) => previous.filter((item) => String(item.id) !== String(id)));
+  }, []);
+
+  const openNotificationTarget = useCallback((notification) => {
+    const path = getNotificationRoute(notification, currentRole);
+    window.dispatchEvent(new CustomEvent('kw:open-notification', { detail: { notification, path } }));
+  }, [currentRole]);
+
+  const setNotificationSoundEnabled = useCallback((enabled) => {
+    setNotificationSoundEnabledState(Boolean(enabled));
+  }, []);
+
+  const playNotificationSound = useCallback(async () => {
+    if (!notificationSoundEnabled) return false;
+    const audio = notificationAudioRef.current;
+    if (!audio) return false;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      await audio.play();
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('Notification sound playback blocked or failed:', error);
+      }
+      return false;
+    }
+  }, [notificationSoundEnabled]);
+
+  const requestDesktopNotificationPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') {
+      setDesktopNotificationPermission('unsupported');
+      return 'unsupported';
+    }
+    if (Notification.permission === 'granted') {
+      setDesktopNotificationPermission('granted');
+      return 'granted';
+    }
+    const permission = await Notification.requestPermission();
+    setDesktopNotificationPermission(permission);
+    return permission;
+  }, []);
+
+  const showDesktopNotification = useCallback((notification) => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const nativeNotification = new Notification('Kaiser Whale', {
+      body: notification?.message || notification?.title || 'New notification received.',
+      icon: '/notification-icon.png',
+      badge: '/notification-badge.png',
+      tag: String(notification?.id || Date.now()),
+      renotify: false,
+    });
+    nativeNotification.onclick = () => {
+      window.focus();
+      openNotificationTarget(notification);
+      nativeNotification.close();
+    };
+  }, [openNotificationTarget]);
+
+  const triggerForegroundNotification = useCallback(async (notification) => {
+    enqueueRealtimeNotification(notification);
+    showDesktopNotification(notification);
+    await playNotificationSound();
+  }, [enqueueRealtimeNotification, playNotificationSound, showDesktopNotification]);
+
+  const testNotificationExperience = useCallback(async () => {
+    const notification = {
+      id: `local-test-${Date.now()}`,
+      title: 'Kaiser Whale',
+      message: 'Notifications are working.',
+      type: 'system',
+      isRead: false,
+      userId: currentUser?.employeeId,
+      createdAt: new Date().toISOString(),
+    };
+    enqueueRealtimeNotification(notification);
+    showDesktopNotification(notification);
+    await playNotificationSound();
+  }, [currentUser?.employeeId, enqueueRealtimeNotification, playNotificationSound, showDesktopNotification]);
 
   // Toast Alert System
   const showToast = useCallback((message, type = 'info') => {
@@ -480,6 +620,7 @@ export const AppProvider = ({ children }) => {
       setUsers([]); setProducts([]); setOrgTypes([]); setPurposes([]);
       setVisitPlans([]); setVisitReports([]); setDailyReports([]);
       setFollowUps([]); setEmployeeVisitPlaces([]); setDistricts([]); setLocations([]); setDirectorComments([]); setNotifications([]);
+      setRealtimeNotifications([]);
       setAssignedPlacesLoading(false);
       setActivityLogs([]); setCompanyInfo(null);
     }
@@ -494,7 +635,7 @@ export const AppProvider = ({ children }) => {
     if (!currentUser?.id) return undefined;
     // Keep this channel limited to tables that are actually in the Realtime
     // publication. visit_plans has its own isolated subscription below.
-    const tables = ['director_comments', 'notifications', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places'];
+    const tables = ['director_comments', 'visit_reports', 'daily_reports', 'follow_ups', 'employee_visit_places'];
     const pending = new Map();
     let channel = supabase.channel(`portal-live-${currentUser.id}`);
 
@@ -519,6 +660,71 @@ export const AppProvider = ({ children }) => {
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, refreshEntity]);
+
+  useEffect(() => {
+    if (!currentUser?.id || !currentUser?.employeeId) return undefined;
+
+    const upsertNotification = (row) => {
+      if (!row?.id) return;
+      setNotifications((previous) => {
+        const next = [...previous];
+        const index = next.findIndex((item) => String(item.id) === String(row.id));
+        if (index >= 0) {
+          next[index] = { ...next[index], ...row };
+        } else {
+          next.unshift(row);
+        }
+        next.sort((left, right) => notificationTimestamp(right) - notificationTimestamp(left));
+        return next;
+      });
+    };
+
+    const handleInsert = async (payload) => {
+      const row = rowToCamel(payload.new || {});
+      if (!row?.id) return;
+      upsertNotification(row);
+
+      const rowUserId = String(row.userId || '');
+      if (rowUserId !== String(currentUser.employeeId)) return;
+      if (!isActiveNotification(row)) return;
+
+      const key = String(row.id);
+      if (seenNotificationIdsRef.current.has(key)) return;
+      seenNotificationIdsRef.current.add(key);
+      await triggerForegroundNotification(row);
+    };
+
+    const handleUpdate = (payload) => {
+      const row = rowToCamel(payload.new || {});
+      if (!row?.id) return;
+      upsertNotification(row);
+    };
+
+    const handleDelete = (payload) => {
+      const oldId = payload.old?.id;
+      if (!oldId) return;
+      setNotifications((previous) => previous.filter((item) => String(item.id) !== String(oldId)));
+      setRealtimeNotifications((previous) => previous.filter((item) => String(item.id) !== String(oldId)));
+      seenNotificationIdsRef.current.delete(String(oldId));
+    };
+
+    const channel = supabase
+      .channel(`notifications-live:${currentUser.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
+        handleInsert(payload).catch((error) => {
+          console.error('Notification INSERT handler failed:', error);
+        });
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, handleUpdate)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications' }, handleDelete)
+      .subscribe((status) => {
+        if (import.meta.env.DEV) console.log('Notification realtime status', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.employeeId, currentUser?.id, triggerForegroundNotification]);
 
   useEffect(() => {
     if (!currentUser?.id) return undefined;
@@ -1515,6 +1721,7 @@ export const AppProvider = ({ children }) => {
     const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
     if (error) { showToast('Unable to mark notification as read', 'error'); return; }
     setNotifications(prev => prev.map(item => item.id === id ? { ...item, isRead: true } : item));
+    dismissRealtimeNotification(id);
   };
 
   const value = {
@@ -1541,11 +1748,20 @@ export const AppProvider = ({ children }) => {
     locations,
     directorComments,
     notifications,
+    realtimeNotifications,
     activityLogs,
     companyInfo,
     toasts,
     theme,
     toggleTheme,
+    desktopNotificationPermission,
+    requestDesktopNotificationPermission,
+    notificationSoundEnabled,
+    setNotificationSoundEnabled,
+    playNotificationSound,
+    testNotificationExperience,
+    dismissRealtimeNotification,
+    openNotificationTarget,
     login,
     logout,
     showToast,

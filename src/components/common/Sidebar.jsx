@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { adminRoutes, directorNavigation, directorRoutes, marketingRoutes } from '../../routes';
+import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { CompanyLogo } from './CompanyLogo';
 import {
   LayoutDashboard,
@@ -25,7 +26,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
   const navigate = useNavigate();
   const [expandedDirectorGroups, setExpandedDirectorGroups] = useState(new Set());
 
-  const unreadNotifsCount = notifications.filter(
+  const unreadNotifsCount = filterActiveNotifications(notifications).filter(
     n => !n.isRead && (!n.userId || n.userId === currentUser?.employeeId)
   ).length;
   const unreadFeedbackCount = directorComments.filter(

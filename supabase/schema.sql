@@ -352,11 +352,15 @@ create table if not exists public.director_comments (
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id text not null,
+  creator_user_id uuid references auth.users(id) on delete set null,
+  creator_employee_id text,
+  creator_role text,
   title text,
   message text,
   timestamp text,
   is_read boolean not null default false,
   type text,
+  reference_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -608,7 +612,53 @@ drop policy if exists "notifications_select" on public.notifications;
 create policy "notifications_select" on public.notifications for select to authenticated
   using (public.is_admin() or user_id = public.current_employee_id());
 drop policy if exists "notifications_insert" on public.notifications;
-create policy "notifications_insert" on public.notifications for insert to authenticated with check (true);
+create policy "notifications_insert"
+on public.notifications
+for insert
+to authenticated
+with check (
+  creator_user_id = (select auth.uid())
+  and creator_employee_id = (select public.current_employee_id())
+  and creator_role = (select public.current_role_name())
+  and (
+    (select public.is_admin())
+    or (
+      creator_role = 'Director'
+      and type in ('plan', 'director_feedback')
+      and exists (
+        select 1
+        from public.profiles recipient
+        where recipient.employee_id = notifications.user_id
+          and recipient.role in ('Marketing', 'Marketing Team')
+          and recipient.status = 'Active'
+      )
+    )
+    or (
+      creator_role in ('Marketing', 'Marketing Team')
+      and type = 'plan'
+      and title in (
+        'Weekly tour plan submitted',
+        'Monthly tour plan submitted',
+        'New Visit Plan Submitted',
+        'Visit plan submitted',
+        'Visit plan awaiting review'
+      )
+      and exists (
+        select 1
+        from public.profiles recipient
+        where recipient.employee_id = notifications.user_id
+          and recipient.role = 'Director'
+          and recipient.status = 'Active'
+      )
+      and exists (
+        select 1
+        from public.profiles creator
+        where creator.id = (select auth.uid())
+          and notifications.message like coalesce(creator.full_name, creator.username, creator.employee_id) || '%'
+      )
+    )
+  )
+);
 drop policy if exists "notifications_update" on public.notifications;
 create policy "notifications_update" on public.notifications for update to authenticated
   using (public.is_admin() or user_id = public.current_employee_id())
