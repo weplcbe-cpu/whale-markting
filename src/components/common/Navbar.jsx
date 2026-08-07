@@ -126,6 +126,7 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
 
   const breadcrumb = generateBreadcrumb();
   const pageTitle = portalTitleMap[currentRole] || 'Portal';
+  const themeToggleLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
 
   return (
     <header className="top-navbar">
@@ -183,8 +184,8 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
         </button>
 
         {/* Theme toggle */}
-        <button className="icon-btn" title="Toggle Theme" onClick={toggleTheme}>
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        <button className="icon-btn" type="button" title={themeToggleLabel} aria-label={themeToggleLabel} aria-pressed={theme === 'dark'} onClick={toggleTheme}>
+          {theme === 'light' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
         </button>
 
         {/* Notifications */}

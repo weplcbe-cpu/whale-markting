@@ -131,7 +131,7 @@ export const DirectorDashboard = () => {
       return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
     });
 
-    // Deduplicate
+    // Deduplicate and keep the dashboard preview intentionally short.
     const seen = new Set();
     const unique = [];
     for (const item of list) {
@@ -140,11 +140,13 @@ export const DirectorDashboard = () => {
         seen.add(key);
         unique.push(item);
       }
-      if (unique.length >= 4) break;
+      if (unique.length >= 5) break;
     }
 
     return unique;
   }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
+
+  const recentUpdatesPreview = useMemo(() => recentUpdatesList.slice(0, 5), [recentUpdatesList]);
 
   console.log('[Director Dashboard render]', {
     visitPlansLength: visitPlans.length,
@@ -293,14 +295,14 @@ export const DirectorDashboard = () => {
             </button>
           </div>
 
-          {recentUpdatesList.length === 0 ? (
+          {recentUpdatesPreview.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
               <MessageSquare size={16} color="var(--text-muted)" />
               <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No recent team updates.</span>
             </div>
           ) : (
-            <div className="timeline-container" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-              {recentUpdatesList.map((update, idx) => {
+            <div className="director-update-preview">
+              {recentUpdatesPreview.map((update, idx) => {
                 const formatted = formatUpdateDate(update);
                 let dateDisplay = null;
                 let timeDisplay = null;
@@ -310,52 +312,36 @@ export const DirectorDashboard = () => {
                   timeDisplay = parts[1] || null;
                 }
 
-                const isLast = idx === recentUpdatesList.length - 1;
+                const isLast = idx === recentUpdatesPreview.length - 1;
 
                 return (
                   <div
                     key={update.id || idx}
-                    className="timeline-row"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '10px',
-                      padding: '7px 0',
-                      borderBottom: isLast ? 'none' : '1px solid var(--border-color, #f1f5f9)',
-                      position: 'relative',
-                    }}
+                    className={`director-update-preview__row${isLast ? ' is-last' : ''}`}
                   >
-                    {/* Timeline node */}
-                    <div className="timeline-left" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, position: 'relative' }}>
-                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-                        <MessageSquare size={11} />
-                      </div>
-                      {!isLast && (
-                        <div style={{ width: '2px', position: 'absolute', top: '22px', bottom: '-7px', backgroundColor: '#E2E8F0', zIndex: 1 }} />
-                      )}
+                    <div className="director-update-preview__icon" aria-hidden="true">
+                      <MessageSquare size={11} />
                     </div>
 
-                    {/* Title + Employee */}
-                    <div className="timeline-center" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                      <strong style={{ color: 'var(--primary-dark, #0F172A)', fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
+                    <div className="director-update-preview__content">
+                      <strong>
                         {update.title || update.type || 'Team Activity Update'}
                       </strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted, #64748B)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span>
                         {update.employeeName || update.senderName || 'Team Member'}
                         {update.organization ? ` • ${update.organization}` : ''}
                       </span>
                     </div>
 
-                    {/* Date & Time */}
                     {(dateDisplay || timeDisplay) && (
-                      <div className="timeline-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, lineHeight: 1.25 }}>
+                      <div className="director-update-preview__meta">
                         {dateDisplay && (
-                          <span style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--primary-dark, #0F172A)', whiteSpace: 'nowrap' }}>
+                          <span>
                             {dateDisplay}
                           </span>
                         )}
                         {timeDisplay && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #64748B)', whiteSpace: 'nowrap' }}>
+                          <span>
                             {timeDisplay}
                           </span>
                         )}

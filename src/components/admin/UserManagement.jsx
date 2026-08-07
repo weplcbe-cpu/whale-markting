@@ -30,6 +30,7 @@ export const UserManagement = () => {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const initialFormDataRef = useRef(null);
   const submitLockRef = useRef(false);
+  const userModalMode = editingUser ? 'edit' : 'create';
 
   // Form State
   const [formData, setFormData] = useState({
@@ -349,7 +350,7 @@ export const UserManagement = () => {
       {/* Add / Edit User Modal */}
       {isAddModalOpen && createPortal(
         <div className="user-modal-overlay" role="presentation">
-          <section className={`user-modal admin-user-modal user-modal--${editingUser ? 'edit' : 'create'}`} role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
+          <section className="user-modal admin-user-modal" data-mode={userModalMode} role="dialog" aria-modal="true" aria-labelledby="user-modal-title" aria-describedby="user-modal-subtitle">
             <header className="user-modal__header">
               <div>
                 <h2 id="user-modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>
@@ -368,7 +369,8 @@ export const UserManagement = () => {
             </header>
 
             <form className="user-modal__form" onSubmit={handleSave}>
-              <div className="user-modal__body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="user-modal__body admin-user-modal__body">
+                <div className="admin-user-modal__grid">
                 {formError && (
                   <div className="form-error" role="alert">
                     <AlertCircle size={18} aria-hidden="true" />
@@ -484,6 +486,7 @@ export const UserManagement = () => {
                     value={formData.designation}
                     onChange={(e) => updateFormField('designation', e.target.value)}
                   />
+                </div>
                 </div>
               </div>
 
