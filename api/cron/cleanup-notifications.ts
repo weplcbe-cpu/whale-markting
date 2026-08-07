@@ -17,7 +17,9 @@ export default async function handler(req, res) {
   }
 
   const authHeader = req.headers.authorization || '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  const tokenFromQuery = typeof req.query?.token === 'string' ? req.query.token : '';
+  const authorized = authHeader === `Bearer ${CRON_SECRET}` || tokenFromQuery === CRON_SECRET;
+  if (!authorized) {
     return sendJson(res, 401, { success: false, error: 'UNAUTHORIZED' });
   }
 

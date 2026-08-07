@@ -13,17 +13,15 @@ jobs:
       - name: Invoke cleanup endpoint
         env:
           CLEANUP_CRON_URL: ${{ secrets.CLEANUP_CRON_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
 
-          if [ -z "${CLEANUP_CRON_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+          if [ -z "${CLEANUP_CRON_URL}" ]; then
             echo "Missing required secrets" >&2
             exit 1
           fi
 
           HTTP_STATUS=$(curl -sS -o response.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
             "${CLEANUP_CRON_URL}")
 
           cat response.json
