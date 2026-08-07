@@ -10,6 +10,11 @@ const LEGACY_DRAFT_KEY = 'marketing-visit-plan-draft';
 const DEFAULT_ORGANIZATION_TYPES = ['Corporation', 'Municipality', 'Government Department', 'Private Company', 'Contractor', 'Dealer', 'Consultant', 'Other'];
 const DEFAULT_PURPOSES = ['Product Demo', 'Product Presentation', 'Service Visit', 'Follow-up Visit', 'New Requirement', 'Quotation Discussion', 'Payment Follow-up', 'General Visit', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+const STEPS = [
+  { key: 1, label: 'Visit Schedule', shortLabel: 'Schedule' },
+  { key: 2, label: 'Customer Details', shortLabel: 'Customer' },
+  { key: 3, label: 'Visit Details', shortLabel: 'Details' },
+];
 
 const todayIso = () => {
   const date = new Date();
@@ -102,6 +107,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [draftStatus, setDraftStatus] = useState('saved');
+  const [currentStep, setCurrentStep] = useState(1);
   const [isTimeDialogOpen, setIsTimeDialogOpen] = useState(false);
   const submissionKey = useRef(plan?.submissionKey || crypto.randomUUID());
   const timeTriggerRef = useRef(null);
@@ -213,6 +219,58 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     window.requestAnimationFrame(() => timeTriggerRef.current?.focus());
   };
 
+  const setStepErrors = (fields, nextErrors) => {
+    setErrors((current) => {
+      const merged = { ...current };
+      fields.forEach((field) => {
+        merged[field] = undefined;
+      });
+      Object.entries(nextErrors).forEach(([field, message]) => {
+        merged[field] = message;
+      });
+      return merged;
+    });
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const focusStepError = (field) => {
+    const selectors = {
+      visitDate: '.visit-date-trigger',
+      expectedTime: '#visit-time-button',
+      visitPlace: '#visit-place',
+      mobileNumber: '#visit-mobile-number',
+      visitPurpose: '#visit-purpose',
+    };
+    if (!selectors[field]) return;
+    window.requestAnimationFrame(() => {
+      document.querySelector(selectors[field])?.focus?.();
+    });
+  };
+
+  const validateScheduleStep = () => {
+    const nextErrors = {};
+    if (!formData.visitDate) nextErrors.visitDate = 'Please select a visit date.';
+    if (!formData.hour || !formData.minute || !formData.period) nextErrors.expectedTime = 'Please select the visit time.';
+    if (!formData.visitPlace) {
+      nextErrors.visitPlace = assignedPlaces.length
+        ? 'Select your assigned visit place.'
+        : 'No visit places are assigned to your account. Please contact Admin.';
+    }
+    const valid = setStepErrors(['visitDate', 'expectedTime', 'visitPlace'], nextErrors);
+    if (!valid) focusStepError(Object.keys(nextErrors)[0]);
+    return valid;
+  };
+
+  const validateCustomerStep = () => {
+    const nextErrors = {};
+    if (formData.mobileNumber && formData.mobileNumber.length !== 10) {
+      nextErrors.mobileNumber = 'Enter a valid 10-digit mobile number.';
+    }
+    const valid = setStepErrors(['mobileNumber'], nextErrors);
+    if (!valid) focusStepError('mobileNumber');
+    return valid;
+  };
+
   const validate = () => {
     const nextErrors = {};
     if (!formData.visitDate) nextErrors.visitDate = 'Please select a visit date.';
@@ -322,17 +380,45 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     return () => window.clearTimeout(timer);
   }, [dirty, draftKey, formData, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    setCurrentStep(1);
+  }, [open]);
+
+  const continueStep = () => {
+    if (currentStep === 1) {
+      if (!validateScheduleStep()) return;
+      setCurrentStep(2);
+      return;
+    }
+    if (currentStep === 2) {
+      if (!validateCustomerStep()) return;
+      setCurrentStep(3);
+    }
+  };
+
   const footer = (
-    <>
+    <div className="visit-plan-footer-shell">
       <div className="ds-draft-status" role="status">
         {draftStatus === 'saving' ? 'Saving…' : <><Check size={16} /> Draft saved</>}
       </div>
-      <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
-      <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>
-      <Button onClick={submit} loading={submitting} disabled={submitting || assignedPlacesLoading || !availableAssignedPlaces.length}>
-        <Save size={16} /> Submit Visit Plan
-      </Button>
-    </>
+      <div className="visit-plan-footer-actions">
+        {currentStep === 1 && (
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
+        )}
+        {currentStep > 1 && (
+          <Button variant="secondary" onClick={() => setCurrentStep((step) => Math.max(1, step - 1))} disabled={submitting}>Back</Button>
+        )}
+        <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>
+        {currentStep < 3 ? (
+          <Button onClick={continueStep} disabled={submitting || assignedPlacesLoading}>Continue</Button>
+        ) : (
+          <Button onClick={submit} loading={submitting} disabled={submitting || assignedPlacesLoading || !availableAssignedPlaces.length}>
+            <Save size={16} /> Submit Visit Plan
+          </Button>
+        )}
+      </div>
+    </div>
   );
 
   return (
@@ -341,284 +427,311 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       onClose={onClose}
       dirty={dirty}
       title="Create Visit Plan"
-      subtitle="Fill in the visit plan details below (minimum typing required)."
+      subtitle="Plan and schedule your customer visit."
       footer={footer}
       size="visit-plan"
     >
       {errors.form && <div className="form-error ds-field--full" role="alert">{errors.form}</div>}
 
-      <div className="ds-form-grid visit-plan-sheet">
-        {/* Visit Date */}
-        <div className="ds-field">
-          <label>Visit Date <span className="ds-required">*</span></label>
-          <VisitDatePicker value={formData.visitDate} min={todayIso()} error={errors.visitDate} onChange={(visitDate) => update('visitDate', visitDate)} />
-          {errors.visitDate && <span className="ds-field__error">{errors.visitDate}</span>}
-        </div>
-
-        {/* Visit Time */}
-        <div className="ds-field">
-          <label htmlFor="visit-time-button">Visit Time <span className="ds-required">*</span></label>
-          <button
-            ref={timeTriggerRef}
-            id="visit-time-button"
-            type="button"
-            className={`visit-time-button${errors.expectedTime ? ' visit-time-button--error' : ''}`}
-            aria-haspopup="dialog"
-            aria-expanded={isTimeDialogOpen}
-            onClick={() => setIsTimeDialogOpen(true)}
-          >
-            <Clock size={19} aria-hidden="true" />
-            <span>{to12HourTime(time24) || 'Select visit time'}</span>
-          </button>
-          <input
-            id="visit-time"
-            type="time"
-            name="visitTime"
-            value={time24}
-            onChange={handleNativeTimeChange}
-            step="300"
-            required
-            tabIndex={-1}
-            className="visually-hidden-time-input"
-            aria-invalid={Boolean(errors.expectedTime)}
-          />
-          {isTimeDialogOpen && (
-            <VisitTimeDialog
-              value={time24}
-              onCancel={closeTimeDialog}
-              onConfirm={(nextTime) => {
-                setTime24(nextTime);
-                closeTimeDialog();
-              }}
-            />
-          )}
-          {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
-        </div>
-
-        <div className="ds-field">
-          <SelectField
-            label="Visit Place"
-            required
-            disabled={assignedPlacesLoading || !availableAssignedPlaces.length}
-            value={formData.visitPlace}
-            onChange={(event) => {
-              const place = event.target.value;
-              const location = locations.find((item) => item.active !== false && item.locationName?.toLocaleLowerCase() === place.toLocaleLowerCase());
-              setFormData((current) => ({ ...current, visitPlace: place, district: location?.district?.districtName || '' }));
-              setErrors((current) => ({ ...current, visitPlace: undefined }));
-            }}
-            error={errors.visitPlace}
-            hint={assignedPlacesLoading ? 'Loading assigned places...' : availableAssignedPlaces.length ? 'Only assigned visit places are listed.' : undefined}
-          >
-            <option value="">-- Select assigned place --</option>
-            {[...assignedPlaceGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, places]) => <optgroup key={districtName} label={districtName}>{places.map(({ place }) => <option key={place} value={place}>{place}</option>)}</optgroup>)}
-          </SelectField>
-
-          {assignedPlacesLoading && (
-            <div className="ds-field--full" style={{ padding: '12px', marginTop: '6px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Loading assigned places...
-            </div>
-          )}
-          {!assignedPlacesLoading && !availableAssignedPlaces.length && (
-            <div className="ds-field--full" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', marginTop: '6px', fontSize: '0.85rem', color: 'var(--accent-rose)' }}>
-              ⚠️ No visit places are assigned to your account. Please contact your Administrator to assign visit places.
-            </div>
-          )}
-        </div>
-
-        {/* Customer / Organization Name */}
-        <div className="ds-field">
-          <FormField
-            label="Customer / Organization Name"
-            placeholder="e.g. Acme Health Corp"
-            value={formData.organizationName}
-            onChange={(event) => update('organizationName', event.target.value)}
-          />
-          {recentOrganizations.length > 0 && (
-            <div style={{ marginTop: '6px' }}>
-              <small style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Quick select previous:</small>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {recentOrganizations.map((org, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                    onClick={() => choosePreviousOrganization(org)}
-                  >
-                    {org.organizationName || org.customerName}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Organization Type */}
-        <SelectField
-          label="Organization Type"
-          value={formData.organizationType}
-          onChange={(event) => update('organizationType', event.target.value)}
-        >
-          <option value="">-- Select type --</option>
-          {organizationTypesList.map((type) => <option key={type} value={type}>{type}</option>)}
-        </SelectField>
-
-        {formData.organizationType === 'Other' && (
-          <FormField
-            className="ds-field--full"
-            label="Custom Organization Type"
-            value={formData.customOrganizationType}
-            onChange={(event) => update('customOrganizationType', event.target.value)}
-          />
-        )}
-
-        {/* Contact Person */}
-        <FormField
-          label="Contact Person"
-          placeholder="e.g. John Doe"
-          value={formData.contactPerson}
-          onChange={(event) => update('contactPerson', event.target.value)}
-        />
-
-        {/* Mobile Number (10 digits numeric) */}
-        <FormField
-          label="Mobile Number"
-          type="tel"
-          inputMode="numeric"
-          maxLength={10}
-          placeholder="10-digit mobile number"
-          value={formData.mobileNumber}
-          onChange={(event) => update('mobileNumber', event.target.value.replace(/\D/g, '').slice(0, 10))}
-          error={errors.mobileNumber}
-        />
-
-        {/* Visit Purpose */}
-        <SelectField
-          label="Visit Purpose"
-          required
-          value={formData.visitPurpose}
-          onChange={(event) => update('visitPurpose', event.target.value)}
-          error={errors.visitPurpose}
-        >
-          <option value="">-- Select purpose --</option>
-          {visitPurposesList.map((purpose) => <option key={purpose} value={purpose}>{purpose}</option>)}
-        </SelectField>
-
-        {formData.visitPurpose === 'Other' && (
-          <FormField
-            className="ds-field--full"
-            label="Custom Visit Purpose"
-            value={formData.customVisitPurpose}
-            onChange={(event) => update('customVisitPurpose', event.target.value)}
-          />
-        )}
-
-        {/* Priority Selection */}
-        <fieldset className="ds-field visit-toggle-field">
-          <legend>Priority</legend>
-          <div className="visit-toggle-group visit-priority-group">
-            {PRIORITIES.map((priority) => (
-              <button
-                type="button"
-                key={priority}
-                className={formData.priority === priority ? 'selected' : ''}
-                onClick={() => update('priority', priority)}
-              >
-                {priority}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* Products (Multi-select with Removable Chips) */}
-        <fieldset className="ds-field ds-field--full visit-products-field">
-          <legend>Products (Select multiple)</legend>
-          
-          {/* Selected Product Chips */}
-          {formData.selectedProducts.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-              {formData.selectedProducts.map((pName) => (
-                <span
-                  key={pName}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '4px 10px',
-                    borderRadius: '16px',
-                    background: 'var(--primary-blue)',
-                    color: '#fff',
-                    fontSize: '0.85rem',
-                    fontWeight: 600
-                  }}
-                >
-                  {pName}
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', padding: 0 }}
-                    onClick={() => removeProductChip(pName)}
-                    title={`Remove ${pName}`}
-                  >
-                    <X size={14} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="visit-product-grid">
-            {activeProducts.map((product) => {
-              const selected = formData.selectedProducts.includes(product.name);
-              return (
+      <div className="visit-plan-wizard">
+        <ol className="visit-plan-stepper" aria-label="Create Visit Plan steps">
+          {STEPS.map((step, index) => {
+            const status = currentStep > step.key ? 'complete' : currentStep === step.key ? 'active' : 'upcoming';
+            return (
+              <li key={step.key} className={`visit-plan-stepper-item is-${status}`}>
                 <button
                   type="button"
-                  key={product.id}
-                  className={selected ? 'selected' : ''}
-                  onClick={() => toggleProduct(product.name)}
+                  className="visit-plan-stepper-trigger"
+                  onClick={() => {
+                    if (step.key < currentStep) setCurrentStep(step.key);
+                  }}
+                  disabled={step.key > currentStep}
+                  aria-current={currentStep === step.key ? 'step' : undefined}
                 >
-                  {selected && <Check size={16} />}
-                  <span>{product.name}</span>
+                  <span className="visit-plan-stepper-dot" aria-hidden="true">{currentStep > step.key ? <Check size={14} /> : step.key}</span>
+                  <span className="visit-plan-stepper-label-wrap">
+                    <span className="visit-plan-stepper-label visit-plan-stepper-label--full">{step.label}</span>
+                    <span className="visit-plan-stepper-label visit-plan-stepper-label--short">{step.shortLabel}</span>
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-          {!activeProducts.length && <small style={{ color: 'var(--text-muted)' }}>No active products are configured in master catalog.</small>}
-          {errors.selectedProducts && <span className="ds-field__error">{errors.selectedProducts}</span>}
-        </fieldset>
+                {index < STEPS.length - 1 && <span className="visit-plan-stepper-connector" aria-hidden="true" />}
+              </li>
+            );
+          })}
+        </ol>
 
-        {/* Requirement / Objective */}
-        <TextArea
-          className="ds-field--full"
-          label="Requirement / Objective"
-          placeholder="Brief visit objective or specific product requirement..."
-          rows={2}
-          value={formData.requirement}
-          onChange={(event) => update('requirement', event.target.value)}
-        />
+        <section className="visit-plan-step-panel" key={currentStep}>
+          {currentStep === 1 && (
+            <>
+              <header className="visit-plan-step-header">
+                <h3>Visit Schedule</h3>
+                <p>Choose when and where the customer visit will take place.</p>
+              </header>
 
-        {/* Follow-up Required Toggle & Notes */}
-        <div className="ds-field ds-field--full" style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '8px 0' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', font: '600 14px var(--font-primary)' }}>
-            <input
-              type="checkbox"
-              checked={formData.isFollowUpRequired}
-              onChange={(e) => update('isFollowUpRequired', e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            Follow-up Required
-          </label>
-        </div>
+              <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <div className="ds-field">
+                  <label>Visit Date <span className="ds-required">*</span></label>
+                  <VisitDatePicker value={formData.visitDate} min={todayIso()} error={errors.visitDate} onChange={(visitDate) => update('visitDate', visitDate)} />
+                  {errors.visitDate && <span className="ds-field__error">{errors.visitDate}</span>}
+                </div>
 
-        <TextArea
-          className="ds-field--full"
-          label="Notes (Optional)"
-          placeholder="Additional notes for this visit..."
-          rows={2}
-          value={formData.notes}
-          onChange={(event) => update('notes', event.target.value)}
-        />
-        <div className="visit-plan-form-end-spacer" aria-hidden="true" />
+                <div className="ds-field">
+                  <label htmlFor="visit-time-button">Visit Time <span className="ds-required">*</span></label>
+                  <button
+                    ref={timeTriggerRef}
+                    id="visit-time-button"
+                    type="button"
+                    className={`visit-time-button${errors.expectedTime ? ' visit-time-button--error' : ''}`}
+                    aria-haspopup="dialog"
+                    aria-expanded={isTimeDialogOpen}
+                    onClick={() => setIsTimeDialogOpen(true)}
+                  >
+                    <Clock size={19} aria-hidden="true" />
+                    <span>{to12HourTime(time24) || 'Select visit time'}</span>
+                  </button>
+                  <input
+                    id="visit-time"
+                    type="time"
+                    name="visitTime"
+                    value={time24}
+                    onChange={handleNativeTimeChange}
+                    step="300"
+                    required
+                    tabIndex={-1}
+                    className="visually-hidden-time-input"
+                    aria-invalid={Boolean(errors.expectedTime)}
+                  />
+                  {isTimeDialogOpen && (
+                    <VisitTimeDialog
+                      value={time24}
+                      onCancel={closeTimeDialog}
+                      onConfirm={(nextTime) => {
+                        setTime24(nextTime);
+                        closeTimeDialog();
+                      }}
+                    />
+                  )}
+                  {errors.expectedTime && <span className="ds-field__error">{errors.expectedTime}</span>}
+                </div>
+
+                <SelectField
+                  className="ds-field--full visit-place-select-wrap"
+                  label="Visit Place"
+                  id="visit-place"
+                  required
+                  disabled={assignedPlacesLoading || !availableAssignedPlaces.length}
+                  value={formData.visitPlace}
+                  onChange={(event) => {
+                    const place = event.target.value;
+                    const location = locations.find((item) => item.active !== false && item.locationName?.toLocaleLowerCase() === place.toLocaleLowerCase());
+                    setFormData((current) => ({ ...current, visitPlace: place, district: location?.district?.districtName || '' }));
+                    setErrors((current) => ({ ...current, visitPlace: undefined }));
+                  }}
+                  error={errors.visitPlace}
+                  hint={assignedPlacesLoading ? 'Loading assigned places...' : undefined}
+                >
+                  <option value="">-- Select assigned place --</option>
+                  {[...assignedPlaceGroups.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([districtName, places]) => <optgroup key={districtName} label={districtName}>{places.map(({ place }) => <option key={place} value={place}>{place}</option>)}</optgroup>)}
+                </SelectField>
+                <small className="visit-place-helper">Only assigned visit places are listed.</small>
+
+                {!assignedPlacesLoading && !availableAssignedPlaces.length && (
+                  <div className="visit-place-warning" role="alert">
+                    ⚠️ No visit places are assigned to your account. Please contact your Administrator to assign visit places.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {currentStep === 2 && (
+            <>
+              <header className="visit-plan-step-header">
+                <h3>Customer Details</h3>
+                <p>Add the customer and contact information for this visit.</p>
+              </header>
+
+              <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <div className="ds-field">
+                  <FormField
+                    label="Customer / Organization Name"
+                    placeholder="e.g. Acme Health Corp"
+                    value={formData.organizationName}
+                    onChange={(event) => update('organizationName', event.target.value)}
+                  />
+                  {recentOrganizations.length > 0 && (
+                    <div className="visit-org-quick-picks">
+                      <small>Quick select previous:</small>
+                      <div>
+                        {recentOrganizations.map((org, idx) => (
+                          <button key={idx} type="button" className="btn btn-secondary btn-sm" onClick={() => choosePreviousOrganization(org)}>
+                            {org.organizationName || org.customerName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <SelectField
+                  label="Organization Type"
+                  value={formData.organizationType}
+                  onChange={(event) => update('organizationType', event.target.value)}
+                >
+                  <option value="">-- Select type --</option>
+                  {organizationTypesList.map((type) => <option key={type} value={type}>{type}</option>)}
+                </SelectField>
+
+                {formData.organizationType === 'Other' && (
+                  <FormField
+                    className="ds-field--full"
+                    label="Custom Organization Type"
+                    value={formData.customOrganizationType}
+                    onChange={(event) => update('customOrganizationType', event.target.value)}
+                  />
+                )}
+
+                <FormField
+                  label="Contact Person"
+                  placeholder="e.g. John Doe"
+                  value={formData.contactPerson}
+                  onChange={(event) => update('contactPerson', event.target.value)}
+                />
+
+                <FormField
+                  id="visit-mobile-number"
+                  label="Mobile Number"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="10-digit mobile number"
+                  value={formData.mobileNumber}
+                  onChange={(event) => update('mobileNumber', event.target.value.replace(/\D/g, '').slice(0, 10))}
+                  error={errors.mobileNumber}
+                />
+              </div>
+            </>
+          )}
+
+          {currentStep === 3 && (
+            <>
+              <header className="visit-plan-step-header">
+                <h3>Visit Details</h3>
+                <p>Define the purpose, priority and products for this visit.</p>
+              </header>
+
+              <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <SelectField
+                  className="ds-field--full"
+                  id="visit-purpose"
+                  label="Visit Purpose"
+                  required
+                  value={formData.visitPurpose}
+                  onChange={(event) => update('visitPurpose', event.target.value)}
+                  error={errors.visitPurpose}
+                >
+                  <option value="">-- Select purpose --</option>
+                  {visitPurposesList.map((purpose) => <option key={purpose} value={purpose}>{purpose}</option>)}
+                </SelectField>
+
+                {formData.visitPurpose === 'Other' && (
+                  <FormField
+                    className="ds-field--full"
+                    label="Custom Visit Purpose"
+                    value={formData.customVisitPurpose}
+                    onChange={(event) => update('customVisitPurpose', event.target.value)}
+                  />
+                )}
+
+                <fieldset className="ds-field ds-field--full visit-priority-fieldset">
+                  <legend>Priority</legend>
+                  <div className="visit-priority-segmented" role="group" aria-label="Priority">
+                    {PRIORITIES.map((priority) => (
+                      <button
+                        type="button"
+                        key={priority}
+                        className={formData.priority === priority ? `selected ${priority === 'Urgent' ? 'urgent' : ''}` : ''}
+                        onClick={() => update('priority', priority)}
+                        aria-pressed={formData.priority === priority}
+                      >
+                        {formData.priority === priority && <Check size={14} aria-hidden="true" />}
+                        {priority}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="ds-field ds-field--full visit-products-field">
+                  <legend>Products Interested</legend>
+                  <p className="visit-products-copy">Select one or more products relevant to this visit.</p>
+
+                  {formData.selectedProducts.length > 0 && (
+                    <div className="visit-product-chips">
+                      {formData.selectedProducts.map((pName) => (
+                        <span key={pName}>
+                          {pName}
+                          <button type="button" onClick={() => removeProductChip(pName)} title={`Remove ${pName}`} aria-label={`Remove ${pName}`}>
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="visit-product-grid">
+                    {activeProducts.map((product) => {
+                      const selected = formData.selectedProducts.includes(product.name);
+                      return (
+                        <button
+                          type="button"
+                          key={product.id}
+                          className={selected ? 'selected' : ''}
+                          onClick={() => toggleProduct(product.name)}
+                          aria-pressed={selected}
+                        >
+                          {selected && <Check size={16} aria-hidden="true" />}
+                          <span>{product.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!activeProducts.length && <small>No active products are configured in master catalog.</small>}
+                  {errors.selectedProducts && <span className="ds-field__error">{errors.selectedProducts}</span>}
+                </fieldset>
+
+                <TextArea
+                  className="ds-field--full visit-plan-long-textarea"
+                  label="Requirement / Objective"
+                  placeholder="Brief visit objective or specific product requirement..."
+                  rows={4}
+                  value={formData.requirement}
+                  onChange={(event) => update('requirement', event.target.value)}
+                />
+
+                <div className="ds-field ds-field--full visit-followup-toggle-row">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isFollowUpRequired}
+                      onChange={(e) => update('isFollowUpRequired', e.target.checked)}
+                    />
+                    Follow-up Required
+                  </label>
+                </div>
+
+                <TextArea
+                  className="ds-field--full visit-plan-long-textarea"
+                  label="Notes (Optional)"
+                  placeholder="Additional notes for this visit..."
+                  rows={4}
+                  value={formData.notes}
+                  onChange={(event) => update('notes', event.target.value)}
+                />
+                <div className="visit-plan-form-end-spacer" aria-hidden="true" />
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </Modal>
   );
