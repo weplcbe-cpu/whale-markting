@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
-import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Search } from 'lucide-react';
+import { UserPlus, Edit, Shield, UserX, UserCheck, X, Trash2, AlertCircle, Search, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { useModalLayer } from '../ui/modalLayer';
 
@@ -14,7 +14,7 @@ const getCaughtErrorMessage = (error, fallback = UNKNOWN_ADD_USER_ERROR) => {
 };
 
 export const UserManagement = () => {
-  const { users, employeeVisitPlaces, locations = [], addUser, updateUser, toggleUserStatus, deleteUser } = useApp();
+  const { users, employeeVisitPlaces, locations = [], addUser, updateUser, toggleUserStatus, deleteUser, resetUserPassword, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   
@@ -28,6 +28,12 @@ export const UserManagement = () => {
   const [placeSearch, setPlaceSearch] = useState('');
   const [selectedPlaceNames, setSelectedPlaceNames] = useState([]);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [resettingUser, setResettingUser] = useState(null);
+  const [resetFormData, setResetFormData] = useState({ newPassword: '', confirmPassword: '' });
+  const [resetFormError, setResetFormError] = useState('');
+  const [isResetSubmitting, setIsResetSubmitting] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   const initialFormDataRef = useRef(null);
   const submitLockRef = useRef(false);
   const userModalMode = editingUser ? 'edit' : 'create';
@@ -108,6 +114,70 @@ export const UserManagement = () => {
   const updateFormField = (field, value) => {
     setFormData((current) => ({ ...current, [field]: value }));
     if (formError) setFormError('');
+  };
+
+  const openResetPasswordModal = (user) => {
+    setResettingUser(user);
+    setResetFormData({ newPassword: '', confirmPassword: '' });
+    setResetFormError('');
+    setShowResetPassword(false);
+    setShowResetConfirmPassword(false);
+  };
+
+  const closeResetPasswordModal = () => {
+    if (isResetSubmitting) return;
+    setResettingUser(null);
+    setResetFormData({ newPassword: '', confirmPassword: '' });
+    setResetFormError('');
+    setShowResetPassword(false);
+    setShowResetConfirmPassword(false);
+  };
+
+  const updateResetFormField = (field, value) => {
+    setResetFormData((current) => ({ ...current, [field]: value }));
+    if (resetFormError) setResetFormError('');
+  };
+
+  const validateResetForm = () => {
+    const nextPassword = resetFormData.newPassword.trim();
+    const nextConfirmPassword = resetFormData.confirmPassword.trim();
+    if (!nextPassword || !nextConfirmPassword) return 'Both password fields are required.';
+    if (nextPassword.length < 8) return 'Password must contain at least 8 characters.';
+    if (nextPassword !== nextConfirmPassword) return 'Passwords do not match.';
+    return '';
+  };
+
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    if (!resettingUser || isResetSubmitting) return;
+
+    const validationError = validateResetForm();
+    if (validationError) {
+      setResetFormError(validationError);
+      return;
+    }
+
+    setIsResetSubmitting(true);
+    setResetFormError('');
+    try {
+      const result = await resetUserPassword({
+        targetUserId: resettingUser.id,
+        newPassword: resetFormData.newPassword,
+      });
+
+      if (!result.success) {
+        setResetFormError(result.error || 'Unable to update password. Please try again.');
+        return;
+      }
+
+      showToast(`Password updated successfully for ${resettingUser.employeeName}.`, 'success');
+      closeResetPasswordModal();
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Password reset workflow failed:', error);
+      setResetFormError('Unable to update password. Please try again.');
+    } finally {
+      setIsResetSubmitting(false);
+    }
   };
   const locationGroups = useMemo(() => locations
     .filter((location) => location.active !== false)
@@ -314,13 +384,23 @@ export const UserManagement = () => {
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleOpenEdit(u)}
                         title="Edit User"
                       >
                         <Edit size={14} />
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openResetPasswordModal(u)}
+                        title="Reset Password"
+                        aria-label={`Reset password for ${u.employeeName}`}
+                        disabled={u.status !== 'Active'}
+                      >
+                        <KeyRound size={14} />
                       </button>
 
                       <button
@@ -566,6 +646,111 @@ export const UserManagement = () => {
               </button>
             </div>
           </div>
+        </ModalPortal>
+      )}
+
+      {resettingUser && (
+        <ModalPortal onClose={closeResetPasswordModal}>
+          <section
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '560px', width: 'calc(100vw - 24px)' }}
+          >
+            <header className="modal-header">
+              <div>
+                <h3>Reset User Password</h3>
+                <p style={{ marginTop: '4px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  Update the Supabase Auth password for this employee.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeResetPasswordModal}
+                className="user-modal__close"
+                disabled={isResetSubmitting}
+                aria-label="Close reset password modal"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            <form onSubmit={handleResetPassword}>
+              <div className="modal-body" style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  <div><strong>Employee Name:</strong> {resettingUser.employeeName}</div>
+                  <div><strong>Employee ID:</strong> {resettingUser.employeeId}</div>
+                  <div><strong>Email / Username:</strong> {resettingUser.email || resettingUser.username}</div>
+                </div>
+
+                {resetFormError && (
+                  <div className="form-error" role="alert">
+                    <AlertCircle size={18} aria-hidden="true" />
+                    <span>{resetFormError}</span>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">New Password <span className="required-marker">*</span></label>
+                  <div className="input-with-icon" style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      className="form-input"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      value={resetFormData.newPassword}
+                      onChange={(e) => updateResetFormField('newPassword', e.target.value)}
+                      style={{ paddingLeft: '38px', paddingRight: '44px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword((current) => !current)}
+                      title={showResetPassword ? 'Hide Password' : 'Show Password'}
+                      aria-label={showResetPassword ? 'Hide password' : 'Show password'}
+                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    >
+                      {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Confirm Password <span className="required-marker">*</span></label>
+                  <div className="input-with-icon" style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type={showResetConfirmPassword ? 'text' : 'password'}
+                      className="form-input"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                      value={resetFormData.confirmPassword}
+                      onChange={(e) => updateResetFormField('confirmPassword', e.target.value)}
+                      style={{ paddingLeft: '38px', paddingRight: '44px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetConfirmPassword((current) => !current)}
+                      title={showResetConfirmPassword ? 'Hide Password' : 'Show Password'}
+                      aria-label={showResetConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    >
+                      {showResetConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <footer className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={closeResetPasswordModal} disabled={isResetSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isResetSubmitting}>
+                  {isResetSubmitting ? 'Updating Password...' : 'Update Password'}
+                </button>
+              </footer>
+            </form>
+          </section>
         </ModalPortal>
       )}
     </div>

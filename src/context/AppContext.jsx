@@ -37,6 +37,17 @@ const UPDATE_USER_ERROR_MESSAGES = {
   VISIT_PLACES_UPDATE_FAILED: 'Failed to update assigned visit places.',
 };
 
+const RESET_PASSWORD_ERROR_MESSAGES = {
+  FORBIDDEN: 'You do not have permission to reset this password.',
+  AUTH_ACCOUNT_NOT_FOUND: 'Authentication account not found for this employee.',
+  TARGET_USER_INACTIVE: 'This employee account is inactive.',
+  INVALID_REQUEST: 'Unable to update password. Please try again.',
+  PASSWORD_TOO_SHORT: 'Password must contain at least 8 characters.',
+  USER_NOT_FOUND: 'The user record no longer exists.',
+  AUTH_UPDATE_FAILED: 'Unable to update password. Please try again.',
+  INTERNAL_ERROR: 'Unable to update password. Please try again.',
+};
+
 const inferUpdateHttpStatus = (error) => {
   if (Number.isInteger(error?.status)) return error.status;
   if (error?.code === 'PGRST301' || /jwt|session|token/i.test(error?.message || '')) return 401;
@@ -61,6 +72,32 @@ const getSafeUpdateUserMessage = (error) => {
     return UPDATE_USER_ERROR_MESSAGES.INVALID_MOBILE;
   }
   return UPDATE_USER_ERROR_MESSAGES[error?.message] || 'Unable to update this user. Please try again.';
+};
+
+const getResetPasswordErrorMessage = async (error) => {
+  if (error instanceof FunctionsFetchError) return 'Unable to connect to the password reset service. Please try again.';
+  if (error instanceof FunctionsRelayError) return 'Network connection lost.';
+
+  const status = error?.context?.status;
+  if (error instanceof FunctionsHttpError && error.context) {
+    try {
+      const response = typeof error.context.clone === 'function' ? error.context.clone() : error.context;
+      const body = typeof response.json === 'function' ? await response.json() : response;
+      if (import.meta.env.DEV) console.error('admin-reset-user-password HTTP response:', { status, body });
+      if (RESET_PASSWORD_ERROR_MESSAGES[body?.code]) return RESET_PASSWORD_ERROR_MESSAGES[body.code];
+      if (body?.code === 'INVALID_REQUEST') {
+        if (/match/i.test(`${body?.error || ''} ${body?.message || ''}`)) return 'Passwords do not match.';
+        if (/8 characters/i.test(`${body?.error || ''} ${body?.message || ''}`)) return 'Password must contain at least 8 characters.';
+      }
+      const serverMessage = readableErrorText(body?.error) || readableErrorText(body?.message);
+      if (serverMessage) return serverMessage;
+    } catch (parseError) {
+      if (import.meta.env.DEV) console.error('Unable to parse admin-reset-user-password HTTP error response:', parseError);
+    }
+  }
+
+  const fallbackMessage = readableErrorText(error?.message) || readableErrorText(error?.error);
+  return fallbackMessage || 'Unable to update password. Please try again.';
 };
 
 const readableErrorText = (value) => {
@@ -1099,6 +1136,25 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const resetUserPassword = async ({ targetUserId, newPassword }) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = await supabase.functions.invoke('admin-reset-user-password', {
+      body: { targetUserId, newPassword },
+      headers: { Authorization: `Bearer ${session?.access_token}` }
+    });
+
+    if (error || data?.success === false) {
+      const safeMessage = await getResetPasswordErrorMessage(error || data);
+      return { success: false, error: safeMessage };
+    }
+
+    return {
+      success: true,
+      employeeName: data?.employeeName,
+      employeeId: data?.employeeId,
+    };
+  };
+
   // ---------------------------------------------------------------------
   // Products
   // ---------------------------------------------------------------------
@@ -1796,6 +1852,7 @@ export const AppProvider = ({ children }) => {
     manageLocationMaster,
     toggleUserStatus,
     deleteUser,
+    resetUserPassword,
     addProduct,
     toggleProductStatus,
     updateCompanyInfo,
