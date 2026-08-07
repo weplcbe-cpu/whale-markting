@@ -5,7 +5,7 @@ import { ModalPortal } from '../ui';
 import { CompanyLogo } from '../common/CompanyLogo';
 
 export const LoginPage = () => {
-  const { login } = useApp();
+  const { login, requestPasswordReset } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +14,9 @@ export const LoginPage = () => {
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,6 +43,24 @@ export const LoginPage = () => {
     if (!res.success) {
       setErrorMessage(res.error);
     }
+  };
+
+  const openResetModal = () => {
+    setResetEmail(email.trim());
+    setResetMessage('');
+    setForgotModalOpen(true);
+  };
+
+  const handlePasswordReset = async () => {
+    setResetMessage('');
+    setIsResetting(true);
+    const res = await requestPasswordReset(resetEmail);
+    setIsResetting(false);
+    if (!res.success) {
+      setResetMessage(res.error);
+      return;
+    }
+    setResetMessage('Reset link sent. Check your inbox, then use the link to set a new password.');
   };
 
   return (
@@ -160,7 +181,7 @@ export const LoginPage = () => {
                 className="kw-forgot-link"
                 onClick={(e) => {
                   e.preventDefault();
-                  setForgotModalOpen(true);
+                  openResetModal();
                 }}
               >
                 Forgot Password?
@@ -187,14 +208,33 @@ export const LoginPage = () => {
             </div>
             <div className="modal-body">
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                Please contact your System Administrator to reset your password or activate your account.
+                Enter your account email and we will send a secure reset link if the account exists.
               </p>
+              <div className="kw-form-group" style={{ marginBottom: '12px' }}>
+                <label className="kw-form-label" htmlFor="kw-reset-email">Email Address</label>
+                <input
+                  id="kw-reset-email"
+                  type="email"
+                  className="kw-input"
+                  placeholder="Enter your registered email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+              {resetMessage && (
+                <div className="kw-login-alert" role="status" style={{ marginBottom: '12px' }}>
+                  <span>{resetMessage}</span>
+                </div>
+              )}
               <div style={{ background: 'rgba(255,255,255,0.04)', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-                <strong>Admin Helpline:</strong> +91 9876543210<br />
-                <strong>Email Support:</strong> admin@kaiserwhale.com
+                <strong>Need help?</strong> Contact your system administrator if you do not receive the reset email.
               </div>
             </div>
             <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={handlePasswordReset} disabled={isResetting}>
+                {isResetting ? 'Sending...' : 'Send Reset Link'}
+              </button>
               <button className="btn btn-secondary" onClick={() => setForgotModalOpen(false)}>Close</button>
             </div>
           </div>

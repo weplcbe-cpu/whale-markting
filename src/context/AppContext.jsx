@@ -845,7 +845,8 @@ export const AppProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setAuthError(null);
-      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
       if (error || !data?.user) {
         return { success: false, error: error?.message || 'Invalid email or password' };
       }
@@ -866,6 +867,29 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.error('Login failed:', err);
       return { success: false, error: err.message || 'Login failed. Please try again.' };
+    }
+  };
+
+  const requestPasswordReset = async (email) => {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        return { success: false, error: 'Email is required.' };
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        return { success: false, error: error.message || 'Unable to send a reset link.' };
+      }
+
+      showToast('Password reset link sent. Check your email.', 'success');
+      return { success: true };
+    } catch (err) {
+      console.error('Password reset request failed:', err);
+      return { success: false, error: err.message || 'Unable to send a reset link.' };
     }
   };
 
@@ -1763,6 +1787,7 @@ export const AppProvider = ({ children }) => {
     dismissRealtimeNotification,
     openNotificationTarget,
     login,
+    requestPasswordReset,
     logout,
     showToast,
     logActivity,
