@@ -304,7 +304,7 @@ begin
       perform cron.schedule(
         'cleanup_expired_notifications_hourly',
         '5 * * * *',
-        $$select public.cleanup_expired_notifications();$$
+        $cron$select public.cleanup_expired_notifications();$cron$
       );
     end if;
   end if;
