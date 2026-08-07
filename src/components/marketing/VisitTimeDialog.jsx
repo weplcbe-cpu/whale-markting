@@ -16,11 +16,13 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
   const [draft, setDraft] = useState(() => parseTime(value));
   const dialogRef = useRef(null);
   const titleId = useId();
+  const stepId = useId();
 
   useEffect(() => {
     const modalBody = document.querySelector('.ds-modal--visit-plan .ds-modal__body');
     const previousBodyOverflow = document.body.style.overflow;
     const previousModalOverflow = modalBody?.style.overflow;
+    const previousModalScrollTop = modalBody?.scrollTop ?? 0;
     document.body.style.overflow = 'hidden';
     if (modalBody) modalBody.style.overflow = 'hidden';
 
@@ -28,7 +30,10 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
     return () => {
       window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousBodyOverflow;
-      if (modalBody) modalBody.style.overflow = previousModalOverflow;
+      if (modalBody) {
+        modalBody.style.overflow = previousModalOverflow;
+        modalBody.scrollTop = previousModalScrollTop;
+      }
     };
   }, []);
 
@@ -43,7 +48,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
         return;
       }
       if (event.key !== 'Tab') return;
-      const focusable = [...dialog.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+      const focusable = [...dialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')];
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;
@@ -87,6 +92,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={stepId}
         tabIndex={-1}
       >
         <header className="clock-dialog-header">
@@ -96,10 +102,14 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
 
         <div className="clock-dialog-display" aria-live="polite">
           <button type="button" className={step === 'hour' ? 'selected' : ''} onClick={() => setStep('hour')} aria-label="Select hour">{draft.hour}</button>
-          <span>:</span>
+          <span aria-hidden="true">:</span>
           <button type="button" className={step === 'minute' ? 'selected' : ''} onClick={() => setStep('minute')} aria-label="Select minute">{draft.minute}</button>
           <strong>{draft.period}</strong>
         </div>
+
+        <p id={stepId} className="clock-dialog-step" role="status" aria-live="polite">
+          {step === 'hour' ? 'Step 1: Select hour' : 'Step 2: Select minute'}
+        </p>
 
         <div className="clock-dialog-face" aria-label={step === 'hour' ? 'Choose an hour' : 'Choose minutes'}>
           <span className="clock-dialog-hand" style={{ transform: `translateX(-50%) rotate(${handAngle}deg)` }} aria-hidden="true" />
