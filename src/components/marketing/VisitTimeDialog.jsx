@@ -15,6 +15,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
   const [step, setStep] = useState('hour');
   const [draft, setDraft] = useState(() => parseTime(value));
   const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
   const titleId = useId();
   const stepId = useId();
 
@@ -26,7 +27,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
     document.body.style.overflow = 'hidden';
     if (modalBody) modalBody.style.overflow = 'hidden';
 
-    const frame = window.requestAnimationFrame(() => dialogRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
     return () => {
       window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousBodyOverflow;
@@ -83,37 +84,38 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
   const confirm = () => onConfirm(to24HourTime(displayTime));
 
   return createPortal(
-    <div className="clock-dialog-layer" role="presentation" onMouseDown={(event) => {
+    <div className="visit-time-dialog-layer" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onCancel();
     }}>
       <section
         ref={dialogRef}
-        className="clock-dialog-panel"
+        className="visit-time-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={stepId}
         tabIndex={-1}
       >
-        <header className="clock-dialog-header">
+        <header className="visit-time-dialog-header">
           <h3 id={titleId}>Select Visit Time</h3>
-          <button type="button" aria-label="Close time picker" onClick={onCancel}><X size={18} /></button>
+          <button ref={closeButtonRef} type="button" aria-label="Close time picker" onClick={onCancel}><X size={18} /></button>
         </header>
+        <div className="visit-time-dialog-divider" aria-hidden="true" />
 
-        <div className="clock-dialog-display" aria-live="polite">
+        <div className="visit-time-dialog-display" aria-live="polite">
           <button type="button" className={step === 'hour' ? 'selected' : ''} onClick={() => setStep('hour')} aria-label="Select hour">{draft.hour}</button>
           <span aria-hidden="true">:</span>
           <button type="button" className={step === 'minute' ? 'selected' : ''} onClick={() => setStep('minute')} aria-label="Select minute">{draft.minute}</button>
           <strong>{draft.period}</strong>
         </div>
 
-        <p id={stepId} className="clock-dialog-step" role="status" aria-live="polite">
+        <p id={stepId} className="visit-time-dialog-step" role="status" aria-live="polite">
           {step === 'hour' ? 'Step 1: Select hour' : 'Step 2: Select minute'}
         </p>
 
-        <div className="clock-dialog-face" aria-label={step === 'hour' ? 'Choose an hour' : 'Choose minutes'}>
-          <span className="clock-dialog-hand" style={{ transform: `translateX(-50%) rotate(${handAngle}deg)` }} aria-hidden="true" />
-          <span className="clock-dialog-center" aria-hidden="true" />
+        <div className="visit-time-dialog-clock" aria-label={step === 'hour' ? 'Choose an hour' : 'Choose minutes'}>
+          <span className="visit-time-dialog-hand" style={{ transform: `translateX(-50%) rotate(${handAngle}deg)` }} aria-hidden="true" />
+          <span className="visit-time-dialog-center" aria-hidden="true" />
           {values.map((item, index) => {
             const angle = step === 'hour' ? (Number(item) % 12) * 30 : index * 30;
             return (
@@ -121,7 +123,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
                 type="button"
                 key={item}
                 className={selected === item ? 'selected' : ''}
-                style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--clock-dialog-size) * -0.42)) rotate(${-angle}deg)` }}
+                style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(calc(var(--visit-time-clock-size) * -0.42)) rotate(${-angle}deg)` }}
                 aria-label={step === 'hour' ? `${Number(item)} o'clock` : `${item} minutes`}
                 aria-pressed={selected === item}
                 onClick={() => selectValue(item)}
@@ -132,7 +134,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
           })}
         </div>
 
-        <div className="clock-dialog-period" role="group" aria-label="AM or PM">
+        <div className="visit-time-dialog-period" role="group" aria-label="AM or PM">
           {['AM', 'PM'].map((period) => (
             <button
               type="button"
@@ -146,7 +148,7 @@ export const VisitTimeDialog = ({ value, onCancel, onConfirm }) => {
           ))}
         </div>
 
-        <footer className="clock-dialog-actions">
+        <footer className="visit-time-dialog-actions">
           <button type="button" onClick={onCancel}>Cancel</button>
           <button type="button" className="primary" onClick={confirm}>Set Time</button>
         </footer>

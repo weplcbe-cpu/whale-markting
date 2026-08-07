@@ -206,7 +206,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     setErrors((current) => ({ ...current, expectedTime: undefined }));
   };
 
-  const handleTimeChange = (event) => setTime24(event.target.value);
+  const handleNativeTimeChange = (event) => setTime24(event.target.value);
 
   const closeTimeDialog = () => {
     setIsTimeDialogOpen(false);
@@ -362,7 +362,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
             ref={timeTriggerRef}
             id="visit-time-button"
             type="button"
-            className={`visit-time-trigger${errors.expectedTime ? ' visit-time-trigger--error' : ''}`}
+            className={`visit-time-button${errors.expectedTime ? ' visit-time-button--error' : ''}`}
             aria-haspopup="dialog"
             aria-expanded={isTimeDialogOpen}
             onClick={() => setIsTimeDialogOpen(true)}
@@ -373,12 +373,13 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
           <input
             id="visit-time"
             type="time"
+            name="visitTime"
             value={time24}
-            onChange={handleTimeChange}
+            onChange={handleNativeTimeChange}
             step="300"
             required
             tabIndex={-1}
-            className="visit-time-native-input"
+            className="visually-hidden-time-input"
             aria-invalid={Boolean(errors.expectedTime)}
           />
           {isTimeDialogOpen && (

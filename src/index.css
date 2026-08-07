@@ -4085,12 +4085,16 @@ body {
   overflow: hidden;
 }
 
+.ds-modal--visit-plan .ds-modal__header {
+  flex: 0 0 auto;
+}
+
 .ds-modal--visit-plan .ds-modal__body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-bottom: 120px;
+  padding-bottom: 32px;
   scrollbar-color: var(--surface-hover) var(--surface-1);
   scrollbar-width: thin;
 }
@@ -4099,7 +4103,7 @@ body {
   color-scheme: dark;
 }
 
-.visit-time-trigger {
+.visit-time-button {
   width: 100%;
   min-height: 48px;
   display: flex;
@@ -4115,21 +4119,21 @@ body {
   cursor: pointer;
 }
 
-.visit-time-trigger svg {
+.visit-time-button svg {
   color: var(--primary);
 }
 
-.visit-time-trigger:focus-visible {
+.visit-time-button:focus-visible {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(91, 124, 255, .18);
 }
 
-.visit-time-trigger--error {
+.visit-time-button--error {
   border-color: #dc2626;
 }
 
-.visit-time-native-input {
+.visually-hidden-time-input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -4142,52 +4146,53 @@ body {
   white-space: nowrap;
 }
 
-.clock-dialog-layer {
+.visit-time-dialog-layer {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: 1200;
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(2, 6, 23, .68);
+  background: rgba(2, 6, 23, .72);
 }
 
-.clock-dialog-panel {
-  --clock-dialog-size: 220px;
+.visit-time-dialog {
+  --visit-time-clock-size: 220px;
   position: relative;
-  z-index: 1110;
   display: flex;
-  width: min(360px, calc(100vw - 32px));
+  width: min(380px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px;
   padding-bottom: max(18px, env(safe-area-inset-bottom));
-  border: 1px solid rgba(148, 163, 184, .18);
+  border: 1px solid rgba(148, 163, 184, .2);
   border-radius: 20px;
   background: #10182C;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
   color: var(--text-primary);
   box-sizing: border-box;
 }
 
-.clock-dialog-panel:focus {
+.visit-time-dialog:focus {
   outline: none;
 }
 
-.clock-dialog-header {
+.visit-time-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.clock-dialog-header h3 {
+.visit-time-dialog-header h3 {
   margin: 0;
   font-size: 18px;
 }
 
-.clock-dialog-header > button {
+.visit-time-dialog-header > button {
   display: inline-grid;
   width: 34px;
   height: 34px;
@@ -4200,7 +4205,13 @@ body {
   cursor: pointer;
 }
 
-.clock-dialog-display {
+.visit-time-dialog-divider {
+  height: 1px;
+  margin-top: -4px;
+  background: rgba(148, 163, 184, .22);
+}
+
+.visit-time-dialog-display {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4208,7 +4219,7 @@ body {
   font: 700 26px var(--font-primary);
 }
 
-.clock-dialog-display button {
+.visit-time-dialog-display button {
   min-width: 68px;
   padding: 7px 8px;
   border: 1px solid var(--border-default);
@@ -4219,34 +4230,34 @@ body {
   cursor: pointer;
 }
 
-.clock-dialog-display button.selected {
+.visit-time-dialog-display button.selected {
   border-color: var(--primary);
   background: var(--primary-soft);
 }
 
-.clock-dialog-display strong {
+.visit-time-dialog-display strong {
   margin-left: 4px;
   color: var(--primary);
   font-size: 15px;
 }
 
-.clock-dialog-step {
+.visit-time-dialog-step {
   margin: -4px 0 0;
   color: var(--text-secondary);
   font: 600 13px var(--font-primary);
   text-align: center;
 }
 
-.clock-dialog-face {
+.visit-time-dialog-clock {
   position: relative;
-  width: var(--clock-dialog-size);
+  width: var(--visit-time-clock-size);
   aspect-ratio: 1;
   margin: 0 auto;
   border-radius: 50%;
   background: var(--surface-2);
 }
 
-.clock-dialog-face button {
+.visit-time-dialog-clock button {
   position: absolute;
   z-index: 2;
   top: 50%;
@@ -4262,25 +4273,25 @@ body {
   cursor: pointer;
 }
 
-.clock-dialog-face button.selected {
+.visit-time-dialog-clock button.selected {
   background: var(--primary);
   color: #fff;
   box-shadow: 0 3px 10px rgba(91, 124, 255, .3);
 }
 
-.clock-dialog-hand {
+.visit-time-dialog-hand {
   position: absolute;
   z-index: 1;
   left: 50%;
   bottom: 50%;
   width: 3px;
-  height: calc(var(--clock-dialog-size) * .36);
+  height: calc(var(--visit-time-clock-size) * .36);
   border-radius: 3px;
   background: var(--primary);
   transform-origin: bottom center;
 }
 
-.clock-dialog-center {
+.visit-time-dialog-center {
   position: absolute;
   z-index: 3;
   top: 50%;
@@ -4292,7 +4303,7 @@ body {
   transform: translate(-50%, -50%);
 }
 
-.clock-dialog-period {
+.visit-time-dialog-period {
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
@@ -4300,8 +4311,8 @@ body {
   border-radius: 10px;
 }
 
-.clock-dialog-period button,
-.clock-dialog-actions button {
+.visit-time-dialog-period button,
+.visit-time-dialog-actions button {
   min-height: 42px;
   border: 0;
   background: var(--surface-2);
@@ -4310,17 +4321,17 @@ body {
   cursor: pointer;
 }
 
-.clock-dialog-period button + button {
+.visit-time-dialog-period button + button {
   border-left: 1px solid var(--border-default);
 }
 
-.clock-dialog-period button.selected,
-.clock-dialog-actions button.primary {
+.visit-time-dialog-period button.selected,
+.visit-time-dialog-actions button.primary {
   background: var(--primary);
   color: #fff;
 }
 
-.clock-dialog-actions {
+.visit-time-dialog-actions {
   position: sticky;
   bottom: 0;
   display: flex;
@@ -4332,29 +4343,29 @@ body {
   background: #10182C;
 }
 
-.clock-dialog-actions button {
+.visit-time-dialog-actions button {
   min-width: 104px;
   padding: 0 14px;
   border: 1px solid var(--border-default);
   border-radius: 10px;
 }
 
-.clock-dialog-actions button.primary {
+.visit-time-dialog-actions button.primary {
   border-color: var(--primary);
 }
 
 @media (max-width: 640px) {
-  .clock-dialog-layer {
+  .visit-time-dialog-layer {
     display: flex;
     align-items: flex-end;
     padding: 12px;
   }
 
-  .clock-dialog-panel {
-    --clock-dialog-size: min(210px, 70vw);
+  .visit-time-dialog {
+    --visit-time-clock-size: min(210px, 68vw);
     width: 100%;
     max-height: 90dvh;
-    border-radius: 20px;
+    border-radius: 22px;
     padding: 16px;
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
@@ -4380,8 +4391,8 @@ body {
 
 .ds-modal--visit-plan .ds-modal__footer {
   flex: 0 0 auto;
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  bottom: auto;
   z-index: 20;
   min-height: 84px;
   background: var(--surface-2);
