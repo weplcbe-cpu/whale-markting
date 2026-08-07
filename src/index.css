@@ -3988,10 +3988,10 @@ body {
 }
 
 .visit-date-popover {
-  position: absolute;
-  z-index: 85;
-  left: 0;
-  width: min(320px, calc(100vw - 40px));
+  position: fixed;
+  z-index: 2010;
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
   padding: 16px;
   overflow: hidden;
   background: #fff;
@@ -3999,14 +3999,34 @@ body {
   border-radius: 18px;
   box-shadow: 0 20px 50px rgba(30, 41, 59, .2);
   animation: visit-date-enter 180ms ease-out;
+  box-sizing: border-box;
 }
 
-.visit-date-popover--below { top: calc(100% + 8px); }
-.visit-date-popover--above { bottom: calc(100% + 8px); }
+.visit-date-popover--mobile {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: auto;
+  max-height: 90dvh;
+  overflow-y: auto;
+  border-radius: 20px;
+  animation: visit-date-sheet-in 200ms ease-out;
+}
+
+.visit-date-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
 
 @keyframes visit-date-enter {
   from { opacity: 0; transform: translateY(4px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes visit-date-sheet-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .visit-date-header {
@@ -4101,7 +4121,11 @@ body {
 }
 
 .visit-date-backdrop {
-  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  border: 0;
+  background: transparent;
 }
 
 .visit-toggle-field {
@@ -4541,7 +4565,7 @@ body {
 .visit-time-dialog-layer {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 2000;
   display: grid;
   place-items: center;
   padding: 16px;
@@ -4551,6 +4575,7 @@ body {
 .visit-time-dialog {
   --visit-time-clock-size: 220px;
   position: relative;
+  z-index: 2010;
   display: flex;
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
@@ -4747,6 +4772,16 @@ body {
 }
 
 @media (max-width: 640px) {
+  .visit-date-popover {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-radius: 22px;
+  }
+
   .visit-time-dialog-layer {
     display: flex;
     align-items: flex-end;
