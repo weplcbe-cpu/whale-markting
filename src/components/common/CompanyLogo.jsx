@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const COMPANY_LOGO_SRC = '/whale-enterprise-logo.png';
+const COMPANY_LOGO_SRC = '/whale-enterprise-logo.png';
 
 export const CompanyLogo = ({ className = '', ...props }) => (
   <img

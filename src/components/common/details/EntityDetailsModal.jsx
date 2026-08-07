@@ -3,19 +3,19 @@ import { AlertTriangle, Copy, ExternalLink, MessageSquare, Phone } from 'lucide-
 import { Badge, Button, Modal } from '../../ui';
 import { formatBoolean, formatDisplayDate, formatDisplayDateTime, formatEmptyValue, formatFieldLabel, formatLocation, formatMetric, formatProducts, hasDisplayValue, truncateReference } from './detailsFormatters';
 
-export const DetailsSection = ({ title, children, className = '' }) => children ? <section className={`entity-details-section ${className}`}><h3>{title}</h3>{children}</section> : null;
-export const DetailItem = ({ label, value, wide = false, children }) => <div className={`entity-detail-item${wide ? ' entity-detail-item--wide' : ''}`}><span>{label}</span><strong>{children ?? formatEmptyValue(value)}</strong></div>;
-export const MetricCard = ({ label, value, tone = 'blue' }) => <div className={`entity-metric entity-metric--${tone}`}><span>{label}</span><strong>{formatMetric(value)}</strong></div>;
-export const StatusBadge = ({ status = 'Unknown' }) => {
+const DetailsSection = ({ title, children, className = '' }) => children ? <section className={`entity-details-section ${className}`}><h3>{title}</h3>{children}</section> : null;
+const DetailItem = ({ label, value, wide = false, children }) => <div className={`entity-detail-item${wide ? ' entity-detail-item--wide' : ''}`}><span>{label}</span><strong>{children ?? formatEmptyValue(value)}</strong></div>;
+const MetricCard = ({ label, value, tone = 'blue' }) => <div className={`entity-metric entity-metric--${tone}`}><span>{label}</span><strong>{formatMetric(value)}</strong></div>;
+const StatusBadge = ({ status = 'Unknown' }) => {
   const normalized = String(status || '').toLowerCase();
   const tone = ['completed', 'submitted', 'active', 'approved'].includes(normalized) ? 'success' : ['cancelled', 'rejected'].includes(normalized) ? 'danger' : ['pending', 'locked', 'overdue'].includes(normalized) ? 'warning' : normalized === 'reviewed' ? 'info' : 'neutral';
   return <Badge tone={tone}>{formatEmptyValue(status)}</Badge>;
 };
-export const ProductChips = ({ products }) => {
+const ProductChips = ({ products }) => {
   const values = formatProducts(products);
   return values.length ? <div className="entity-product-chips">{values.map((product) => <span key={String(product)}>{product}</span>)}</div> : <span>—</span>;
 };
-export const ReferenceMeta = ({ references = [] }) => {
+const ReferenceMeta = ({ references = [] }) => {
   const visible = (Array.isArray(references) ? references : []).filter((item) => item && hasDisplayValue(item.value));
   if (!visible.length) return null;
   const copy = (value) => navigator.clipboard?.writeText(String(value));

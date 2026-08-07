@@ -65,7 +65,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export function AppContent() {
+function AppContent() {
   const { currentUser, currentRole, authLoading, authError, dataError, dataLoading, refreshAllData, logout } = useApp();
   const location = useLocation();
   const navigate = useNavigate();

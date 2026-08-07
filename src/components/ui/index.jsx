@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
+import { Inbox, LoaderCircle, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useModalLayer } from './modalLayer';
 
@@ -21,34 +21,8 @@ export const AppShell = ({ sidebar, navbar, children }) => {
   );
 };
 
-export const GlassCard = ({ children, className = '', ...props }) => (
-  <section className={`ds-section-card kw-glass-card ${className}`.trim()} {...props}>{children}</section>
-);
-
-export const KpiCard = ({ icon: Icon, label, value, detail, className = '', ...props }) => (
-  <article className={`stat-card kw-kpi-card ${className}`.trim()} {...props}>
-    {Icon && <div className="stat-icon-wrapper blue"><Icon size={22} aria-hidden="true" /></div>}
-    <div className="stat-content"><div className="stat-value">{value}</div><div className="stat-label">{label}</div>{detail && <small>{detail}</small>}</div>
-  </article>
-);
-
 export const StatusBadge = ({ tone = 'neutral', children, className = '' }) => (
   <span className={`ds-badge ds-badge--${tone} kw-status-badge ${className}`.trim()}>{children}</span>
-);
-
-export const NotificationPanel = ({ children, className = '', ...props }) => (
-  <aside className={`notification-popover kw-notification-panel ${className}`.trim()} {...props}>{children}</aside>
-);
-
-export const SectionHeader = ({ title, description, actions, className = '' }) => (
-  <header className={`ds-page-header kw-section-header ${className}`.trim()}><div><h2>{title}</h2>{description && <p>{description}</p>}</div>{actions && <div className="ds-page-actions">{actions}</div>}</header>
-);
-
-export const ChartCard = ({ title, description, actions, children, className = '' }) => (
-  <GlassCard className={`kw-chart-card ${className}`.trim()}>
-    {(title || actions) && <header className="ds-section-card__header"><div><h3>{title}</h3>{description && <p>{description}</p>}</div>{actions}</header>}
-    <div className="ds-section-card__body">{children}</div>
-  </GlassCard>
 );
 
 export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
@@ -161,9 +135,6 @@ export const EmptyState = ({ icon: Icon = Inbox, title = 'Nothing here yet', des
   <div className="ds-empty"><Icon size={32} aria-hidden="true" /><h3>{title}</h3>{description && <p>{description}</p>}{action}</div>
 );
 
-export const LoadingState = ({ label = 'Loading…' }) => <div className="ds-state"><LoaderCircle className="ds-spin" aria-hidden="true" />{label}</div>;
-export const ErrorBanner = ({ children, action }) => <div className="ds-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{children}</span>{action}</div>;
-
 export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty = false, closeLabel = 'Close dialog', size = 'md' }) => {
   const titleId = useId();
   const dialogRef = useRef(null);
@@ -199,8 +170,6 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
     </div>, document.body
   );
 };
-
-export const Drawer = (props) => <Modal {...props} size="drawer" />;
 
 export const DataTable = ({ columns, rows, rowKey = 'id', empty, caption }) => rows.length === 0 ? (empty || <EmptyState />) : (
   <div className="ds-table-wrap"><table className="ds-table">{caption && <caption className="sr-only">{caption}</caption>}<thead><tr>{columns.map(column => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row[rowKey]}>{columns.map(column => <td key={column.key} data-label={column.label}>{column.render ? column.render(row) : row[column.key]}</td>)}</tr>)}</tbody></table></div>

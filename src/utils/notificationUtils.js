@@ -70,4 +70,4 @@ export const getNotificationRoute = (notification, role) => {
   return '/director/notifications';
 };
 
-export const NOTIFICATION_TTL_MS = DAY_IN_MS;
+

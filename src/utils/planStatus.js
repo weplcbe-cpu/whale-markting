@@ -29,9 +29,7 @@ export const inferPlanType = (plan) => {
   return (to - from) / 86400000 > 7 ? 'Monthly' : 'Weekly';
 };
 
-export const isSubmittedPlan = (plan) => normalizePlanStatus(plan?.status) === 'Submitted';
 
-export const isPendingPlan = isSubmittedPlan;
 
 export const getTourPlanBatchId = (plan) =>
   plan?.planBatchId ??
