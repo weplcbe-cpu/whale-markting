@@ -1,5 +1,5 @@
 /* oxlint-disable react/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
@@ -227,7 +227,7 @@ export const AppProvider = ({ children }) => {
   const seenNotificationIdsRef = useRef(new Set());
   const currentRole = currentUser ? normalizeRole(currentUser.role) : null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     localStorage.setItem('kw_vmm_theme', theme);
     const isDarkTheme = theme === 'dark';
     document.documentElement.classList.toggle('dark', isDarkTheme);

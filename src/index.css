@@ -3309,6 +3309,37 @@ body {
   [data-theme="dark"] .admin-user-modal .user-modal__footer { position:sticky;bottom:0; }
 }
 
+/* Hard stop for legacy white surfaces in the authenticated portal. */
+[data-theme="dark"] :is(.modal-content, .user-modal, .ds-modal, .tour-plan-review-modal) {
+  background: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+[data-theme="dark"] :is(.modal-header, .modal-body, .modal-footer, .user-modal__header, .user-modal__body, .user-modal__footer, .ds-modal__header, .ds-modal__body, .ds-modal__footer, .tour-plan-review-modal .modal-header, .tour-plan-review-modal .modal-body, .tour-plan-review-modal .modal-footer) {
+  background: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .kw-input, .global-search-input, .visit-date-trigger, .ds-combobox, .ds-multi-select, .ds-project-select__control) {
+  background: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+[data-theme="dark"] :is(.form-input, .form-textarea, .ds-field input, .ds-field textarea, .kw-input, .global-search-input)::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+[data-theme="dark"] :is(.card, .stat-card, .ds-section-card, .toolbar-bar, .global-search-results, .director-filter-bar, .daily-reports-results, .ds-monthly-header, .ds-monthly-row, .ds-week-header, .ds-choice, .ds-review, .entity-detail-item, .entity-narrative, .notification-popover, .toast) {
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] :is(.ds-table-wrap, .table-responsive, .custom-table, .ds-table, .daily-reports-table) {
+  background: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
 [data-theme="dark"] .tour-plan-review-modal { background:var(--surface-1);color:var(--text-primary);border-color:var(--border-default) }
 [data-theme="dark"] .tour-plan-review-modal > .modal-footer { background:var(--surface-2);border-color:var(--border-subtle) }
 [data-theme="dark"] .tour-plan-review-close { background:var(--surface-2);color:var(--text-primary);border-color:var(--border-default) }

@@ -1,19 +1,25 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Inbox, LoaderCircle, X } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { useModalLayer } from './modalLayer';
 
-export const AppShell = ({ sidebar, navbar, children }) => (
-  <div className="app-container kw-app-shell app-theme-dark" data-theme="dark">
-    <div className="main-layout">
-      {sidebar}
-      <div className="content-area">
-        {navbar}
-        <main className="main-view-wrapper">{children}</main>
+export const AppShell = ({ sidebar, navbar, children }) => {
+  const { theme = 'dark' } = useApp();
+  const isDarkTheme = theme === 'dark';
+
+  return (
+    <div className={`app-container kw-app-shell ${isDarkTheme ? 'app-theme-dark' : ''}`.trim()} data-theme={theme}>
+      <div className="main-layout">
+        {sidebar}
+        <div className="content-area">
+          {navbar}
+          <main className="main-view-wrapper">{children}</main>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const GlassCard = ({ children, className = '', ...props }) => (
   <section className={`ds-section-card kw-glass-card ${className}`.trim()} {...props}>{children}</section>
@@ -48,6 +54,7 @@ export const ChartCard = ({ title, description, actions, children, className = '
 export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const { theme = 'dark' } = useApp();
   useModalLayer(open);
   useEffect(() => {
     if (!open) return undefined;
@@ -93,8 +100,8 @@ export const ModalPortal = ({ open = true, children, className = '', onClose, cl
   });
   return createPortal(
     <div
-      className={`modal-overlay ${className}`}
-      data-theme="dark"
+      className={`modal-overlay ${className} ${theme === 'dark' ? 'app-theme-dark' : ''}`.trim()}
+      data-theme={theme}
       role="presentation"
       onMouseDown={(event) => {
         if (closeOnBackdrop && event.target === event.currentTarget) onClose?.();
@@ -161,6 +168,7 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   const titleId = useId();
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const { theme = 'dark' } = useApp();
   useModalLayer(open);
   useEffect(() => {
     if (!open) return undefined;
@@ -180,7 +188,7 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   if (!open) return null;
   const requestClose = () => { if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); };
   return createPortal(
-    <div className="ds-modal-overlay app-theme-dark" data-theme="dark" role="presentation" onMouseDown={(event) => {
+    <div className={`ds-modal-overlay ${theme === 'dark' ? 'app-theme-dark' : ''}`.trim()} data-theme={theme} role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !dirty) requestClose();
     }}>
       <section ref={dialogRef} className={`ds-modal ds-modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>

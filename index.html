@@ -8,6 +8,26 @@
     <meta name="theme-color" content="#205aa5" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Whale Enterprise PVT Ltd</title>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('kw_vmm_theme') || 'dark';
+          var isDark = theme === 'dark';
+          var root = document.documentElement;
+          root.classList.toggle('dark', isDark);
+          root.dataset.theme = theme;
+          root.style.colorScheme = theme;
+          if (document.body) {
+            document.body.dataset.theme = theme;
+            document.body.classList.toggle('theme-light', !isDark);
+          }
+        } catch (error) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
   </head>
   <body data-theme="dark">
     <div id="root"></div>
