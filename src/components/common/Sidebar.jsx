@@ -42,9 +42,9 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
     'director-comments': MessageSquare,
     profile: User,
   };
-  const marketingMenu = marketingRoutes.map(route => ({
+  const marketingMenu = marketingRoutes.filter(route => route.nav !== false).map(route => ({
     ...route,
-    icon: marketingIcons[route.id],
+    icon: marketingIcons[route.id] || FileSpreadsheet,
     badge: route.id === 'director-comments' ? unreadFeedbackCount : undefined,
   }));
 
