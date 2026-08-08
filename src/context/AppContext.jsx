@@ -1772,23 +1772,44 @@ export const AppProvider = ({ children }) => {
       throw new Error(msg);
     }
 
-    // Harden Delete Query: must return deleted row to verify exact deletion
-    const { data, error } = await supabase
-      .from('daily_reports')
-      .delete()
-      .eq('id', id)
-      .eq('employee_id', currentUser?.employeeId || existing.employeeId)
-      .select('id');
+    let deletedSuccessfully = false;
 
-    if (error) {
-      const message = error.code === '42501'
-        ? 'You do not have permission to delete this daily report.'
-        : 'Unable to delete daily report. Please try again.';
-      showToast(message, 'error');
-      throw new Error(message);
+    // Try RPC first for transactional security-definer execution
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('delete_daily_report', { p_report_id: String(id) });
+      if (!rpcErr && rpcRes && rpcRes.success) {
+        deletedSuccessfully = true;
+      }
+    } catch {
+      // Fall back to direct query if RPC is not deployed yet
     }
 
-    if (!data || data.length !== 1) {
+    // Direct delete query fallback with strict row count verification
+    if (!deletedSuccessfully) {
+      const { data, error } = await supabase
+        .from('daily_reports')
+        .delete()
+        .eq('id', id)
+        .eq('employee_id', currentUser?.employeeId || existing.employeeId)
+        .select('id');
+
+      if (error) {
+        const message = error.code === '42501'
+          ? 'You do not have permission to delete this daily report.'
+          : 'Unable to delete daily report. Please try again.';
+        showToast(message, 'error');
+        throw new Error(message);
+      }
+
+      if (!data || data.length !== 1) {
+        const message = 'Unable to delete daily report. Please try again.';
+        showToast(message, 'error');
+        throw new Error(message);
+      }
+      deletedSuccessfully = true;
+    }
+
+    if (!deletedSuccessfully) {
       const message = 'Unable to delete daily report. Please try again.';
       showToast(message, 'error');
       throw new Error(message);

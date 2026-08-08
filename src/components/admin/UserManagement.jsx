@@ -502,7 +502,7 @@ export const UserManagement = () => {
                     className="form-input"
                     required
                     inputMode="tel"
-                    pattern="\\+?[0-9][0-9\\s\\-]{6,19}"
+                    pattern="\+?[0-9][0-9 -]{6,19}"
                     value={formData.mobile}
                     onChange={(e) => updateFormField('mobile', e.target.value)}
                   />
