@@ -1772,57 +1772,21 @@ export const AppProvider = ({ children }) => {
       throw new Error(msg);
     }
 
-    let deletedSuccessfully = false;
+    const { data: returnedDeletedId, error } = await supabase.rpc(
+      'delete_daily_report',
+      { p_report_id: id }
+    );
 
-    // Try RPC first for transactional security-definer execution
-    try {
-      const { data: rpcRes, error: rpcErr } = await supabase.rpc('delete_daily_report', { p_report_id: String(id) });
-      if (!rpcErr && rpcRes && rpcRes.success) {
-        deletedSuccessfully = true;
-      }
-    } catch {
-      // Fall back to direct query if RPC is not deployed yet
-    }
-
-    // Direct delete query fallback with strict row count verification
-    if (!deletedSuccessfully) {
-      const { data, error } = await supabase
-        .from('daily_reports')
-        .delete()
-        .eq('id', id)
-        .eq('employee_id', currentUser?.employeeId || existing.employeeId)
-        .select('id');
-
-      if (error) {
-        const message = error.code === '42501'
-          ? 'You do not have permission to delete this daily report.'
-          : 'Unable to delete daily report. Please try again.';
-        showToast(message, 'error');
-        throw new Error(message);
-      }
-
-      if (!data || data.length !== 1) {
-        const message = 'Unable to delete daily report. Please try again.';
-        showToast(message, 'error');
-        throw new Error(message);
-      }
-      deletedSuccessfully = true;
-    }
-
-    if (!deletedSuccessfully) {
-      const message = 'Unable to delete daily report. Please try again.';
+    if (error || !returnedDeletedId || String(returnedDeletedId) !== String(id)) {
+      const message = error?.code === '42501' || /permission|authorization/i.test(error?.message || '')
+        ? 'You do not have permission to delete this daily report.'
+        : 'Unable to delete daily report. Please try again.';
       showToast(message, 'error');
       throw new Error(message);
     }
 
-    // Notification cleanup & Audit logging ONLY AFTER confirmed deletion
-    try {
-      await supabase.from('notifications').delete().eq('reference_id', String(id));
-      setNotifications(prev => prev.filter(n => String(n.referenceId) !== String(id)));
-    } catch {
-      // Ignore notification cleanup errors
-    }
-
+    // Clean up local notifications state & daily reports state after confirmed DB deletion
+    setNotifications(prev => prev.filter(n => String(n.referenceId) !== String(id)));
     setDailyReports(prev => prev.filter(r => String(r.id) !== String(id)));
     await refreshEntity('daily_reports');
 
