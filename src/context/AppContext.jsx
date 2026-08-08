@@ -1718,10 +1718,40 @@ export const AppProvider = ({ children }) => {
       showToast(message, 'error');
       throw new Error(message);
     }
-    setDailyReports(prev => [rowToCamel(data), ...prev]);
+    const saved = rowToCamel(data);
+    setDailyReports(prev => [saved, ...prev.filter(r => r.id !== saved.id)]);
     await refreshEntity('daily_reports');
     logActivity(`Submitted daily summary report for ${dReportData.date}`, 'Daily Report');
     showToast('Daily summary report submitted', 'success');
+    return saved;
+  };
+
+  const updateDailyReport = async (id, dReportData) => {
+    const existing = dailyReports.find(r => String(r.id) === String(id));
+    if (!existing) throw new Error('Daily report not found.');
+    if (existing.isLocked || existing.status === 'Locked') {
+      const message = 'This report is locked and cannot be edited.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const row = objToSnakeRow({
+      ...dReportData,
+      updatedAt: new Date().toISOString()
+    });
+    const { data, error } = await supabase.from('daily_reports').update(row).eq('id', id).select().single();
+    if (error) {
+      const message = error.code === '42501'
+        ? 'You do not have permission to update this daily report.'
+        : 'Unable to update the daily report. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const saved = rowToCamel(data);
+    setDailyReports(prev => prev.map(r => String(r.id) === String(id) ? saved : r));
+    await refreshEntity('daily_reports');
+    logActivity(`Updated daily summary report for ${saved.date || existing.date}`, 'Daily Report');
+    showToast('Daily summary report updated', 'success');
+    return saved;
   };
 
   const toggleDailyReportLock = async (id) => {
@@ -1880,6 +1910,7 @@ export const AppProvider = ({ children }) => {
     rescheduleVisitPlan,
     submitVisitReport,
     submitDailyReport,
+    updateDailyReport,
     toggleDailyReportLock,
     addFollowUp,
     addDirectorComment,
