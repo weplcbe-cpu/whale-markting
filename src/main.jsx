@@ -3,7 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { RootErrorBoundary, StartupFailure } from './components/common/StartupBoundary.jsx';
 import { BrandedLoadingScreen } from './components/common/CompanyLogo.jsx';
+import { inject } from '@vercel/analytics';
 import './index.css';
+
+inject();
 
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement);
