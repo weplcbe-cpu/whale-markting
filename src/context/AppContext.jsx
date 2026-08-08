@@ -1757,8 +1757,9 @@ export const AppProvider = ({ children }) => {
   const deleteDailyReport = async (id) => {
     const existing = dailyReports.find(r => String(r.id) === String(id));
     if (!existing) {
-      showToast('Daily report not found', 'error');
-      throw new Error('Daily report not found.');
+      const message = 'Daily report could not be deleted. Please refresh and try again.';
+      showToast(message, 'error');
+      throw new Error(message);
     }
     if (currentUser?.role === 'Marketing Team' && existing.employeeId !== currentUser?.employeeId) {
       const msg = 'You are not authorized to delete this report.';
@@ -1771,18 +1772,29 @@ export const AppProvider = ({ children }) => {
       throw new Error(msg);
     }
 
-    const { error } = await supabase
+    // Harden Delete Query: must return deleted row to verify exact deletion
+    const { data, error } = await supabase
       .from('daily_reports')
       .delete()
       .eq('id', id)
-      .eq('employee_id', currentUser?.employeeId || existing.employeeId);
+      .eq('employee_id', currentUser?.employeeId || existing.employeeId)
+      .select('id');
 
     if (error) {
+      const message = error.code === '42501'
+        ? 'You do not have permission to delete this daily report.'
+        : 'Unable to delete daily report. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+
+    if (!data || data.length !== 1) {
       const message = 'Unable to delete daily report. Please try again.';
       showToast(message, 'error');
       throw new Error(message);
     }
 
+    // Notification cleanup & Audit logging ONLY AFTER confirmed deletion
     try {
       await supabase.from('notifications').delete().eq('reference_id', String(id));
       setNotifications(prev => prev.filter(n => String(n.referenceId) !== String(id)));
