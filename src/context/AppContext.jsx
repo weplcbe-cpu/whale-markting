@@ -1754,6 +1754,51 @@ export const AppProvider = ({ children }) => {
     return saved;
   };
 
+  const deleteDailyReport = async (id) => {
+    const existing = dailyReports.find(r => String(r.id) === String(id));
+    if (!existing) {
+      showToast('Daily report not found', 'error');
+      throw new Error('Daily report not found.');
+    }
+    if (currentUser?.role === 'Marketing Team' && existing.employeeId !== currentUser?.employeeId) {
+      const msg = 'You are not authorized to delete this report.';
+      showToast(msg, 'error');
+      throw new Error(msg);
+    }
+    if (existing.isLocked || existing.status === 'Locked') {
+      const msg = 'This report is locked and cannot be deleted.';
+      showToast(msg, 'error');
+      throw new Error(msg);
+    }
+
+    const { error } = await supabase
+      .from('daily_reports')
+      .delete()
+      .eq('id', id)
+      .eq('employee_id', currentUser?.employeeId || existing.employeeId);
+
+    if (error) {
+      const message = 'Unable to delete daily report. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+
+    try {
+      await supabase.from('notifications').delete().eq('reference_id', String(id));
+      setNotifications(prev => prev.filter(n => String(n.referenceId) !== String(id)));
+    } catch {
+      // Ignore notification cleanup errors
+    }
+
+    setDailyReports(prev => prev.filter(r => String(r.id) !== String(id)));
+    await refreshEntity('daily_reports');
+
+    const actorName = currentUser?.fullName || currentUser?.employeeName || currentUser?.username || currentUser?.employeeId || 'User';
+    logActivity(`${actorName} deleted Daily Report for ${existing.date || 'selected date'}`, 'Daily Report');
+    showToast('Daily report deleted successfully.', 'success');
+    return true;
+  };
+
   const toggleDailyReportLock = async (id) => {
     const target = dailyReports.find(r => r.id === id);
     if (!target) return;
@@ -1911,6 +1956,7 @@ export const AppProvider = ({ children }) => {
     submitVisitReport,
     submitDailyReport,
     updateDailyReport,
+    deleteDailyReport,
     toggleDailyReportLock,
     addFollowUp,
     addDirectorComment,

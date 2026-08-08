@@ -1,15 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { ArrowLeft, Clock, Eye, FileText, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Clock, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader } from '../ui';
 
 export const MyDailyReports = () => {
-  const { currentUser, dailyReports } = useApp();
+  const { currentUser, dailyReports, deleteDailyReport } = useApp();
   const navigate = useNavigate();
   const { reportId: routeReportId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+
+  // Delete modal state & double-click protection
+  const [reportToDelete, setReportToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const empId = currentUser?.employeeId || 'EMP001';
 
@@ -59,6 +63,32 @@ export const MyDailyReports = () => {
     navigate(`/marketing/reports/daily/${report.id}`);
   };
 
+  const openDeleteConfirm = (report) => {
+    setReportToDelete(report);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (deleting) return;
+    setReportToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!reportToDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteDailyReport(reportToDelete.id);
+      setDeleting(false);
+      setReportToDelete(null);
+
+      // If user was viewing the details of the report being deleted, close details modal / navigate back
+      if (selectedReport && String(selectedReport.id) === String(reportToDelete.id)) {
+        closeDetails();
+      }
+    } catch {
+      setDeleting(false);
+    }
+  };
+
   const columns = [
     {
       key: 'date',
@@ -96,9 +126,16 @@ export const MyDailyReports = () => {
       key: 'actions',
       label: 'Action',
       render: (row) => (
-        <Button variant="secondary" onClick={() => openDetails(row)}>
-          <Eye size={14} /> View Details
-        </Button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => openDetails(row)}>
+            <Eye size={14} /> View Details
+          </Button>
+          {row.employeeId === empId && !row.isLocked && row.status !== 'Locked' && (
+            <Button variant="danger" onClick={() => openDeleteConfirm(row)}>
+              <Trash2 size={14} /> Delete
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
@@ -151,9 +188,16 @@ export const MyDailyReports = () => {
           onClose={closeDetails}
           title={`Daily Summary Report — ${selectedReport.date || 'Report'}`}
           footer={
-            <Button variant="secondary" onClick={closeDetails}>
-              <ArrowLeft size={14} /> Back to My Reports
-            </Button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <Button variant="secondary" onClick={closeDetails}>
+                <ArrowLeft size={14} /> Back to My Reports
+              </Button>
+              {selectedReport.employeeId === empId && !selectedReport.isLocked && selectedReport.status !== 'Locked' && (
+                <Button variant="danger" onClick={() => openDeleteConfirm(selectedReport)}>
+                  <Trash2 size={14} /> Delete Report
+                </Button>
+              )}
+            </div>
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -254,6 +298,45 @@ export const MyDailyReports = () => {
                 </p>
               </div>
             )}
+          </div>
+        </Modal>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {reportToDelete && (
+        <Modal
+          open={Boolean(reportToDelete)}
+          onClose={closeDeleteConfirm}
+          title="Delete Daily Report"
+          footer={
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
+              <Button variant="secondary" onClick={closeDeleteConfirm} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleConfirmDelete} disabled={deleting}>
+                <Trash2 size={14} /> {deleting ? 'Deleting...' : 'Delete Report'}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <p style={{ color: 'var(--text-main)', fontSize: '0.95rem', margin: 0 }}>
+              Are you sure you want to delete this daily report?
+            </p>
+            <div
+              style={{
+                padding: '10px 14px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.88rem',
+              }}
+            >
+              <strong>Report Date:</strong> {reportToDelete.date || 'N/A'}
+            </div>
+            <div className="ds-error" style={{ fontSize: '0.82rem', margin: 0 }}>
+              Warning: This action cannot be undone.
+            </div>
           </div>
         </Modal>
       )}
