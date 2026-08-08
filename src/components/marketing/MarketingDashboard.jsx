@@ -45,7 +45,7 @@ export const MarketingDashboard = () => {
             <PlusCircle size={18} /> + Add Visit Plan
           </button>
 
-          <button className="btn btn-secondary" onClick={() => goTo('reports')}>
+          <button className="btn btn-secondary" onClick={() => navigate('/marketing/reports/daily/submit')}>
             <Clock size={18} /> Submit Daily Report
           </button>
 

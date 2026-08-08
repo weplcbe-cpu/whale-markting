@@ -115,7 +115,7 @@ function AppContent() {
   const isMarketingUser = currentRole === 'Marketing Team';
   const isDirectorUser = currentRole === 'Director';
   const isAdminUser = currentRole === 'Admin';
-  const marketingRoute = marketingRoutes.find(route => route.path === location.pathname);
+  const marketingRoute = marketingRoutes.find(route => matchesConfiguredPath(route.path, location.pathname));
   const directorRoute = directorRoutes.find(route => matchesConfiguredPath(route.path, location.pathname));
   const adminRoute = adminRoutes.find(route => route.path === location.pathname);
   const currentTab = isMarketingUser ? (marketingRoute?.id || '') : isDirectorUser ? (directorRoute?.id || '') : (adminRoute?.id || 'dashboard');

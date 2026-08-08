@@ -2,7 +2,10 @@
 export const marketingRoutes = [
   { role: 'Marketing Team', id: 'dashboard', path: '/marketing', label: 'Dashboard', component: () => import('./components/marketing/MarketingDashboard') },
   { role: 'Marketing Team', id: 'visits', path: '/marketing/visits', label: 'Visits', component: () => import('./components/marketing/VisitsPlanningHub') },
-  { role: 'Marketing Team', id: 'reports', path: '/marketing/reports', label: 'Reports', component: () => import('./components/marketing/DailyReportSubmit') },
+  { role: 'Marketing Team', id: 'reports', path: '/marketing/reports', label: 'My Daily Reports', component: () => import('./components/marketing/MyDailyReports') },
+  { role: 'Marketing Team', id: 'daily-reports', path: '/marketing/reports/daily', label: 'My Daily Reports', nav: false, component: () => import('./components/marketing/MyDailyReports') },
+  { role: 'Marketing Team', id: 'daily-report-submit', path: '/marketing/reports/daily/submit', label: 'Submit Daily Report', nav: false, component: () => import('./components/marketing/DailyReportSubmit') },
+  { role: 'Marketing Team', id: 'daily-report-details', path: '/marketing/reports/daily/:reportId', label: 'Daily Report Details', nav: false, component: () => import('./components/marketing/MyDailyReports') },
   { role: 'Marketing Team', id: 'follow-ups', path: '/marketing/follow-ups', label: 'Follow-ups', component: () => import('./components/marketing/FollowUpManagement') },
   { role: 'Marketing Team', id: 'director-comments', path: '/marketing/director-comments', label: 'Director Comments', component: () => import('./components/marketing/DirectorCommentsFeed') },
   { role: 'Marketing Team', id: 'profile', path: '/marketing/profile', label: 'Profile', component: () => import('./components/marketing/ProfilePage') },
