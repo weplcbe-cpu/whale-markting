@@ -1,8 +1,22 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { ArrowLeft, Clock, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Clock, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader } from '../ui';
+
+const formatDateDisplay = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIdx = parseInt(month, 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) {
+      return `${day.padStart(2, '0')} ${months[monthIdx]} ${year}`;
+    }
+  }
+  return dateStr;
+};
 
 export const MyDailyReports = () => {
   const { currentUser, dailyReports, deleteDailyReport } = useApp();
@@ -308,6 +322,7 @@ export const MyDailyReports = () => {
           open={Boolean(reportToDelete)}
           onClose={closeDeleteConfirm}
           title="Delete Daily Report"
+          className="ds-modal--compact-delete"
           footer={
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
               <Button variant="secondary" onClick={closeDeleteConfirm} disabled={deleting}>
@@ -319,23 +334,44 @@ export const MyDailyReports = () => {
             </div>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <p style={{ color: 'var(--text-main)', fontSize: '0.95rem', margin: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <p style={{ color: 'var(--text-main)', fontSize: '0.95rem', margin: 0, lineHeight: 1.5 }}>
               Are you sure you want to delete this daily report?
             </p>
+
             <div
               style={{
-                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
-                fontSize: '0.88rem',
               }}
             >
-              <strong>Report Date:</strong> {reportToDelete.date || 'N/A'}
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Report Date</span>
+              <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600 }}>
+                {formatDateDisplay(reportToDelete.date)}
+              </strong>
             </div>
-            <div className="ds-error" style={{ fontSize: '0.82rem', margin: 0 }}>
-              Warning: This action cannot be undone.
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(244, 63, 94, 0.08)',
+                border: '1px solid rgba(244, 63, 94, 0.25)',
+                color: '#fb7185',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+              }}
+            >
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              <span>This action cannot be undone.</span>
             </div>
           </div>
         </Modal>

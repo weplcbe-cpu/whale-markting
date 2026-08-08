@@ -6987,3 +6987,15 @@ body {
 [data-theme="dark"] .complete-toggle { background: var(--text-disabled); }
 [data-theme="dark"] .complete-toggle span { background: var(--text-primary); }
 [data-theme="dark"] .complete-toggle.selected { background: var(--primary); }
+
+/* Compact Delete Modal Redesign */
+.ds-modal--compact-delete {
+  width: min(500px, calc(100vw - 32px)) !important;
+  max-width: 500px !important;
+}
+
+@media (max-width: 640px) {
+  .ds-modal--compact-delete {
+    width: calc(100vw - 24px) !important;
+  }
+}

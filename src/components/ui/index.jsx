@@ -135,7 +135,7 @@ export const EmptyState = ({ icon: Icon = Inbox, title = 'Nothing here yet', des
   <div className="ds-empty"><Icon size={32} aria-hidden="true" /><h3>{title}</h3>{description && <p>{description}</p>}{action}</div>
 );
 
-export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty = false, closeLabel = 'Close dialog', size = 'md' }) => {
+export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty = false, closeLabel = 'Close dialog', size = 'md', className = '' }) => {
   const titleId = useId();
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -162,7 +162,7 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
     <div className={`ds-modal-overlay ${theme === 'dark' ? 'app-theme-dark' : ''}`.trim()} data-theme={theme} role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget && !dirty) requestClose();
     }}>
-      <section ref={dialogRef} className={`ds-modal ds-modal--${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <section ref={dialogRef} className={`ds-modal ds-modal--${size} ${className}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="ds-modal__header"><div><h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="ds-icon-button entity-modal-close" onClick={requestClose} aria-label={closeLabel}><X size={20} aria-hidden="true" /></button></header>
         <div className="ds-modal__body">{children}</div>
         {footer && <footer className="ds-modal__footer">{footer}</footer>}
