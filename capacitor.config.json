@@ -1,0 +1,10 @@
+{
+  "appId": "in.whaleenterprise.kaisermarketing",
+  "appName": "Kaiser Whale Marketing",
+  "webDir": "dist",
+  "backgroundColor": "#0B1430",
+  "android": {
+    "allowMixedContent": false,
+    "androidScheme": "https"
+  }
+}

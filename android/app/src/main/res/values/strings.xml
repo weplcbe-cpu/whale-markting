@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kaiser Whale Marketing</string>
+    <string name="title_activity_main">Kaiser Whale Marketing</string>
+    <string name="package_name">in.whaleenterprise.kaisermarketing</string>
+    <string name="custom_url_scheme">in.whaleenterprise.kaisermarketing</string>
+</resources>
