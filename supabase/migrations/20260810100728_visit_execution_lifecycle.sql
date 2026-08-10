@@ -169,13 +169,14 @@ revoke all on function public.create_visit_closure_overdue_notifications() from 
 
 do $$
 begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron')
-     and not exists (select 1 from cron.job where jobname = 'visit_closure_overdue_notifications') then
-    perform cron.schedule(
-      'visit_closure_overdue_notifications',
-      '*/5 * * * *',
-      $cron$select public.create_visit_closure_overdue_notifications();$cron$
-    );
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if not exists (select 1 from cron.job where jobname = 'visit_closure_overdue_notifications') then
+      perform cron.schedule(
+        'visit_closure_overdue_notifications',
+        '*/5 * * * *',
+        $cron$select public.create_visit_closure_overdue_notifications();$cron$
+      );
+    end if;
   end if;
 end;
 $$;
