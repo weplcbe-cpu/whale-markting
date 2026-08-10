@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { AlertTriangle, ArrowLeft, Clock, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader } from '../ui';
 
 const formatDateDisplay = (dateStr) => {
@@ -356,23 +356,6 @@ export const MyDailyReports = () => {
               </strong>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(244, 63, 94, 0.08)',
-                border: '1px solid rgba(244, 63, 94, 0.25)',
-                color: '#fb7185',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-              }}
-            >
-              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-              <span>This action cannot be undone.</span>
-            </div>
           </div>
         </Modal>
       )}
