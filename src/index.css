@@ -2321,7 +2321,7 @@ h1, h2, h3, h4, h5, h6,
 /* Toast Notifications */
 .toast-container {
   position: fixed;
-  bottom: 80px;
+  bottom: 24px;
   right: 20px;
   display: flex;
   flex-direction: column;
@@ -6994,8 +6994,53 @@ body {
   max-width: 500px !important;
 }
 
+.ds-modal--compact-delete .ds-modal__header {
+  padding: 20px 24px;
+}
+
+.ds-modal--compact-delete .ds-modal__body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+.ds-modal--compact-delete .ds-modal__body > div {
+  gap: 12px !important;
+}
+
+.ds-modal--compact-delete .ds-modal__body > div > p {
+  margin: 0 !important;
+}
+
+.ds-modal--compact-delete .ds-modal__body > div > div {
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+}
+
+.ds-modal--compact-delete .ds-modal__footer {
+  min-height: 0;
+  height: auto;
+  margin-top: 0;
+  padding: 16px 24px 20px;
+}
+
 @media (max-width: 640px) {
   .ds-modal--compact-delete {
     width: calc(100vw - 24px) !important;
+    height: auto !important;
+    max-height: calc(100dvh - 24px) !important;
+    border-radius: 18px !important;
+  }
+
+  .ds-modal--compact-delete .ds-modal__header,
+  .ds-modal--compact-delete .ds-modal__body,
+  .ds-modal--compact-delete .ds-modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
