@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 45_000,
   retries: 0,
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'https://kaiserwhalemarketing.vercel.app',
+    baseURL: process.env.E2E_BASE_URL || 'https://kaiserwhalemarkting.vercel.app',
     headless: true,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',

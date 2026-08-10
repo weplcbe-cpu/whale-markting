@@ -28,15 +28,19 @@ export const StatusBadge = ({ tone = 'neutral', children, className = '' }) => (
 export const ModalPortal = ({ open = true, children, className = '', onClose, closeOnBackdrop = true, closeOnEscape = closeOnBackdrop }) => {
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const closeOnEscapeRef = useRef(closeOnEscape);
   const { theme = 'dark' } = useApp();
+  onCloseRef.current = onClose;
+  closeOnEscapeRef.current = closeOnEscape;
   useModalLayer(open);
   useEffect(() => {
     if (!open) return undefined;
     previousFocusRef.current = document.activeElement;
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && closeOnEscape) {
+      if (event.key === 'Escape' && closeOnEscapeRef.current) {
         event.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -64,7 +68,7 @@ export const ModalPortal = ({ open = true, children, className = '', onClose, cl
       window.removeEventListener('keydown', handleKeyDown);
       previousFocusRef.current?.focus?.();
     };
-  }, [closeOnEscape, onClose, open]);
+  }, [open]);
   if (!open) return null;
   const dialog = React.cloneElement(React.Children.only(children), {
     ref: dialogRef,
@@ -139,13 +143,17 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   const titleId = useId();
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const dirtyRef = useRef(dirty);
   const { theme = 'dark' } = useApp();
+  onCloseRef.current = onClose;
+  dirtyRef.current = dirty;
   useModalLayer(open);
   useEffect(() => {
     if (!open) return undefined;
     previousFocusRef.current = document.activeElement;
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') { event.preventDefault(); if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); return; }
+      if (event.key === 'Escape') { event.preventDefault(); if (!dirtyRef.current || window.confirm('Discard your unsaved changes?')) onCloseRef.current?.(); return; }
       if (event.key === 'Tab') { const focusable = [...(dialogRef.current?.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') || [])]; if (!focusable.length) return; const first = focusable[0]; const last = focusable[focusable.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -154,7 +162,7 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
       window.removeEventListener('keydown', handleKeyDown);
       previousFocusRef.current?.focus?.();
     };
-  }, [dirty, onClose, open]);
+  }, [open]);
 
   if (!open) return null;
   const requestClose = () => { if (!dirty || window.confirm('Discard your unsaved changes?')) onClose(); };
