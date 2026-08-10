@@ -1842,6 +1842,75 @@ export const AppProvider = ({ children }) => {
     return saved;
   };
 
+  const commitFollowUpMutation = async (query, successMessage, activity) => {
+    const { data, error } = await query.select().single();
+    if (error || !data?.id) {
+      if (import.meta.env.DEV && error) console.error('Follow-up mutation failed:', error);
+      const message = error?.code === '42501'
+        ? 'You are not authorized to change this follow-up.'
+        : error?.code === 'PGRST116'
+          ? 'This follow-up changed elsewhere. Refresh and try again.'
+          : 'Unable to update follow-up. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const saved = rowToCamel(data);
+    setFollowUps((previous) => previous.map((item) => String(item.id) === String(saved.id) ? saved : item));
+    await refreshEntity('follow_ups');
+    logActivity(activity, 'Follow-up Management');
+    showToast(successMessage, 'success');
+    return saved;
+  };
+
+  const updateFollowUp = (id, changes) => commitFollowUpMutation(
+    supabase.from('follow_ups').update(objToSnakeRow(changes)).eq('id', id).eq('employee_id', currentUser?.employeeId).eq('status', 'Pending'),
+    'Follow-up updated successfully.',
+    `Updated follow-up ID ${id}`
+  );
+
+  const startFollowUp = (id) => commitFollowUpMutation(
+    supabase.from('follow_ups').update({ status: 'In Progress', started_at: new Date().toISOString() }).eq('id', id).eq('employee_id', currentUser?.employeeId).eq('status', 'Pending'),
+    'Follow-up started successfully.',
+    `Started follow-up ID ${id}`
+  );
+
+  const rescheduleFollowUp = (followUp, followUpDate, reason) => commitFollowUpMutation(
+    supabase.from('follow_ups').update({
+      status: 'Pending',
+      follow_up_date: followUpDate,
+      previous_follow_up_date: followUp.followUpDate,
+      rescheduled_at: new Date().toISOString(),
+      reschedule_reason: reason.trim()
+    }).eq('id', followUp.id).eq('employee_id', currentUser?.employeeId).in('status', ['Pending', 'In Progress']),
+    'Follow-up rescheduled successfully.',
+    `Rescheduled follow-up ID ${followUp.id}`
+  );
+
+  const completeFollowUp = (id, outcome, completionNotes) => commitFollowUpMutation(
+    supabase.from('follow_ups').update({
+      status: 'Completed',
+      completed_at: new Date().toISOString(),
+      outcome: outcome.trim(),
+      completion_notes: completionNotes.trim() || null
+    }).eq('id', id).eq('employee_id', currentUser?.employeeId).eq('status', 'In Progress'),
+    'Follow-up completed successfully.',
+    `Completed follow-up ID ${id}`
+  );
+
+  const deleteFollowUp = async (id) => {
+    const { data, error } = await supabase.from('follow_ups').delete().eq('id', id).eq('employee_id', currentUser?.employeeId).eq('status', 'Pending').select('id').single();
+    if (error || !data?.id) {
+      const message = error?.code === '42501' ? 'You are not authorized to delete this follow-up.' : 'Unable to delete follow-up. It may no longer be Pending.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    setFollowUps((previous) => previous.filter((item) => String(item.id) !== String(id)));
+    await refreshEntity('follow_ups');
+    logActivity(`Deleted follow-up ID ${id}`, 'Follow-up Management');
+    showToast('Follow-up deleted successfully.', 'success');
+    return true;
+  };
+
   const addDirectorComment = async (commentData) => {
     const submissionKey = commentData.submissionKey || crypto.randomUUID();
     const { data, error } = await supabase.rpc('create_director_feedback', {
@@ -1968,6 +2037,11 @@ export const AppProvider = ({ children }) => {
     deleteDailyReport,
     toggleDailyReportLock,
     addFollowUp,
+    updateFollowUp,
+    startFollowUp,
+    rescheduleFollowUp,
+    completeFollowUp,
+    deleteFollowUp,
     addDirectorComment,
     markDirectorFeedbackRead,
     markNotificationRead
