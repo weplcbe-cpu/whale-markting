@@ -4,6 +4,8 @@ import { Bell, Calendar, Clock, Download, FileText, MapPin, Package, Printer, Se
 import { useApp } from '../../context/AppContext';
 import { Badge, Button, DataTable, EmptyState, FormField, Modal, PageHeader, SectionCard, SelectField, TextArea } from '../ui';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { getLocalDateKey } from '../../utils/dateUtils';
+import { formatVisitDateTime, formatVisitTimer, getVisitExecutionState } from '../../utils/visitLifecycle';
 import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { AnalyticsTabs } from './AnalyticsTabs';
 import { CompanyLogo } from '../common/CompanyLogo';
@@ -11,7 +13,7 @@ import { getPendingDailyReports, getPendingFollowUps } from '../../utils/reportS
 import { DirectorDailyReports } from './DirectorDailyReports';
 import { CallEmployeeButton, EntityDetailsModal } from '../common/details';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => getLocalDateKey();
 const text = (value) => value || 'Not provided';
 const productText = (row) => Array.isArray(row.products) ? row.products.join(', ') : (row.products || row.requirement || 'Not provided');
 const destinationText = (row) => row.customerName || row.organizationName || 'Organization not provided';
@@ -29,6 +31,11 @@ export const DirectorOperations = () => {
   const [selected, setSelected] = useState(null);
   const [commentTarget, setCommentTarget] = useState(null);
   const [comment, setComment] = useState('');
+  const [timerNow, setTimerNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setTimerNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
   const marketing = users.filter((user) => ['Marketing', 'Marketing Team'].includes(user.role));
   const employeeName = (employeeId, fallback) => fallback || marketing.find((user) => user.employeeId === employeeId)?.fullName || marketing.find((user) => user.employeeId === employeeId)?.username || employeeId || 'Not provided';
   const employeeMobile = (employeeId) => marketing.find((user) => user.employeeId === employeeId)?.mobileNumber || marketing.find((user) => user.employeeId === employeeId)?.mobile;
@@ -51,12 +58,12 @@ export const DirectorOperations = () => {
     });
   }, [location.pathname, searchParams, users, visitPlans]);
 
-  const filterBar = <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Submitted</option><option>Planned</option><option>Started</option><option>Completed</option><option>Cancelled</option><option>Changes Requested</option></SelectField></div>;
+  const filterBar = <div className="director-filter-bar"><div className="director-search"><Search size={17} /><FormField label="Search" value={search} onChange={(event) => setSearch(event.target.value)} /></div><SelectField label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Scheduled</option><option>Upcoming</option><option>Today</option><option>In Progress</option><option>Closure Overdue</option><option>Completed</option><option>Cancelled</option><option>Changes Requested</option></SelectField></div>;
 
   if (location.pathname === '/director/today-schedule') {
-    const rows = visitPlans.filter((row) => row.visitDate === today()).filter(matches).filter((row) => status === 'All' || normalizePlanStatus(row.status) === status);
+    const rows = visitPlans.filter((row) => row.visitDate === today()).filter(matches).filter((row) => status === 'All' || getVisitExecutionState(row, timerNow) === status);
     const columns = [
-      { key: 'employee', label: 'Employee', render: (row) => <><strong>{employeeName(row.employeeId, row.employeeName || row.fullName)}</strong><small>{text(row.employeeId)}</small></> }, { key: 'date', label: 'Visit Date', render: (row) => text(row.visitDate) }, { key: 'time', label: 'Expected Time', render: (row) => text(row.expectedTime) }, { key: 'area', label: 'Area / City', render: (row) => row.area || row.city || row.district || 'Not provided' }, { key: 'customer', label: 'Customer / Organization', render: destinationText }, { key: 'purpose', label: 'Visit Purpose', render: (row) => text(row.visitPurpose) }, { key: 'product', label: 'Products', render: productText }, { key: 'requirement', label: 'Requirement', render: (row) => text(row.requirement) }, { key: 'priority', label: 'Priority', render: (row) => text(row.priority) }, { key: 'notes', label: 'Notes', render: (row) => text(row.notes) }, { key: 'status', label: 'Status', render: (row) => <Badge tone={statusTone(row.status)}>{normalizePlanStatus(row.status)}</Badge> }, { key: 'actions', label: 'Details', render: (row) => <Button variant="secondary" onClick={() => setSelected({ type: 'visitPlan', employeePhone: employeeMobile(row.employeeId), entity: { ...row, fullName: employeeName(row.employeeId, row.employeeName || row.fullName) } })}>View Details</Button> }
+      { key: 'employee', label: 'Employee', render: (row) => <><strong>{employeeName(row.employeeId, row.employeeName || row.fullName)}</strong><small>{text(row.employeeId)}</small></> }, { key: 'date', label: 'Visit Date', render: (row) => text(row.visitDate) }, { key: 'time', label: 'Expected Time', render: (row) => text(row.expectedTime) }, { key: 'area', label: 'Location', render: (row) => row.fullAddress || row.area || row.city || row.district || 'Not provided' }, { key: 'customer', label: 'Customer / Organization', render: destinationText }, { key: 'started', label: 'Execution', render: (row) => normalizePlanStatus(row.status) === 'In Progress' ? <><strong>{formatVisitTimer(row, timerNow)}</strong><small>Started {formatVisitDateTime(row.startedAt)}</small></> : '—' }, { key: 'status', label: 'Status', render: (row) => { const state = getVisitExecutionState(row, timerNow); return <Badge tone={state === 'Closure Overdue' ? 'danger' : statusTone(state)}>{state}</Badge>; } }, { key: 'actions', label: 'Details', render: (row) => <Button variant="secondary" onClick={() => setSelected({ type: 'visitPlan', employeePhone: employeeMobile(row.employeeId), entity: { ...row, fullName: employeeName(row.employeeId, row.employeeName || row.fullName) } })}>View Details</Button> }
     ];
     return <div className="ds-page"><PageHeader title="Today’s Team Schedule" description="Read-only live status for every Marketing employee’s visits today." />{filterBar}<DataTable rows={rows} columns={columns} empty={<EmptyState icon={Calendar} title="No team visits scheduled today" description="Today’s submitted visit plans will appear here." />} />{detailModal}</div>;
   }

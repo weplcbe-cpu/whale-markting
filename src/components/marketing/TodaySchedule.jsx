@@ -1,7 +1,9 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Play, CheckCircle2, XCircle, Calendar, MapPin, X, Eye, Edit3, Trash2, Send } from 'lucide-react';
 import { normalizePlanStatus } from '../../utils/planStatus';
+import { getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
+import { formatVisitDateTime, formatVisitTimer, getVisitExecutionState } from '../../utils/visitLifecycle';
 import { EntityDetailsModal } from '../common/details';
 
 const LEGACY_DETAIL_PRESENTATION = false;
@@ -38,6 +40,7 @@ export const TodaySchedule = () => {
     currentUser,
     visitPlans,
     updateVisitPlanStatus,
+    startVisit,
     rescheduleVisitPlan,
     submitVisitReport,
     deleteVisitPlanEntry,
@@ -50,7 +53,14 @@ export const TodaySchedule = () => {
   } = useApp();
 
   const empId = currentUser?.employeeId || 'EMP001';
-  const myTodayVisits = visitPlans.filter(p => p.employeeId === empId);
+  const myTodayVisits = visitPlans.filter((plan) =>
+    plan.employeeId === empId && normalizeDateKey(plan.visitDate) === getLocalDateKey()
+  );
+  const [timerNow, setTimerNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setTimerNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Modals state
   const [startVisitModal, setStartVisitModal] = useState(null);
@@ -116,9 +126,17 @@ export const TodaySchedule = () => {
     setCompleteForm((previous) => ({ ...previous, followUpDate }));
   }, []);
 
-  const handleConfirmStart = (visit) => {
-    updateVisitPlanStatus(visit.id, 'Started', { startTime: new Date().toLocaleTimeString() });
-    setStartVisitModal(null);
+  const handleConfirmStart = async (visit) => {
+    if (busyAction) return;
+    setBusyAction(`start-${visit.id}`);
+    try {
+      await startVisit(visit.id);
+      setStartVisitModal(null);
+    } catch {
+      // Keep the confirmation visible so the employee can review the error.
+    } finally {
+      setBusyAction('');
+    }
   };
 
   const handleConfirmCancel = (e) => {
@@ -313,7 +331,7 @@ export const TodaySchedule = () => {
     if (status === 'Cancelled') {
       return <>{detailsButton}{deleteButton}</>;
     }
-    if (status === 'Submitted') {
+    if (status === 'Submitted' || status === 'Planned' || status === 'Approved') {
       return <>
         <button className="btn btn-primary" onClick={() => setStartVisitModal(visit)}><Play size={16} /> Start Visit</button>
         <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
@@ -322,11 +340,9 @@ export const TodaySchedule = () => {
         {deleteButton}
       </>;
     }
-    if (status === 'Started') {
+    if (status === 'Started' || status === 'In Progress') {
       return <>
-        <button className="btn btn-success" onClick={() => setCompleteModal(visit)}><CheckCircle2 size={16} /> Complete Visit</button>
-        <button className="btn btn-warning btn-sm" onClick={() => setRescheduleModal(visit)}><Calendar size={14} /> Reschedule</button>
-        <button className="btn btn-danger btn-sm" onClick={() => setCancelModal(visit)}><XCircle size={14} /> Cancel Visit</button>
+        <button className="btn btn-success" onClick={() => setCompleteModal(visit)}><CheckCircle2 size={16} /> Close Visit</button>
         {detailsButton}
       </>;
     }
@@ -367,7 +383,7 @@ export const TodaySchedule = () => {
                   <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
                     🕒 {visit.expectedTime}
                   </span>
-                  <span className={`badge badge-${visit.status.toLowerCase()}`}>{visit.status}</span>
+                  <span className={`badge badge-${String(getVisitExecutionState(visit, timerNow)).toLowerCase().replaceAll(' ', '-')}`}>{getVisitExecutionState(visit, timerNow)}</span>
                   <span className={`badge badge-${visit.priority.toLowerCase()}`}>{visit.priority} Priority</span>
                 </div>
 
@@ -381,6 +397,12 @@ export const TodaySchedule = () => {
                   <div><strong>Visit Purpose:</strong> {visit.visitPurpose}</div>
                   <div><strong>Products Interested:</strong> {Array.isArray(visit.products) ? visit.products.join(', ') : visit.products}</div>
                   <div><strong>Requirement Notes:</strong> {visit.requirement}</div>
+                  {normalizePlanStatus(visit.status) === 'In Progress' && <div className={`visit-execution-timer${getVisitExecutionState(visit, timerNow) === 'Closure Overdue' ? ' visit-execution-timer--overdue' : ''}`}>
+                    <strong>Visit In Progress</strong>
+                    <span>Started At: {formatVisitDateTime(visit.startedAt)}</span>
+                    <span>Closure deadline: {formatVisitDateTime(visit.closeDeadline)}</span>
+                    <b>{formatVisitTimer(visit, timerNow)}</b>
+                  </div>}
                 </div>
               </div>
 
@@ -506,7 +528,7 @@ export const TodaySchedule = () => {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setStartVisitModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={() => handleConfirmStart(startVisitModal)}>Confirm Start</button>
+              <button className="btn btn-primary" disabled={busyAction === `start-${startVisitModal.id}`} onClick={() => handleConfirmStart(startVisitModal)}>{busyAction === `start-${startVisitModal.id}` ? 'Starting…' : 'Start Visit'}</button>
             </div>
           </div>
         </ModalPortal>

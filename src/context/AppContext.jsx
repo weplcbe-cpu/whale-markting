@@ -1579,6 +1579,28 @@ export const AppProvider = ({ children }) => {
     showToast(`Visit status updated to ${newStatus}`, 'info');
   };
 
+  const startVisit = async (id) => {
+    const { data, error } = await supabase.rpc('start_visit', { p_visit_plan_id: id }).single();
+    if (error) {
+      const safeErrors = {
+        ACTIVE_VISIT_EXISTS: 'You already have an active visit. Close the current visit before starting another.',
+        VISIT_NOT_SCHEDULED_TODAY: 'This visit can only be started on its scheduled date.',
+        VISIT_CANNOT_BE_STARTED: 'This visit is not available to start.',
+        VISIT_PLAN_NOT_OWNED: 'You can only start your own assigned visit.',
+        VISIT_MARKETING_ONLY: 'Only Marketing employees can start visits.',
+        VISIT_AUTH_REQUIRED: 'Please sign in again before starting the visit.',
+      };
+      const message = safeErrors[error.message] || 'Unable to start the visit. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const saved = rowToCamel(data);
+    setVisitPlans((previous) => previous.map((plan) => plan.id === saved.id ? saved : plan));
+    await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
+    showToast('Visit started. The 24-hour closure timer is now running.', 'success');
+    return saved;
+  };
+
   const markVisitPlanImportant = async (id, isImportant = true) => {
     const { error } = await supabase.from('visit_plans').update({ is_important: isImportant }).eq('id', id);
     if (error) throw error;
@@ -1670,6 +1692,8 @@ export const AppProvider = ({ children }) => {
     if (error) {
       console.log('Error', error);
       const safeErrors = {
+        VISIT_OUTCOME_REQUIRED: 'Visit Outcome is required.',
+        CUSTOMER_RESPONSE_REQUIRED: 'Customer Response is required.',
         DISCUSSION_NOTES_REQUIRED: 'Discussion Notes is required.',
         FOLLOW_UP_DATE_REQUIRED: 'Please select a follow-up date.',
         INVALID_VISIT_REPORT_PAYLOAD: 'The visit report contains an invalid value.',
@@ -2059,6 +2083,7 @@ export const AppProvider = ({ children }) => {
     updateEditableVisitPlan,
     resubmitVisitPlan,
     updateVisitPlanStatus,
+    startVisit,
     markVisitPlanImportant,
     updateTourPlanBatchStatus,
     requestTourPlanChanges,

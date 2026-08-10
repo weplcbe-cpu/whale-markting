@@ -43,6 +43,17 @@ export const CompleteVisitOutcomeForm = ({ visit, form, onChange, onCustomerResp
           <div className="modal-body complete-visit-body">
             <div className="complete-visit-customer"><span>Customer</span><strong>{visit.customerName || 'Customer not specified'}</strong></div>
 
+            <div className="form-group complete-visit-section">
+              <label className="form-label" htmlFor="complete-visit-outcome">Visit Outcome *</label>
+              <select id="complete-visit-outcome" name="finalStatus" className="form-select" required value={form.finalStatus} onChange={onChange}>
+                <option value="">Select outcome</option>
+                <option value="Completed">Completed</option>
+                <option value="Successful">Successful</option>
+                <option value="Follow-up Needed">Follow-up Needed</option>
+                <option value="No Opportunity">No Opportunity</option>
+              </select>
+            </div>
+
             <fieldset className="complete-visit-section complete-response-section">
               <legend className="form-label">Customer Response *</legend>
               <div className="complete-response-grid" role="radiogroup" aria-label="Customer response">
@@ -54,7 +65,7 @@ export const CompleteVisitOutcomeForm = ({ visit, form, onChange, onCustomerResp
             </fieldset>
 
             <div className="form-group complete-visit-section">
-              <div className="complete-field-label"><label className="form-label" htmlFor="complete-discussion-notes">Discussion Notes *</label><span>{form.discussionNotes.length} characters</span></div>
+              <div className="complete-field-label"><label className="form-label" htmlFor="complete-discussion-notes">Key Discussion *</label><span>{form.discussionNotes.length} characters</span></div>
               <textarea id="complete-discussion-notes" name="discussionNotes" className="form-textarea" required rows={5} placeholder="Enter meeting notes, customer feedback, and key requirements..." value={form.discussionNotes} onChange={onChange} />
             </div>
 
@@ -80,7 +91,7 @@ export const CompleteVisitOutcomeForm = ({ visit, form, onChange, onCustomerResp
               {files.length > 0 && <div className="complete-file-list" aria-label="Selected files">{files.map((file) => <span key={`${file.name}-${file.size}-${file.lastModified}`}><FileText size={15} /><span>{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={() => setFiles((current) => current.filter((item) => item !== file))}><X size={14} /></button></span>)}</div>}
             </div>
           </div>
-          <div className="modal-footer complete-visit-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button><button type="submit" className="btn btn-success" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit Visit Report'}</button></div>
+          <div className="modal-footer complete-visit-footer"><button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button><button type="submit" className="btn btn-success" disabled={submitting}>{submitting ? 'Closing…' : 'Close Visit'}</button></div>
         </form>
       </div>
     </ModalPortal>

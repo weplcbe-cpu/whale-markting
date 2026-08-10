@@ -24,9 +24,17 @@ const ReferenceMeta = ({ references = [] }) => {
 
 const SectionGrid = ({ children }) => <div className="entity-details-grid">{children}</div>;
 const Narrative = ({ label, value }) => hasDisplayValue(value) ? <article className="entity-narrative"><h4>{label}</h4><p>{formatEmptyValue(value)}</p></article> : null;
+const visitDuration = (record) => {
+  const started = new Date(record.startedAt).getTime();
+  const completed = new Date(record.completedAt).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(completed) || completed < started) return null;
+  const minutes = Math.floor((completed - started) / 60000);
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+};
 
 const VisitPlanBody = ({ record }) => <>
   <DetailsSection title="Visit Schedule"><SectionGrid><DetailItem label="Visit Date" value={formatDisplayDate(record.visitDate)} /><DetailItem label="Visit Time" value={record.expectedTime || record.visitTime} /><DetailItem label="Area / City" value={formatLocation(record.area, record.city, record.district)} /><DetailItem label="Priority" value={record.priority} /></SectionGrid></DetailsSection>
+  {(record.startedAt || record.completedAt) && <DetailsSection title="Execution Timeline"><SectionGrid><DetailItem label="Started At" value={formatDisplayDateTime(record.startedAt)} /><DetailItem label="Closure Deadline" value={formatDisplayDateTime(record.closeDeadline)} /><DetailItem label="Completed At" value={formatDisplayDateTime(record.completedAt)} /><DetailItem label="Visit Duration" value={visitDuration(record)} /></SectionGrid></DetailsSection>}
   <DetailsSection title="Customer"><SectionGrid><DetailItem label="Customer / Organization" value={record.customerName || record.organizationName} /><DetailItem label="Contact Person" value={record.contactPerson} /><DetailItem label="Mobile Number" value={record.mobileNumber} /><DetailItem label="Organization Type" value={record.organizationType} /></SectionGrid></DetailsSection>
   <DetailsSection title="Visit Objective"><div className="entity-narrative-grid"><Narrative label="Visit Purpose" value={record.visitPurpose} /><article className="entity-narrative"><h4>Products Interested</h4><ProductChips products={record.products} /></article><Narrative label="Requirement" value={record.requirement} /><Narrative label="Notes" value={record.notes} /></div></DetailsSection>
   {record.visitReport && <VisitReportBody record={record.visitReport} compact />}

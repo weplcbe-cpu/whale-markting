@@ -11,6 +11,7 @@ const PLAN_STATUS_MAP = {
   draft: 'Draft',
   planned: 'Planned',
   started: 'Started',
+  'in progress': 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
   rescheduled: 'Rescheduled'

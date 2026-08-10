@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -14,9 +14,15 @@ import { useApp } from '../../context/AppContext';
 import { formatSafeDate, formatUpdateDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
 import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { getPendingDailyReports, getPendingFollowUps, getPendingVisitReports } from '../../utils/reportSelectors';
+import { formatVisitTimer, getVisitExecutionState } from '../../utils/visitLifecycle';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
+  const [timerNow, setTimerNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setTimerNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
   const {
     currentUser,
     users = [],
@@ -275,8 +281,13 @@ export const DirectorDashboard = () => {
                       {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Location'}
                     </span>
                   </div>
-                  <span className={`badge badge-${String(plan.status || 'planned').toLowerCase()}`} style={{ fontSize: '0.68rem', flexShrink: 0 }}>
-                    {plan.status || 'Planned'}
+                  <span style={{ display: 'grid', justifyItems: 'end', gap: '2px', flexShrink: 0 }}>
+                    <span className={`badge badge-${String(getVisitExecutionState(plan, timerNow)).toLowerCase().replaceAll(' ', '-')}`} style={{ fontSize: '0.68rem' }}>
+                      {getVisitExecutionState(plan, timerNow)}
+                    </span>
+                    {getVisitExecutionState(plan, timerNow) === 'In Progress' || getVisitExecutionState(plan, timerNow) === 'Closure Overdue'
+                      ? <small style={{ color: getVisitExecutionState(plan, timerNow) === 'Closure Overdue' ? 'var(--danger)' : 'var(--text-muted)' }}>{formatVisitTimer(plan, timerNow)}</small>
+                      : null}
                   </span>
                 </div>
               ))}

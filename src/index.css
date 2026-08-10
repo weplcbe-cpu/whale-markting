@@ -7052,3 +7052,23 @@ body {
     padding-right: 16px;
   }
 }
+.visit-execution-timer {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary-blue) 42%, var(--border-color));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary-blue) 9%, transparent);
+}
+
+.visit-execution-timer span { color: var(--text-muted); }
+.visit-execution-timer b { color: var(--primary-blue); }
+
+.visit-execution-timer--overdue {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border-color));
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.visit-execution-timer--overdue strong,
+.visit-execution-timer--overdue b { color: var(--danger); }
