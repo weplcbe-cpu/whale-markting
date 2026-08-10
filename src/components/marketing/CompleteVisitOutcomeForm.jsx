@@ -22,6 +22,8 @@ export const CompleteVisitOutcomeForm = ({ visit, form, onChange, onCustomerResp
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
+  const customerName = [visit.customerName, visit.organizationName]
+    .find((value) => typeof value === 'string' && value.trim())?.trim();
 
   const addFiles = useCallback((incoming) => {
     const allowed = [...incoming].filter((file) => /\.(jpe?g|png|pdf)$/i.test(file.name) && file.size <= 10 * 1024 * 1024);
@@ -36,13 +38,15 @@ export const CompleteVisitOutcomeForm = ({ visit, form, onChange, onCustomerResp
     <ModalPortal onClose={onClose} closeOnBackdrop={false} closeOnEscape>
       <div className="modal-content complete-visit-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div><h3>Complete Visit Outcome Form</h3><p>Record the customer outcome and next steps.</p></div>
+          <div>
+            <h3>Complete Visit Outcome Form</h3>
+            <p>Record the customer outcome and next steps.</p>
+            {customerName && <div className="complete-visit-customer-meta"><span>Customer:</span> <strong>{customerName}</strong></div>}
+          </div>
           <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close complete visit form"><X size={20} /></button>
         </div>
         <form className="complete-visit-outcome-form" onSubmit={onSubmit}>
           <div className="modal-body complete-visit-body">
-            <div className="complete-visit-customer"><span>Customer</span><strong>{visit.customerName || 'Customer not specified'}</strong></div>
-
             <div className="form-group complete-visit-section">
               <label className="form-label" htmlFor="complete-visit-outcome">Visit Outcome *</label>
               <select id="complete-visit-outcome" name="finalStatus" className="form-select" required value={form.finalStatus} onChange={onChange}>

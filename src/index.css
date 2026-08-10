@@ -6864,6 +6864,17 @@ body {
   font-size: 0.9rem;
 }
 
+.complete-visit-customer-meta {
+  margin-top: 7px;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.complete-visit-customer-meta strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 .complete-visit-outcome-form {
   display: flex;
   min-height: 0;
@@ -6876,27 +6887,15 @@ body {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 22px 26px 26px;
+  padding: 18px 26px 24px;
 }
 
 .complete-visit-section { min-width: 0; margin: 0; }
 .complete-response-section { padding: 0; border: 0; }
 .complete-response-section legend { margin-bottom: 9px; }
-
-.complete-visit-customer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-  background: #f5f8ff;
-  border: 1px solid #dbe7ff;
-  border-radius: 12px;
-}
-.complete-visit-customer span { color: var(--text-muted); font-size: 0.84rem; }
-.complete-visit-customer strong { color: var(--primary); }
 
 .complete-response-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .complete-response-grid button {
