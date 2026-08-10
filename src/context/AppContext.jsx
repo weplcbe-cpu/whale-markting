@@ -1817,17 +1817,29 @@ export const AppProvider = ({ children }) => {
       employeeId: currentUser?.employeeId,
       fullName: currentUser?.fullName || currentUser?.employeeName || currentUser?.username,
       status: 'Pending',
-      ...folData
+      ...folData,
+      customerId: folData.customerId?.trim() || null
     });
     const { data, error } = await supabase.from('follow_ups').insert(row).select().single();
     if (error) {
-      showToast('Failed to add follow-up', 'error');
-      return;
+      if (import.meta.env.DEV) console.error('Follow-up insert failed:', error);
+      const message = error.code === '42501'
+        ? 'You are not authorized to create this follow-up.'
+        : 'Unable to schedule follow-up. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
     }
-    setFollowUps(prev => [rowToCamel(data), ...prev]);
+    if (!data?.id) {
+      const message = 'Unable to schedule follow-up. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const saved = rowToCamel(data);
+    setFollowUps(prev => [saved, ...prev.filter(item => String(item.id) !== String(saved.id))]);
     await refreshEntity('follow_ups');
     logActivity(`Added follow-up for ${folData.customerName} on ${folData.followUpDate}`, 'Follow-up Management');
-    showToast('Follow-up scheduled', 'success');
+    showToast('Follow-up scheduled successfully.', 'success');
+    return saved;
   };
 
   const addDirectorComment = async (commentData) => {

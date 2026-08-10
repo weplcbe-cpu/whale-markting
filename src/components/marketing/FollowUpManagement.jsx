@@ -19,7 +19,16 @@ export const FollowUpManagement = () => {
   const relatedFollowUp = followUps.find((item) => item.id === searchParams.get('followUpId') && item.employeeId === empId);
   const closeRelated = () => { const next = new URLSearchParams(searchParams); next.delete('followUpId'); setSearchParams(next, { replace: true }); };
   const update = (field, value) => setFormData((current) => ({ ...current, [field]: value }));
-  const save = async (event) => { event.preventDefault(); await addFollowUp(formData); setIsModalOpen(false); };
+  const save = async (event) => {
+    event.preventDefault();
+    try {
+      await addFollowUp(formData);
+      setFormData(initialData);
+      setIsModalOpen(false);
+    } catch {
+      // AppContext shows the user-safe error; keep this modal and its draft open.
+    }
+  };
   const columns = [
     { key: 'customerName', label: 'Organization / Person', render: (row) => <strong>{row.customerName || 'Not provided'}</strong> },
     { key: 'followUpDate', label: 'Due Date' },
