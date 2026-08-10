@@ -1935,6 +1935,39 @@ export const AppProvider = ({ children }) => {
     return feedback;
   };
 
+  const updateDirectorComment = async (id, changes) => {
+    let query = supabase.from('director_comments').update({
+      comment_type: changes.commentType,
+      message: changes.message.trim(),
+    }).eq('id', id);
+    if (currentUser?.role !== 'Admin') query = query.eq('director_id', currentUser?.id);
+    const { data, error } = await query.select().single();
+    if (error || !data?.id) {
+      const message = error?.code === '42501' ? 'You are not authorized to edit this feedback.' : 'Unable to update feedback. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    const updated = normalizeDirectorFeedback(rowToCamel(data));
+    setDirectorComments((previous) => previous.map((item) => item.id === updated.id ? updated : item));
+    await refreshEntity('director_comments');
+    showToast('Feedback updated successfully.', 'success');
+    return updated;
+  };
+
+  const deleteDirectorComment = async (id) => {
+    const { data, error } = await supabase.rpc('delete_director_feedback', { p_feedback_id: id });
+    if (error || String(data || '') !== String(id)) {
+      const message = error?.code === '42501' ? 'You are not authorized to delete this feedback.' : 'Unable to delete feedback. Please try again.';
+      showToast(message, 'error');
+      throw new Error(message);
+    }
+    setDirectorComments((previous) => previous.filter((item) => item.id !== id));
+    setNotifications((previous) => previous.filter((item) => String(item.referenceId) !== String(id)));
+    await Promise.all([refreshEntity('director_comments'), refreshEntity('notifications')]);
+    showToast('Feedback deleted successfully.', 'success');
+    return true;
+  };
+
   const markDirectorFeedbackRead = async (ids) => {
     const requested = Array.isArray(ids) ? ids : [ids];
     const unreadIds = requested.filter(Boolean).filter((id) =>
@@ -2043,6 +2076,8 @@ export const AppProvider = ({ children }) => {
     completeFollowUp,
     deleteFollowUp,
     addDirectorComment,
+    updateDirectorComment,
+    deleteDirectorComment,
     markDirectorFeedbackRead,
     markNotificationRead
   };

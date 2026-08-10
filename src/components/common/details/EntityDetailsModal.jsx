@@ -63,14 +63,14 @@ const VisitReportBody = ({ record, compact = false }) => <>
   {!compact && <ReferenceMeta references={[{ label: 'Visit Report Reference', value: record.id }, { label: 'Visit Plan Reference', value: record.visitPlanId }]} />}
 </>;
 
-const FeedbackBody = ({ record, relatedState }) => <>
-  <DetailsSection title="Feedback Details"><SectionGrid><DetailItem label="Director" value={record.directorName} /><DetailItem label="Feedback Type" value={record.commentType} /><DetailItem label="Date and Time" value={formatDisplayDateTime(record.createdAt)} /><DetailItem label="Related Record" value={record.targetTitle} /></SectionGrid></DetailsSection>
-  <DetailsSection title="Message"><div className="entity-feedback-message"><MessageSquare size={18} /><p>{formatEmptyValue(record.message)}</p></div></DetailsSection>
-  {relatedState === 'deleted' && <div className="entity-related-record-warning" role="alert"><AlertTriangle size={18} aria-hidden="true" /><span>This related record was deleted.</span></div>}
+const FeedbackBody = ({ record, relatedState }) => <div className="director-feedback-details">
+  <dl className="director-feedback-detail-grid"><div><dt>Director</dt><dd>{formatEmptyValue(record.directorName)}</dd></div><div><dt>Feedback Type</dt><dd>{formatEmptyValue(record.commentType)}</dd></div><div><dt>Date &amp; Time</dt><dd>{formatDisplayDateTime(record.createdAt)}</dd></div><div><dt>Related Record</dt><dd>{formatEmptyValue(record.targetTitle)}</dd></div></dl>
+  <section className="director-feedback-detail-message"><h3>Message</h3><p>{formatEmptyValue(record.message)}</p></section>
+  {relatedState === 'deleted' && <div className="director-feedback-related-deleted"><AlertTriangle size={16} aria-hidden="true" /><span>Related record deleted</span></div>}
   {relatedState === 'malformed' && <div className="ds-error">This legacy feedback does not contain a valid related-record reference.</div>}
   {relatedState === 'permission' && <div className="ds-error">You do not have permission to open this related record.</div>}
   <ReferenceMeta references={[{ label: 'Feedback Reference', value: record.id }, { label: 'Related Record Reference', value: record.targetId || record.referenceId }]} />
-</>;
+</div>;
 
 const NotificationBody = ({ record }) => <>
   <DetailsSection title="Notification"><div className="entity-narrative-grid"><Narrative label="Message" value={record.message} /></div><SectionGrid><DetailItem label="Type" value={record.type} /><DetailItem label="Received" value={formatDisplayDateTime(record.createdAt || record.timestamp)} /><DetailItem label="Status" value={record.isRead ? 'Read' : 'Unread'} /></SectionGrid></DetailsSection>
