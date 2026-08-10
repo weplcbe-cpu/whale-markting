@@ -7,18 +7,12 @@ import { EntityDetailsModal } from '../common/details';
 
 const COMMENT_TYPES = ['General Comment', 'Need More Details', 'High Priority', 'Follow-up Required', 'Correction Required'];
 const TARGET_TYPES = ['Visit Plan', 'Tour Plan', 'Visit Report', 'Daily Report', 'Follow-up'];
-const INITIAL_FEEDBACK_FORM = { employeeId: '', targetType: 'Visit Plan', targetId: '', commentType: 'General Comment', message: '' };
-const TARGET_TYPE_PLURALS = { 'Visit Plan': 'Visit Plans', 'Tour Plan': 'Tour Plans', 'Visit Report': 'Visit Reports', 'Daily Report': 'Daily Reports', 'Follow-up': 'Follow-ups' };
-const displayDate = (value) => {
-  if (!value) return 'Date not provided';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const INITIAL_FEEDBACK_FORM = { employeeId: '', targetType: 'Visit Plan', commentType: 'General Comment', message: '' };
 
 export const CommentsHistory = () => {
   const {
     directorComments, users, visitPlans, visitReports, dailyReports, followUps,
-    currentUser, dataLoading, addDirectorComment, updateDirectorComment, deleteDirectorComment, refreshEntity, lastUpdated,
+    currentUser, addDirectorComment, updateDirectorComment, deleteDirectorComment, refreshEntity, lastUpdated,
   } = useApp();
   const [search, setSearch] = useState('');
   const [module, setModule] = useState('All');
@@ -29,29 +23,15 @@ export const CommentsHistory = () => {
   const [editForm, setEditForm] = useState({ commentType: '', message: '' });
   const [discardOpen, setDiscardOpen] = useState(false);
   const [addDiscardOpen, setAddDiscardOpen] = useState(false);
-  const [relatedError, setRelatedError] = useState('');
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(INITIAL_FEEDBACK_FORM);
   const comments = useMemo(() => directorComments
     .filter((item) => module === 'All' || item.targetType === module)
     .filter((item) => `${item.message} ${item.targetEmployeeName || ''} ${item.targetType}`.toLowerCase().includes(search.toLowerCase())), [directorComments, module, search]);
   const marketing = users.filter((user) => ['Marketing', 'Marketing Team'].includes(user.role));
-  const employeeRecords = useMemo(() => {
-    const employeeId = form.employeeId;
-    if (!employeeId) return [];
-    if (form.targetType === 'Visit Plan') return visitPlans.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `${displayDate(item.visitDate)} • ${item.area || item.city || item.location || 'Location not provided'} • ${item.purpose || item.visitType || 'Product Visit'}` }));
-    if (form.targetType === 'Tour Plan') {
-      const seen = new Set();
-      return visitPlans.filter((item) => item.employeeId === employeeId && item.batchId).filter((item) => !seen.has(item.batchId) && seen.add(item.batchId)).map((item) => ({ id: item.batchId, title: `${item.planType || 'Tour Plan'} • ${item.area || item.city || item.location || 'Locations not provided'} • ${displayDate(item.periodFrom || item.visitDate)}` }));
-    }
-    if (form.targetType === 'Visit Report') return visitReports.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `${displayDate(item.visitDate || item.submittedAt)} • ${item.customerName || item.organization || item.organisation || 'Organization not provided'}` }));
-    if (form.targetType === 'Daily Report') return dailyReports.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: displayDate(item.date || item.reportDate || item.submittedAt) }));
-    if (form.targetType === 'Follow-up') return followUps.filter((item) => item.employeeId === employeeId).map((item) => ({ id: item.id, title: `${item.customerName || item.organization || item.organisation || 'Organization not provided'} • ${displayDate(item.followUpDate)} • ${item.type || item.followUpType || 'Follow-up'}` }));
-    return [];
-  }, [dailyReports, followUps, form.employeeId, form.targetType, visitPlans, visitReports]);
-  const update = (field, value) => { if (['employeeId', 'targetType', 'targetId'].includes(field)) setRelatedError(''); setForm((current) => ({ ...current, [field]: value, ...(['employeeId', 'targetType'].includes(field) ? { targetId: '' } : {}) })); };
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const addDirty = JSON.stringify(form) !== JSON.stringify(INITIAL_FEEDBACK_FORM);
-  const resetAddForm = () => { setForm(INITIAL_FEEDBACK_FORM); setRelatedError(''); setNewComment(false); };
+  const resetAddForm = () => { setForm(INITIAL_FEEDBACK_FORM); setNewComment(false); };
   const closeAddForm = () => { if (addDirty) setAddDiscardOpen(true); else resetAddForm(); };
   const relatedState = (item) => resolveDirectorFeedbackRecord(item, { visitPlans, visitReports, dailyReports, followUps }).state;
   const canManage = (item) => currentUser?.role === 'Admin' || item.directorId === currentUser?.id;
@@ -63,15 +43,11 @@ export const CommentsHistory = () => {
   const submit = async (event) => {
     event.preventDefault();
     const employee = marketing.find((item) => item.employeeId === form.employeeId);
-    const record = employeeRecords.find((item) => item.id === form.targetId);
-    if (!record) { setRelatedError('Please select a related record.'); return; }
     if (!employee || !form.message.trim()) return;
     await addDirectorComment({
       employeeId: employee.employeeId,
       targetEmployeeName: employee.fullName || employee.employeeName,
       targetType: form.targetType,
-      targetId: record.id,
-      targetTitle: record.title,
       commentType: form.commentType,
       message: form.message.trim(),
     });
@@ -94,7 +70,6 @@ export const CommentsHistory = () => {
       <form id="director-feedback-form" onSubmit={submit} className="ds-form-grid">
         <SelectField className="ds-field--full" label="Marketing Employee" required value={form.employeeId} onChange={(event) => update('employeeId', event.target.value)}><option value="">Select employee</option>{marketing.map((employee) => <option key={employee.id} value={employee.employeeId}>{employee.fullName || employee.employeeName}</option>)}</SelectField>
         <SelectField className="ds-field--full" label="Target Type" required value={form.targetType} onChange={(event) => update('targetType', event.target.value)}>{TARGET_TYPES.map((type) => <option key={type}>{type}</option>)}</SelectField>
-        <SelectField className="ds-field--full" label="Related Record" required disabled={dataLoading || !form.employeeId || employeeRecords.length === 0} error={relatedError} value={form.targetId} onInvalid={(event) => { event.preventDefault(); setRelatedError('Please select a related record.'); }} onChange={(event) => update('targetId', event.target.value)}><option value="">{dataLoading ? 'Loading records...' : !form.employeeId ? 'Select an employee first' : employeeRecords.length === 0 ? `No ${TARGET_TYPE_PLURALS[form.targetType]} available` : `Select ${form.targetType}`}</option>{employeeRecords.map((record) => <option key={record.id} value={record.id}>{record.title}</option>)}</SelectField>
         <SelectField className="ds-field--full" label="Feedback Type" value={form.commentType} onChange={(event) => update('commentType', event.target.value)}>{COMMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</SelectField>
         <TextArea className="ds-field--full" label="Feedback" required value={form.message} onChange={(event) => update('message', event.target.value)} />
       </form>
