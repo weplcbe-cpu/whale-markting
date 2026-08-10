@@ -5,6 +5,7 @@ import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
 import { RealtimeNotificationToasts } from './components/common/RealtimeNotificationToasts';
+import { PwaStatus } from './components/common/PwaStatus';
 import { AppShell } from './components/ui';
 import { LoginPage } from './components/auth/LoginPage';
 import { BrandedLoadingScreen, CompanyLogo } from './components/common/CompanyLogo';
@@ -186,6 +187,7 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <PwaStatus />
       <AppContent />
     </ErrorBoundary>
   );

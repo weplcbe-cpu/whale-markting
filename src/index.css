@@ -7072,3 +7072,39 @@ body {
 
 .visit-execution-timer--overdue strong,
 .visit-execution-timer--overdue b { color: var(--danger); }
+.pwa-status-region {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 100100;
+  width: min(620px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pwa-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  color: #f8fafc;
+  background: rgba(18, 23, 45, 0.97);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.34);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+}
+
+.pwa-status--offline { border-color: rgba(251, 191, 36, 0.55); }
+.pwa-status--offline svg { color: #fbbf24; flex: 0 0 auto; }
+.pwa-status--update svg { color: #7da0ff; flex: 0 0 auto; }
+.pwa-status__actions { display: flex; gap: 8px; margin-left: auto; }
+.pwa-status button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 7px 11px; border: 1px solid rgba(148, 163, 184, 0.32); border-radius: 9px; color: #e2e8f0; background: transparent; cursor: pointer; }
+.pwa-status button.pwa-status__primary { border-color: #4f7cff; color: #fff; background: #4f7cff; }
+
+@media (max-width: 575px) {
+  .pwa-status { align-items: flex-start; flex-wrap: wrap; justify-content: flex-start; }
+  .pwa-status__actions { width: 100%; justify-content: flex-end; }
+}
