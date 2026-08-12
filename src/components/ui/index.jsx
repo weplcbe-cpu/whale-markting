@@ -148,7 +148,8 @@ export const Modal = ({ open, title, subtitle, children, footer, onClose, dirty 
   const previousFocusRef = useRef(null);
   const onCloseRef = useRef(onClose);
   const dirtyRef = useRef(dirty);
-  const { theme = 'dark' } = useApp();
+  const { effectiveTheme = 'light' } = useApp();
+  const theme = effectiveTheme;
   onCloseRef.current = onClose;
   dirtyRef.current = dirty;
   useModalLayer(open);
