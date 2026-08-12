@@ -52,4 +52,5 @@ export const adminRoutes = [
   { role: 'Admin', id: 'activity-logs', path: '/admin/activity-logs', label: 'Activity Logs', component: () => import('./components/admin/ActivityLogs') },
   { role: 'Admin', id: 'reports', path: '/admin/reports', label: 'Reports & Export', component: () => import('./components/admin/ReportsExport') },
   { role: 'Admin', id: 'settings', path: '/admin/settings', label: 'System Settings', component: () => import('./components/admin/SystemSettings') },
+  { role: 'Admin', id: 'profile', path: '/admin/profile', label: 'Profile', nav: false, component: () => import('./components/marketing/ProfilePage') },
 ];

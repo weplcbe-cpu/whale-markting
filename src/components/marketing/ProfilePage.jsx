@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { BellRing, BriefcaseBusiness, Eye, EyeOff, IdCard, Mail, Phone, Save, ShieldCheck, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Button } from '../ui';
@@ -11,6 +12,8 @@ export const ProfilePage = () => {
     showToast,
     desktopNotificationPermission,
     requestDesktopNotificationPermission,
+    desktopAlertsEnabled,
+    setDesktopAlertsEnabled,
     notificationSoundEnabled,
     setNotificationSoundEnabled,
     testNotificationExperience,
@@ -97,26 +100,26 @@ export const ProfilePage = () => {
     }));
   };
 
-  const enableDesktopNotifications = async () => {
-    const permission = await requestDesktopNotificationPermission();
-    if (permission === 'granted') {
-      showToast('Desktop notifications enabled.', 'success');
-      return;
-    }
-    if (permission === 'denied') {
-      showToast('Desktop notifications were blocked by browser settings.', 'warning');
-      return;
-    }
-    showToast('Desktop notifications are not supported in this browser.', 'error');
-  };
+  const isNativeCapacitor = Capacitor.isNativePlatform();
 
-  const desktopLabel = desktopNotificationPermission === 'granted'
-    ? 'Enabled'
-    : desktopNotificationPermission === 'denied'
-      ? 'Disabled'
-      : desktopNotificationPermission === 'default'
-        ? 'Not enabled'
-        : 'Unsupported';
+  const permissionLabel = isNativeCapacitor
+    ? 'Native App Shell'
+    : desktopNotificationPermission === 'granted'
+      ? 'Granted'
+      : desktopNotificationPermission === 'denied'
+        ? 'Blocked in browser'
+        : desktopNotificationPermission === 'default'
+          ? 'Not enabled'
+          : 'Unsupported';
+
+  const handleRequestPermission = async () => {
+    const perm = await requestDesktopNotificationPermission();
+    if (perm === 'granted') {
+      showToast('Browser notification permission granted.', 'success');
+    } else if (perm === 'denied') {
+      showToast('Browser notifications were blocked by settings.', 'warning');
+    }
+  };
 
   return (
     <div className="ds-page profile-page mp-profile-page">
@@ -292,28 +295,57 @@ export const ProfilePage = () => {
         <section className="mp-profile-card" aria-labelledby="notification-settings-title">
           <header className="mp-card-header">
             <h2 id="notification-settings-title"><BellRing size={18} aria-hidden="true" /> Notification Settings</h2>
-            <p>Enable desktop alerts and control notification sound.</p>
+            <p>Control browser permissions, desktop alerts, sound preferences, and preview notification alerts.</p>
           </header>
           <div className="mp-notification-settings">
+            {/* 1. Browser Notification Permission */}
             <div className="mp-setting-row">
               <div>
-                <strong>Desktop Notifications</strong>
-                <p>Status: {desktopLabel}</p>
+                <strong>Browser Notification Permission</strong>
+                <p style={{ marginTop: '2px' }}>
+                  Status:{' '}
+                  <span className={`mp-perm-chip mp-perm-chip--${isNativeCapacitor ? 'native' : desktopNotificationPermission}`}>
+                    {permissionLabel}
+                  </span>
+                </p>
+                {desktopNotificationPermission === 'denied' && !isNativeCapacitor && (
+                  <small style={{ color: '#f87171', display: 'block', marginTop: '6px' }}>
+                    Notifications are blocked in your browser settings. To allow popups, click the lock/settings icon in your browser address bar.
+                  </small>
+                )}
+              </div>
+              {desktopNotificationPermission === 'default' && !isNativeCapacitor && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleRequestPermission}
+                >
+                  Enable Browser Permission
+                </Button>
+              )}
+            </div>
+
+            {/* 2. App Desktop Alerts Toggle */}
+            <div className="mp-setting-row">
+              <div>
+                <strong>Desktop Alerts</strong>
+                <p>{desktopAlertsEnabled ? 'On — Show popup alerts on desktop' : 'Off — Desktop popups disabled'}</p>
               </div>
               <Button
                 type="button"
                 variant="secondary"
-                onClick={enableDesktopNotifications}
-                disabled={desktopNotificationPermission === 'granted' || desktopNotificationPermission === 'unsupported'}
+                onClick={() => setDesktopAlertsEnabled(!desktopAlertsEnabled)}
+                disabled={desktopNotificationPermission !== 'granted' || isNativeCapacitor}
               >
-                Enable Notifications
+                {desktopAlertsEnabled ? 'Desktop Alerts On' : 'Desktop Alerts Off'}
               </Button>
             </div>
 
+            {/* 3. Notification Sound */}
             <div className="mp-setting-row">
               <div>
                 <strong>Notification Sound</strong>
-                <p>{notificationSoundEnabled ? 'On' : 'Off'}</p>
+                <p>{notificationSoundEnabled ? 'On — Play audio chime for new notifications' : 'Off — Silent notifications'}</p>
               </div>
               <Button
                 type="button"
@@ -325,10 +357,11 @@ export const ProfilePage = () => {
               </Button>
             </div>
 
+            {/* 4. Test Notification */}
             <div className="mp-setting-row">
               <div>
                 <strong>Test Notification</strong>
-                <p>Local preview only. No database record will be created.</p>
+                <p>Local preview only. No database record or cross-user alert will be created.</p>
               </div>
               <Button type="button" onClick={() => testNotificationExperience()}>
                 Test Notification

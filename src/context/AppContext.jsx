@@ -1,6 +1,7 @@
 /* oxlint-disable react/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabaseClient';
 import { rowToCamel, rowsToCamel, objToSnakeRow } from '../lib/caseMap';
 import { inferPlanType, normalizePlanStatus } from '../utils/planStatus';
@@ -12,6 +13,7 @@ const AppContext = createContext();
 const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
 const NOTIFICATION_SOUND_PREF_KEY = 'kw_notification_sound';
+const DESKTOP_ALERTS_PREF_KEY = 'kw_vmm_desktop_alerts';
 const SUPPORTED_THEME = 'dark';
 const ADD_USER_ERROR_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'This email address is already registered.',
@@ -223,6 +225,9 @@ export const AppProvider = ({ children }) => {
   const [desktopNotificationPermission, setDesktopNotificationPermission] = useState(
     () => (typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
   );
+  const [desktopAlertsEnabled, setDesktopAlertsEnabledState] = useState(
+    () => localStorage.getItem(DESKTOP_ALERTS_PREF_KEY) !== 'off'
+  );
   const [notificationSoundEnabled, setNotificationSoundEnabledState] = useState(
     () => localStorage.getItem(NOTIFICATION_SOUND_PREF_KEY) !== 'off'
   );
@@ -251,6 +256,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem(NOTIFICATION_SOUND_PREF_KEY, notificationSoundEnabled ? 'on' : 'off');
   }, [notificationSoundEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem(DESKTOP_ALERTS_PREF_KEY, desktopAlertsEnabled ? 'on' : 'off');
+  }, [desktopAlertsEnabled]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof Notification === 'undefined') {
@@ -305,6 +314,10 @@ export const AppProvider = ({ children }) => {
     window.dispatchEvent(new CustomEvent('kw:open-notification', { detail: { notification, path } }));
   }, [currentRole]);
 
+  const setDesktopAlertsEnabled = useCallback((enabled) => {
+    setDesktopAlertsEnabledState(Boolean(enabled));
+  }, []);
+
   const setNotificationSoundEnabled = useCallback((enabled) => {
     setNotificationSoundEnabledState(Boolean(enabled));
   }, []);
@@ -335,47 +348,43 @@ export const AppProvider = ({ children }) => {
       setDesktopNotificationPermission('granted');
       return 'granted';
     }
-    const permission = await Notification.requestPermission();
-    setDesktopNotificationPermission(permission);
-    return permission;
+    try {
+      const permission = await Notification.requestPermission();
+      setDesktopNotificationPermission(permission);
+      return permission;
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('Request desktop permission error:', err);
+      return Notification.permission;
+    }
   }, []);
 
   const showDesktopNotification = useCallback((notification) => {
+    if (Capacitor.isNativePlatform()) return;
+    if (!desktopAlertsEnabled) return;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-    const nativeNotification = new Notification('Kaiser Whale', {
-      body: notification?.message || notification?.title || 'New notification received.',
-      icon: '/notification-icon.png',
-      badge: '/notification-badge.png',
-      tag: String(notification?.id || Date.now()),
-      renotify: false,
-    });
-    nativeNotification.onclick = () => {
-      window.focus();
-      openNotificationTarget(notification);
-      nativeNotification.close();
-    };
-  }, [openNotificationTarget]);
+    try {
+      const nativeNotification = new Notification('Kaiser Whale', {
+        body: notification?.message || notification?.title || 'New notification received.',
+        icon: '/notification-icon.png',
+        badge: '/notification-badge.png',
+        tag: String(notification?.id || Date.now()),
+        renotify: false,
+      });
+      nativeNotification.onclick = () => {
+        window.focus();
+        openNotificationTarget(notification);
+        nativeNotification.close();
+      };
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('Desktop notification creation failed:', err);
+    }
+  }, [desktopAlertsEnabled, openNotificationTarget]);
 
   const triggerForegroundNotification = useCallback(async (notification) => {
     enqueueRealtimeNotification(notification);
     showDesktopNotification(notification);
     await playNotificationSound();
   }, [enqueueRealtimeNotification, playNotificationSound, showDesktopNotification]);
-
-  const testNotificationExperience = useCallback(async () => {
-    const notification = {
-      id: `local-test-${Date.now()}`,
-      title: 'Kaiser Whale',
-      message: 'Notifications are working.',
-      type: 'system',
-      isRead: false,
-      userId: currentUser?.employeeId,
-      createdAt: new Date().toISOString(),
-    };
-    enqueueRealtimeNotification(notification);
-    showDesktopNotification(notification);
-    await playNotificationSound();
-  }, [currentUser?.employeeId, enqueueRealtimeNotification, playNotificationSound, showDesktopNotification]);
 
   // Toast Alert System
   const showToast = useCallback((message, type = 'info') => {
@@ -385,6 +394,28 @@ export const AppProvider = ({ children }) => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   }, []);
+
+  const testNotificationExperience = useCallback(async () => {
+    const isNative = Capacitor.isNativePlatform();
+    const isGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+
+    showToast('Test Notification: Notifications & alerts preview.', 'info');
+    await playNotificationSound();
+
+    if (!isNative && isGranted && desktopAlertsEnabled) {
+      showDesktopNotification({
+        id: `local-test-${Date.now()}`,
+        title: 'Kaiser Whale',
+        message: 'Desktop notifications are working.',
+      });
+    } else if (isNative) {
+      showToast('Native app shell active: In-app notifications enabled.', 'info');
+    } else if (!isGranted) {
+      showToast('Browser desktop permission is not granted.', 'warning');
+    } else if (!desktopAlertsEnabled) {
+      showToast('Desktop alerts are turned Off in profile settings.', 'warning');
+    }
+  }, [desktopAlertsEnabled, playNotificationSound, showDesktopNotification, showToast]);
 
   // Activity Log System — persisted to Supabase, best-effort (never blocks the UI).
   const logActivity = useCallback((action, module = 'General') => {
@@ -2072,6 +2103,8 @@ export const AppProvider = ({ children }) => {
     toggleTheme,
     desktopNotificationPermission,
     requestDesktopNotificationPermission,
+    desktopAlertsEnabled,
+    setDesktopAlertsEnabled,
     notificationSoundEnabled,
     setNotificationSoundEnabled,
     playNotificationSound,
