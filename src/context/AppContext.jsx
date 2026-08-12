@@ -65,7 +65,7 @@ const resolveEffectiveTheme = (mode) => {
 const getInitialThemeMode = () => {
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_MODE_PREF_KEY) : null;
   if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
-  return 'dark';
+  return 'light';
 };
 
 const inferUpdateHttpStatus = (error) => {

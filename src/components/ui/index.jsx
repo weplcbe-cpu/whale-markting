@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { useModalLayer } from './modalLayer';
 
 export const AppShell = ({ sidebar, navbar, children }) => {
-  const { themeMode = 'dark', effectiveTheme = 'dark' } = useApp();
+  const { themeMode = 'light', effectiveTheme = 'light' } = useApp();
 
   return (
     <div
