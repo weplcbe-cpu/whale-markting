@@ -5,11 +5,14 @@ import { useApp } from '../../context/AppContext';
 import { useModalLayer } from './modalLayer';
 
 export const AppShell = ({ sidebar, navbar, children }) => {
-  const { theme = 'dark' } = useApp();
-  const isDarkTheme = theme === 'dark';
+  const { themeMode = 'dark', effectiveTheme = 'dark' } = useApp();
 
   return (
-    <div className={`app-container kw-app-shell ${isDarkTheme ? 'app-theme-dark' : ''}`.trim()} data-theme={theme}>
+    <div
+      className={`app-container kw-app-shell app-theme-${effectiveTheme}`.trim()}
+      data-theme={effectiveTheme}
+      data-theme-mode={themeMode}
+    >
       <div className="main-layout">
         {sidebar}
         <div className="content-area">

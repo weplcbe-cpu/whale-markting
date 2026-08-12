@@ -14,7 +14,6 @@ const AUTH_INITIALIZATION_TIMEOUT_MS = 10000;
 const ADD_USER_FALLBACK_MESSAGE = 'Unable to create user. Please check the Edge Function logs and try again.';
 const NOTIFICATION_SOUND_PREF_KEY = 'kw_notification_sound';
 const DESKTOP_ALERTS_PREF_KEY = 'kw_vmm_desktop_alerts';
-const SUPPORTED_THEME = 'dark';
 const ADD_USER_ERROR_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'This email address is already registered.',
   EMPLOYEE_ID_ALREADY_EXISTS: 'This employee ID already exists.',
@@ -51,7 +50,23 @@ const RESET_PASSWORD_ERROR_MESSAGES = {
   INTERNAL_ERROR: 'Unable to update password. Please try again.',
 };
 
-const resolveSupportedTheme = () => SUPPORTED_THEME;
+const THEME_MODE_PREF_KEY = 'kw_vmm_theme_mode';
+
+const getSystemPreferredTheme = () => {
+  if (typeof window === 'undefined' || !window.matchMedia) return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const resolveEffectiveTheme = (mode) => {
+  if (mode === 'system') return getSystemPreferredTheme();
+  return mode === 'light' ? 'light' : 'dark';
+};
+
+const getInitialThemeMode = () => {
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_MODE_PREF_KEY) : null;
+  if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
+  return 'dark';
+};
 
 const inferUpdateHttpStatus = (error) => {
   if (Number.isInteger(error?.status)) return error.status;
@@ -219,7 +234,8 @@ export const AppProvider = ({ children }) => {
   const [dataError, setDataError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const [theme, setTheme] = useState(resolveSupportedTheme);
+  const [themeMode, setThemeModeState] = useState(getInitialThemeMode);
+  const [effectiveTheme, setEffectiveTheme] = useState(() => resolveEffectiveTheme(getInitialThemeMode()));
   const [toasts, setToasts] = useState([]);
   const [realtimeNotifications, setRealtimeNotifications] = useState([]);
   const [desktopNotificationPermission, setDesktopNotificationPermission] = useState(
@@ -235,23 +251,64 @@ export const AppProvider = ({ children }) => {
   const seenNotificationIdsRef = useRef(new Set());
   const currentRole = currentUser ? normalizeRole(currentUser.role) : null;
 
-  useLayoutEffect(() => {
-    const resolvedTheme = resolveSupportedTheme();
-    if (theme !== resolvedTheme) {
-      setTheme(resolvedTheme);
-      return;
-    }
-    localStorage.setItem('kw_vmm_theme', resolvedTheme);
-    document.documentElement.classList.add('dark');
-    document.documentElement.dataset.theme = resolvedTheme;
-    document.documentElement.style.colorScheme = resolvedTheme;
-    document.body.dataset.theme = resolvedTheme;
-    document.body.classList.remove('theme-light');
-  }, [theme]);
+  const setThemeMode = useCallback((mode) => {
+    const validMode = mode === 'light' || mode === 'system' ? mode : 'dark';
+    setThemeModeState(validMode);
+    localStorage.setItem(THEME_MODE_PREF_KEY, validMode);
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme(SUPPORTED_THEME);
-  };
+  const toggleTheme = useCallback(() => {
+    setThemeModeState((prev) => {
+      const next = prev === 'dark' ? 'light' : prev === 'light' ? 'system' : 'dark';
+      localStorage.setItem(THEME_MODE_PREF_KEY, next);
+      return next;
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const resolved = resolveEffectiveTheme(themeMode);
+    setEffectiveTheme(resolved);
+
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.themeMode = themeMode;
+    document.documentElement.style.colorScheme = resolved;
+
+    if (resolved === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('theme-light');
+      document.body.dataset.theme = 'dark';
+      document.body.classList.remove('theme-light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('theme-light');
+      document.body.dataset.theme = 'light';
+      document.body.classList.add('theme-light');
+    }
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (themeMode !== 'system' || typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const resolved = mediaQuery.matches ? 'dark' : 'light';
+      setEffectiveTheme(resolved);
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.style.colorScheme = resolved;
+      if (resolved === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('theme-light');
+        document.body.dataset.theme = 'dark';
+        document.body.classList.remove('theme-light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('theme-light');
+        document.body.dataset.theme = 'light';
+        document.body.classList.add('theme-light');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [themeMode]);
 
   useEffect(() => {
     localStorage.setItem(NOTIFICATION_SOUND_PREF_KEY, notificationSoundEnabled ? 'on' : 'off');
@@ -2099,7 +2156,10 @@ export const AppProvider = ({ children }) => {
     activityLogs,
     companyInfo,
     toasts,
-    theme,
+    theme: effectiveTheme,
+    themeMode,
+    setThemeMode,
+    effectiveTheme,
     toggleTheme,
     desktopNotificationPermission,
     requestDesktopNotificationPermission,

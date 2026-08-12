@@ -12,7 +12,10 @@ import {
   X,
   Search,
   Menu,
-  Settings2
+  Settings2,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 
 // Mapping for portal titles based on role
@@ -39,7 +42,7 @@ const pageTitleMap = {
 };
 
 export const Navbar = ({ activeTab, toggleSidebar }) => {
-  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, refreshEntity, markNotificationRead, showToast } = useApp();
+  const { currentUser, currentRole, logout, notifications, users, visitPlans, visitReports, dailyReports, followUps, directorComments, refreshEntity, markNotificationRead, showToast, themeMode, setThemeMode } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -169,11 +172,42 @@ export const Navbar = ({ activeTab, toggleSidebar }) => {
           {currentRole === 'Director' && globalSearch.trim().length >= 2 && <div className="global-search-results">{searchResults.length ? searchResults.map(result => <button type="button" key={result.id} onClick={() => { navigate(result.path); setGlobalSearch(''); }}><small>{result.group}</small><strong>{result.label}</strong></button>) : <p>No matching records</p>}</div>}
         </div>
 
+        {/* Theme Switcher */}
+        <div className="kw-theme-switcher" role="radiogroup" aria-label="Theme options">
+          <button
+            type="button"
+            className={`kw-theme-btn ${themeMode === 'light' ? 'active' : ''}`}
+            onClick={() => setThemeMode('light')}
+            title="Light theme"
+            aria-label="Light theme"
+          >
+            <Sun size={15} />
+          </button>
+          <button
+            type="button"
+            className={`kw-theme-btn ${themeMode === 'dark' ? 'active' : ''}`}
+            onClick={() => setThemeMode('dark')}
+            title="Dark theme"
+            aria-label="Dark theme"
+          >
+            <Moon size={15} />
+          </button>
+          <button
+            type="button"
+            className={`kw-theme-btn ${themeMode === 'system' ? 'active' : ''}`}
+            onClick={() => setThemeMode('system')}
+            title="System theme"
+            aria-label="System theme"
+          >
+            <Monitor size={15} />
+          </button>
+        </div>
+
         {/* Settings */}
         <button
           className="icon-btn"
           title="Settings"
-          onClick={() => currentRole === 'Director' ? navigate('/director/profile') : currentRole === 'Marketing Team' ? navigate('/marketing/profile') : navigate('/admin/settings')}
+          onClick={() => currentRole === 'Director' ? navigate('/director/profile') : currentRole === 'Marketing Team' ? navigate('/marketing/profile') : navigate('/admin/profile')}
         >
           <Settings2 size={20} strokeWidth={2.5} />
         </button>
