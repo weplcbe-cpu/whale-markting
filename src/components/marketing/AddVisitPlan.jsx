@@ -77,6 +77,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     orgTypes = [],
     purposes = [],
     addVisitPlan,
+    updateEditableVisitPlan,
     showToast,
   } = useApp();
 
@@ -98,7 +99,18 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       ...plan,
       visitPlace: plan.area || plan.city || '',
       district: plan.district || '',
-      selectedProducts: plan.products || [],
+      organizationName: plan.organizationName || plan.customerName || '',
+      organizationType: plan.organizationType || '',
+      customOrganizationType: '',
+      contactPerson: plan.contactPerson || '',
+      mobileNumber: plan.mobileNumber || '',
+      visitPurpose: plan.visitPurpose || '',
+      customVisitPurpose: '',
+      selectedProducts: Array.isArray(plan.products) ? plan.products : (plan.products ? [plan.products] : []),
+      priority: plan.priority || 'Medium',
+      requirement: plan.requirement || '',
+      notes: plan.notes || '',
+      isFollowUpRequired: Boolean(plan.isFollowUpRequired),
       ...parseExpectedTime(plan.expectedTime),
     } : {}),
   }), [plan]);
@@ -317,7 +329,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   });
 
   const saveDraft = (notify = true) => {
-    if (!draftKey) return;
+    if (!draftKey || plan) return;
     localStorage.setItem(draftKey, JSON.stringify({
       ...formData,
       submissionKey: submissionKey.current,
@@ -330,17 +342,18 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
     if (submitting || !validate()) return;
     setSubmitting(true);
     try {
-      const saved = await addVisitPlan(payload());
+      const saved = plan
+        ? await updateEditableVisitPlan(plan.id, payload())
+        : await addVisitPlan(payload());
       if (!saved) throw new Error('The visit plan was not saved.');
-      if (draftKey) {
+      if (draftKey && !plan) {
         localStorage.removeItem(draftKey);
       }
       submissionKey.current = crypto.randomUUID();
-      showToast?.('Visit plan submitted successfully.', 'success');
       onClose();
     } catch (error) {
       setErrors((current) => ({ ...current, form: error?.message || 'Unable to submit the visit plan.' }));
-      saveDraft(false);
+      if (!plan) saveDraft(false);
     } finally {
       setSubmitting(false);
     }
@@ -349,12 +362,17 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   useEffect(() => {
     if (!open) return;
     refreshEntity?.('employee_visit_places');
+    if (plan) {
+      setFormData(initialData);
+      setErrors({});
+      return;
+    }
     if (!draftKey) {
       setFormData(initialData);
       setErrors({});
       return;
     }
-    const saved = !plan && localStorage.getItem(draftKey);
+    const saved = localStorage.getItem(draftKey);
     if (!saved) {
       setFormData(initialData);
       setErrors({});
@@ -371,14 +389,14 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
   }, [draftKey, initialData, open, plan, refreshEntity]);
 
   useEffect(() => {
-    if (!open || !dirty || !draftKey) return undefined;
+    if (!open || !dirty || !draftKey || plan) return undefined;
     setDraftStatus('saving');
     const timer = window.setTimeout(() => {
       localStorage.setItem(draftKey, JSON.stringify({ ...formData, submissionKey: submissionKey.current }));
       setDraftStatus('saved');
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [dirty, draftKey, formData, open]);
+  }, [dirty, draftKey, formData, open, plan]);
 
   useEffect(() => {
     if (!open) return;
@@ -399,9 +417,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
   const footer = (
     <div className="visit-plan-footer-shell">
-      <div className="ds-draft-status" role="status">
-        {draftStatus === 'saving' ? 'Saving…' : <><Check size={16} /> Draft saved</>}
-      </div>
+      {!plan ? (
+        <div className="ds-draft-status" role="status">
+          {draftStatus === 'saving' ? 'Saving…' : <><Check size={16} /> Draft saved</>}
+        </div>
+      ) : <div />}
       <div className="visit-plan-footer-actions">
         {currentStep === 1 && (
           <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
@@ -409,12 +429,12 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
         {currentStep > 1 && (
           <Button variant="secondary" onClick={() => setCurrentStep((step) => Math.max(1, step - 1))} disabled={submitting}>Back</Button>
         )}
-        <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>
+        {!plan && <Button variant="ghost" onClick={() => saveDraft(true)} disabled={submitting}>Save Draft</Button>}
         {currentStep < 3 ? (
           <Button onClick={continueStep} disabled={submitting || assignedPlacesLoading}>Continue</Button>
         ) : (
           <Button onClick={submit} loading={submitting} disabled={submitting || assignedPlacesLoading || !availableAssignedPlaces.length}>
-            <Save size={16} /> Submit Visit Plan
+            <Save size={16} /> {plan ? 'Update Visit Plan' : 'Submit Visit Plan'}
           </Button>
         )}
       </div>
@@ -426,8 +446,8 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
       open={open}
       onClose={onClose}
       dirty={dirty}
-      title="Create Visit Plan"
-      subtitle="Plan and schedule your customer visit."
+      title={plan ? 'Edit Visit Plan' : 'Create Visit Plan'}
+      subtitle={plan ? 'Update your scheduled customer visit details.' : 'Plan and schedule your customer visit.'}
       footer={footer}
       size="visit-plan"
     >

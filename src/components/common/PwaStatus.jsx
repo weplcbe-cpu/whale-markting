@@ -1,10 +1,11 @@
 import React, { useCallback } from 'react';
 import { RefreshCw, WifiOff, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
 import { useConnectivity } from '../../hooks/useConnectivity';
 
-export const PwaStatus = () => {
+const PwaStatusInner = () => {
   const { currentUser, refreshAllData } = useApp();
   const refreshAfterReconnect = useCallback(() => {
     if (currentUser?.id) refreshAllData().catch(() => undefined);
@@ -29,4 +30,13 @@ export const PwaStatus = () => {
       </span>
     </div>}
   </div>;
+};
+
+export const PwaStatus = () => {
+  // Prevent service worker registration and PWA update UI inside native Capacitor shells.
+  // The native app uses bundled assets and updates via the App Store/Play Store.
+  if (Capacitor.isNativePlatform()) {
+    return null;
+  }
+  return <PwaStatusInner />;
 };

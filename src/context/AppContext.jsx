@@ -1315,48 +1315,46 @@ export const AppProvider = ({ children }) => {
     if (!isDatabaseVisitPlanId(entryId)) throw new Error('Unable to delete this visit plan.');
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit entry was not found. Refresh and try again.');
-    const status = normalizePlanStatus(target.status);
     const rawStatus = String(target.rawStatus || target.status || '').trim().toLowerCase();
-    const legacyStatuses = new Set([
-      'approved',
-      'rejected',
-      'changes requested',
-      'pending approval',
-      'submitted for director approval'
-    ]);
-    const deletableStatuses = new Set(['Draft', 'Submitted', 'Rescheduled', 'Cancelled']);
+    const nonDeletable = new Set(['in progress', 'completed', 'completed late', 'closed']);
+    if (nonDeletable.has(rawStatus)) {
+      throw new Error('In Progress and Completed visit plans cannot be deleted.');
+    }
     const role = normalizeRole(currentUser?.role);
-    if (role !== 'Marketing Team') {
-      throw new Error('You do not have permission to delete this visit plan.');
+    if (role === 'Director') {
+      throw new Error('Directors are not authorized to delete visit plans.');
     }
-    if (target.employeeId !== currentUser?.employeeId) {
+    if (role !== 'Admin' && target.employeeId !== currentUser?.employeeId) {
       throw new Error('You do not have permission to delete this visit plan.');
-    }
-    if (!deletableStatuses.has(status) && !legacyStatuses.has(rawStatus)) {
-      throw new Error('This visit plan status cannot be deleted.');
     }
     const { data: deletedRow, error } = await supabase
       .from('visit_plans')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', entryId)
       .eq('employee_id', currentUser.employeeId)
       .select('id')
       .single();
     if (error) {
+      console.error('Visit plan delete error:', error);
       const noRowDeleted = error.code === 'PGRST116';
       const permissionDenied = error.code === '42501' || /permission|row-level security|rls/i.test(error.message || '');
       const deleteError = new Error(permissionDenied
         ? 'You do not have permission to delete this visit plan.'
         : noRowDeleted
-          ? 'Unable to delete this visit plan.'
+          ? 'Unable to delete this visit plan. 0 rows affected in database.'
           : 'Unable to delete this visit plan.');
       throw deleteError;
     }
     if (deletedRow?.id !== entryId) {
-      const deleteError = new Error('Unable to delete this visit plan.');
-      throw deleteError;
+      throw new Error('Deletion failed: exact visit plan ID was not matched.');
     }
     setVisitPlans((previous) => previous.filter((plan) => plan.id !== entryId));
+    try {
+      await supabase.from('notifications').delete().eq('reference_id', entryId);
+      setNotifications((previous) => previous.filter((n) => n.referenceId !== entryId && n.reference_id !== entryId));
+    } catch (nErr) {
+      console.warn('Notification cleanup failed:', nErr);
+    }
     removeVisitPlanFromDraftCaches({
       id: entryId,
       databaseId: entryId,
@@ -1365,8 +1363,9 @@ export const AppProvider = ({ children }) => {
       submissionKey: target.submissionKey,
       batchId: target.batchId,
     });
-    await refreshEntity('visit_plans');
+    await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
     logActivity(`Deleted visit entry ID ${entryId}`, 'Tour Plan');
+    showToast('Visit plan deleted successfully.', 'success');
     return true;
   };
 
@@ -1453,21 +1452,34 @@ export const AppProvider = ({ children }) => {
   const updateEditableVisitPlan = async (entryId, updates) => {
     const target = visitPlans.find((plan) => plan.id === entryId);
     if (!target) throw new Error('Visit plan not found.');
-    const status = normalizePlanStatus(target.status);
-    if (!['Draft', 'Rejected', 'Changes Requested'].includes(status)) {
-      throw new Error('This visit plan can no longer be edited.');
+    const rawStatus = String(target.rawStatus || target.status || '').trim().toLowerCase();
+    const nonEditable = new Set(['in progress', 'completed', 'completed late', 'closed']);
+    if (nonEditable.has(rawStatus)) {
+      throw new Error(`Visit plans in '${target.status}' status cannot be edited.`);
     }
-    if (target.employeeId !== currentUser?.employeeId) {
+    const role = normalizeRole(currentUser?.role);
+    if (role !== 'Admin' && target.employeeId !== currentUser?.employeeId) {
       throw new Error('You can only edit your own visit plans.');
     }
     const payload = objToSnakeRow({
       visitDate: updates.visitDate,
       expectedTime: updates.expectedTime,
-      area: updates.area,
-      city: updates.city || updates.area,
+      destinationType: updates.destinationType || 'General Visit',
+      customerName: updates.customerName || updates.organizationName || null,
+      organizationName: updates.organizationName || updates.customerName || null,
+      organizationType: updates.organizationType || null,
+      contactPerson: updates.contactPerson || null,
+      mobileNumber: updates.mobileNumber || null,
+      area: updates.area || updates.city,
+      city: updates.city || updates.area || null,
+      district: updates.district || null,
+      state: updates.state || 'Tamil Nadu',
       visitPurpose: updates.visitPurpose,
+      products: Array.isArray(updates.products) ? updates.products : [],
+      priority: updates.priority || 'Medium',
       requirement: updates.requirement || null,
-      notes: updates.notes || null
+      notes: updates.notes || null,
+      isFollowUpRequired: updates.isFollowUpRequired || false,
     });
     const { data, error } = await supabase
       .from('visit_plans')
@@ -1477,12 +1489,19 @@ export const AppProvider = ({ children }) => {
       .select()
       .single();
     if (error) {
-      showToast('Unable to update the visit plan.', 'error');
+      console.error('Visit plan update failed:', error);
+      showToast(error.message || 'Unable to update the visit plan.', 'error');
       throw error;
     }
-    await refreshEntity('visit_plans');
+    if (!data) {
+      throw new Error('0 rows updated. You may not have permission to edit this plan.');
+    }
+    const saved = normalizeVisitPlan(rowToCamel(data));
+    setVisitPlans((previous) => previous.map((p) => (p.id === entryId ? saved : p)));
+    await Promise.all([refreshEntity('visit_plans'), refreshEntity('notifications')]);
+    logActivity(`Updated visit plan for ${saved.customerName || saved.area} on ${saved.visitDate}`, 'Visit Plan');
     showToast('Visit plan updated successfully.', 'success');
-    return normalizeVisitPlan(rowToCamel(data));
+    return saved;
   };
 
   const resubmitVisitPlan = async (entryId) => {
