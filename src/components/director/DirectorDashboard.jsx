@@ -175,17 +175,17 @@ export const DirectorDashboard = () => {
 
   return (
     <div className="marketing-dashboard director-dashboard">
-      {/* 1. Simple Welcome Banner (No Duplicate Action Buttons) */}
-      <div className="hero-welcome-card director-hero">
+      {/* 1. Simple Welcome Banner */}
+      <div className="hero-welcome-card director-hero kw-glass-card">
         <div className="hero-text">
           <h2>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
           <p>📅 {formattedDate} &nbsp;•&nbsp; Monitor your marketing team and field activities.</p>
         </div>
       </div>
 
-      {/* 2. 4 Compact White KPI Stat Cards */}
+      {/* 2. Compact KPI Stat Cards */}
       <div className="stat-grid dashboard-summary-grid director-kpi-row">
-        <div className="stat-card" onClick={() => navigate('/director/team')}>
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/team')}>
           <div className="stat-icon-wrapper blue"><Users size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{marketingTeamCount}</div>
@@ -196,7 +196,7 @@ export const DirectorDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => navigate('/director/today-schedule')}>
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/today-schedule')}>
           <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{todayScheduledVisits.length}</div>
@@ -207,7 +207,7 @@ export const DirectorDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => navigate('/director/daily-reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/daily-reports')}>
           <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingVisitReportsList.length}</div>
@@ -218,7 +218,7 @@ export const DirectorDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => navigate('/director/daily-reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/daily-reports')}>
           <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingDailyReportsList.length}</div>
@@ -226,7 +226,7 @@ export const DirectorDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => navigate('/director/follow-ups')}>
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/follow-ups')}>
           <div className="stat-icon-wrapper green"><Clock size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingFollowUpsList.length}</div>
@@ -238,10 +238,10 @@ export const DirectorDashboard = () => {
         </div>
       </div>
 
-      {/* 3. All four cards in a single 2-column × 2-row grid */}
+      {/* 3. All four cards in a single grid */}
       <div className="director-cards-grid">
         {/* Today's Team Field Schedule */}
-        <div className="card director-fit-card">
+        <div className="card director-fit-card kw-glass-card">
           <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
               <Calendar size={18} color="var(--primary-blue)" /> Today's Team Field Schedule
@@ -264,8 +264,8 @@ export const DirectorDashboard = () => {
                   style={{
                     padding: '7px 10px',
                     borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-muted, #f8fafc)',
-                    border: '1px solid var(--border-color)',
+                    background: 'var(--kw-bg-surface)',
+                    border: '1px solid var(--kw-glass-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -295,8 +295,8 @@ export const DirectorDashboard = () => {
           )}
         </div>
 
-        {/* Recent Team Updates (Vertical Activity Timeline) */}
-        <div className="card director-fit-card">
+        {/* Recent Team Updates */}
+        <div className="card director-fit-card kw-glass-card">
           <div className="card-header-clean" style={{ marginBottom: '8px' }}>
             <h3 className="card-title-clean">
               <MessageSquare size={18} color="var(--primary-blue)" /> Recent Team Updates

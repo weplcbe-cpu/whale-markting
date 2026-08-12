@@ -341,7 +341,7 @@ export const UserManagement = () => {
       </div>
 
       {/* Users Table */}
-      <div className="card">
+      <div className="card kw-glass-card">
         <div className="card-header-clean">
           <h3 className="card-title-clean"><Shield size={18} color="var(--accent-cyan)" /> User Directory & Permissions</h3>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Showing {filteredUsers.length} Users</span>

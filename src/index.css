@@ -7465,3 +7465,56 @@ body {
   border-color: var(--kw-glass-border-hover);
   background: var(--kw-bg-surface-hover);
 }
+
+/* Director Portal Liquid Glass Enhancements */
+.director-hero.kw-glass-card {
+  background: var(--kw-bg-card);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  box-shadow: var(--kw-glass-shadow);
+}
+
+.director-filter-bar {
+  background: var(--kw-bg-surface);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.director-fit-card.kw-glass-card {
+  background: var(--kw-bg-card);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  box-shadow: var(--kw-glass-shadow);
+}
+
+/* Admin Portal Liquid Glass Enhancements */
+.admin-dashboard .card.kw-glass-card {
+  background: var(--kw-bg-card);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  box-shadow: var(--kw-glass-shadow);
+}
+
+.user-modal.admin-user-modal {
+  background: var(--kw-bg-modal) !important;
+  border: 1px solid var(--kw-glass-border) !important;
+  backdrop-filter: var(--kw-glass-blur) !important;
+  -webkit-backdrop-filter: var(--kw-glass-blur) !important;
+  box-shadow: var(--kw-glass-shadow) !important;
+}
+
+.user-modal-overlay {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}

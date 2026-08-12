@@ -14,10 +14,10 @@ export const AdminDashboard = ({ setActiveTab }) => {
   const pendingFollowups = followUps.filter(f => f.status === 'Pending').length;
 
   return (
-    <div>
+    <div className="admin-dashboard">
       {/* KPI Cards Header */}
       <div className="stat-grid">
-        <div className="stat-card" onClick={() => setActiveTab('users')}>
+        <div className="stat-card kw-glass-card" onClick={() => setActiveTab('users')}>
           <div className="stat-icon-wrapper blue"><Users size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{totalMarketingTeam}</div>
@@ -25,8 +25,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-
-        <div className="stat-card" onClick={() => setActiveTab('reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper amber"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{todayVisits.length}</div>
@@ -34,7 +33,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{completedVisits}</div>
@@ -42,7 +41,7 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper rose"><Clock size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingVisits}</div>
@@ -50,23 +49,21 @@ export const AdminDashboard = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => setActiveTab('reports')}>
+        <div className="stat-card kw-glass-card" onClick={() => setActiveTab('reports')}>
           <div className="stat-icon-wrapper purple"><AlertTriangle size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingFollowups}</div>
             <div className="stat-label">Pending Follow-ups</div>
           </div>
         </div>
-
-
       </div>
 
       {/* Main Grid: Today's Overview & System Activity */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Today's Schedule Oversight */}
-        <div className="card">
+        <div className="card kw-glass-card">
           <div className="card-header-clean">
-            <h3 className="card-title-clean"><Calendar size={18} color="var(--accent-cyan)" /> Today's Field Visit Schedule</h3>
+            <h3 className="card-title-clean"><Calendar size={18} color="var(--primary-blue)" /> Today's Field Visit Schedule</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('reports')}>
               View All Plans <ArrowRight size={14} />
             </button>
@@ -107,9 +104,9 @@ export const AdminDashboard = ({ setActiveTab }) => {
         </div>
 
         {/* Quick Activity Stream */}
-        <div className="card">
+        <div className="card kw-glass-card">
           <div className="card-header-clean">
-            <h3 className="card-title-clean"><Clock size={18} color="var(--accent-amber)" /> Recent System Logs</h3>
+            <h3 className="card-title-clean"><Clock size={18} color="var(--action-orange)" /> Recent System Logs</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('activity-logs')}>Logs</button>
           </div>
 
@@ -119,9 +116,9 @@ export const AdminDashboard = ({ setActiveTab }) => {
                 key={log.id}
                 style={{
                   padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--kw-bg-surface)',
                   borderRadius: 'var(--radius-md)',
-                  borderLeft: '3px solid var(--accent-cyan)'
+                  borderLeft: '3px solid var(--color-primary)'
                 }}
               >
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>{log.action}</div>

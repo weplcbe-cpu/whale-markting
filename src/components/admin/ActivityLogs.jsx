@@ -62,7 +62,7 @@ export const ActivityLogs = () => {
         </button>
       </div>
 
-      <div className="card">
+      <div className="card kw-glass-card">
         <div className="card-header-clean">
           <h3 className="card-title-clean"><History size={18} color="var(--accent-cyan)" /> Audit Activity Logs</h3>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{filteredLogs.length} Events Recorded</span>
