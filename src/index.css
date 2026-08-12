@@ -7737,19 +7737,137 @@ html:not([data-theme="dark"]) :is(.toolbar-bar, .global-search-input, .kw-theme-
   color: #14213D !important;
 }
 
-/* 5. Inputs & Form Controls */
-html[data-theme="light"] :is(.form-input, .form-select, .form-textarea),
-html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea) {
-  background: rgba(255, 255, 255, 0.94) !important;
+/* 5. Inputs & Form Controls System (Light Mode) */
+html[data-theme="light"] :is(.form-label, .form-group label, .ds-field label, .location-master__form label),
+html:not([data-theme="dark"]) :is(.form-label, .form-group label, .ds-field label, .location-master__form label) {
   color: #14213D !important;
-  border: 1px solid rgba(36, 85, 232, 0.2) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  margin-bottom: 6px !important;
+  display: block !important;
 }
 
-html[data-theme="light"] :is(.form-input, .form-select, .form-textarea)::placeholder,
-html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea)::placeholder {
+html[data-theme="light"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select, .location-master__filters input, .location-master__filters select):not(:disabled),
+html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select, .location-master__filters input, .location-master__filters select):not(:disabled) {
+  background: #FFFFFF !important;
+  color: #14213D !important;
+  border: 1px solid rgba(36, 85, 232, 0.22) !important;
+  border-radius: 10px !important;
+  min-height: 44px !important;
+  padding: 10px 14px !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  opacity: 1 !important;
+  cursor: text !important;
+  pointer-events: auto !important;
+}
+
+html[data-theme="light"] :is(select.form-select, .ds-field select, .location-master__form select, .location-master__filters select):not(:disabled),
+html:not([data-theme="dark"]) :is(select.form-select, .ds-field select, .location-master__form select, .location-master__filters select):not(:disabled) {
+  cursor: pointer !important;
+  background-color: #FFFFFF !important;
+}
+
+html[data-theme="light"] select option,
+html:not([data-theme="dark"]) select option {
+  background-color: #FFFFFF !important;
+  color: #14213D !important;
+  font-weight: 500 !important;
+}
+
+html[data-theme="light"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):hover:not(:disabled),
+html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):hover:not(:disabled) {
+  border-color: rgba(36, 85, 232, 0.42) !important;
+  background-color: #FFFFFF !important;
+}
+
+html[data-theme="light"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):focus:not(:disabled),
+html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):focus:not(:disabled) {
+  border-color: #2455E8 !important;
+  box-shadow: 0 0 0 3px rgba(36, 85, 232, 0.18) !important;
+  outline: none !important;
+}
+
+html[data-theme="light"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select)::placeholder,
+html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select)::placeholder {
   color: #667085 !important;
   opacity: 1 !important;
+}
+
+/* Disabled Form Control Styling */
+html[data-theme="light"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):disabled,
+html:not([data-theme="dark"]) :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .location-master__form input, .location-master__form select):disabled {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border-color: rgba(203, 213, 225, 0.6) !important;
+  color: #94A3B8 !important;
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* Modal Footer Action Buttons (Cancel & Save) */
+html[data-theme="light"] :is(.ds-button--secondary, button[variant="secondary"]),
+html:not([data-theme="dark"]) :is(.ds-button--secondary, button[variant="secondary"]) {
+  background: #FFFFFF !important;
+  color: #2455E8 !important;
+  border: 1px solid rgba(36, 85, 232, 0.28) !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(23, 105, 232, 0.05) !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+}
+
+html[data-theme="light"] :is(.ds-button--secondary, button[variant="secondary"]):hover:not(:disabled),
+html:not([data-theme="dark"]) :is(.ds-button--secondary, button[variant="secondary"]):hover:not(:disabled) {
+  background: rgba(235, 242, 255, 0.95) !important;
+  color: #173DB8 !important;
+  border-color: rgba(36, 85, 232, 0.45) !important;
+  box-shadow: 0 4px 12px rgba(23, 105, 232, 0.1) !important;
+}
+
+html[data-theme="light"] :is(.ds-button--secondary, button[variant="secondary"]):disabled,
+html:not([data-theme="dark"]) :is(.ds-button--secondary, button[variant="secondary"]):disabled {
+  background: rgba(241, 245, 249, 0.75) !important;
+  color: #94A3B8 !important;
+  border-color: rgba(203, 213, 225, 0.5) !important;
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)),
+html:not([data-theme="dark"]) :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)) {
+  background: #2455E8 !important;
+  color: #FFFFFF !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+  padding: 0 20px !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(36, 85, 232, 0.3) !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+}
+
+html[data-theme="light"] :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)):hover:not(:disabled),
+html:not([data-theme="dark"]) :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)):hover:not(:disabled) {
+  background: #173DB8 !important;
+  box-shadow: 0 6px 18px rgba(36, 85, 232, 0.4) !important;
+}
+
+html[data-theme="light"] :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)):disabled,
+html:not([data-theme="dark"]) :is(.ds-button--primary, button[type="submit"]:not(.ds-button--secondary)):disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 
 /* 6. High-Contrast Table Styling */
