@@ -206,93 +206,105 @@ export const ProfilePage = () => {
               <p>Change your account password.</p>
             </header>
 
-            <form className="mp-security-form" onSubmit={handleSave}>
-              <div className="mp-password-field">
-                <label htmlFor="current-password">Current Password</label>
-                <div className="mp-password-input-wrap">
-                  <input
-                    id="current-password"
-                    type={showPasswords.current ? 'text' : 'password'}
-                    required
-                    autoComplete="current-password"
-                    value={form.current}
-                    onChange={(event) => update('current', event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="mp-password-toggle"
-                    onClick={() => togglePassword('current')}
-                    aria-label={showPasswords.current ? 'Hide password' : 'Show password'}
+            <div className="mp-security-layout">
+              <form className="mp-security-form" onSubmit={handleSave}>
+                <div className="mp-password-field">
+                  <label htmlFor="current-password">Current Password</label>
+                  <div className="mp-password-input-wrap">
+                    <input
+                      id="current-password"
+                      type={showPasswords.current ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      value={form.current}
+                      onChange={(event) => update('current', event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="mp-password-toggle"
+                      onClick={() => togglePassword('current')}
+                      aria-label={showPasswords.current ? 'Hide password' : 'Show password'}
+                    >
+                      {showPasswords.current ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mp-password-field">
+                  <label htmlFor="new-password">New Password</label>
+                  <div className="mp-password-input-wrap">
+                    <input
+                      id="new-password"
+                      type={showPasswords.next ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      value={form.next}
+                      onChange={(event) => update('next', event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="mp-password-toggle"
+                      onClick={() => togglePassword('next')}
+                      aria-label={showPasswords.next ? 'Hide password' : 'Show password'}
+                    >
+                      {showPasswords.next ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
+                  <small>Password must contain at least 8 characters.</small>
+                </div>
+
+                <div className="mp-password-field">
+                  <label htmlFor="confirm-password">Confirm New Password</label>
+                  <div className="mp-password-input-wrap">
+                    <input
+                      id="confirm-password"
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      value={form.confirm}
+                      onChange={(event) => update('confirm', event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="mp-password-toggle"
+                      onClick={() => togglePassword('confirm')}
+                      aria-label={showPasswords.confirm ? 'Hide password' : 'Show password'}
+                    >
+                      {showPasswords.confirm ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>
+
+                {inlineNotice.message && (
+                  <div
+                    className={`mp-security-banner mp-security-banner--${inlineNotice.type === 'success' ? 'success' : 'error'}`}
+                    role="status"
+                    aria-live="polite"
                   >
-                    {showPasswords.current ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-                  </button>
-                </div>
-              </div>
+                    {inlineNotice.type === 'success' ? '✓ ' : ''}
+                    {inlineNotice.message}
+                  </div>
+                )}
 
-              <div className="mp-password-field">
-                <label htmlFor="new-password">New Password</label>
-                <div className="mp-password-input-wrap">
-                  <input
-                    id="new-password"
-                    type={showPasswords.next ? 'text' : 'password'}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    value={form.next}
-                    onChange={(event) => update('next', event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="mp-password-toggle"
-                    onClick={() => togglePassword('next')}
-                    aria-label={showPasswords.next ? 'Hide password' : 'Show password'}
-                  >
-                    {showPasswords.next ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-                  </button>
+                <div className="mp-security-actions">
+                  <Button type="submit" loading={isSaving} className="mp-security-submit">
+                    <Save size={16} aria-hidden="true" /> {isSaving ? 'Updating...' : 'Update Password'}
+                  </Button>
                 </div>
-                <small>Password must contain at least 8 characters.</small>
-              </div>
+              </form>
 
-              <div className="mp-password-field">
-                <label htmlFor="confirm-password">Confirm New Password</label>
-                <div className="mp-password-input-wrap">
-                  <input
-                    id="confirm-password"
-                    type={showPasswords.confirm ? 'text' : 'password'}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    value={form.confirm}
-                    onChange={(event) => update('confirm', event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="mp-password-toggle"
-                    onClick={() => togglePassword('confirm')}
-                    aria-label={showPasswords.confirm ? 'Hide password' : 'Show password'}
-                  >
-                    {showPasswords.confirm ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-                  </button>
-                </div>
-              </div>
-
-              {inlineNotice.message && (
-                <div
-                  className={`mp-security-banner mp-security-banner--${inlineNotice.type === 'success' ? 'success' : 'error'}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {inlineNotice.type === 'success' ? '✓ ' : ''}
-                  {inlineNotice.message}
-                </div>
-              )}
-
-              <div className="mp-security-actions">
-                <Button type="submit" loading={isSaving} className="mp-security-submit">
-                  <Save size={16} aria-hidden="true" /> {isSaving ? 'Updating...' : 'Update Password'}
-                </Button>
-              </div>
-            </form>
+              <aside className="mp-security-info" aria-label="Password guidelines">
+                <h3>Password Requirements</h3>
+                <ul>
+                  <li><ShieldCheck size={14} aria-hidden="true" /> Minimum 8 characters long</li>
+                  <li><ShieldCheck size={14} aria-hidden="true" /> Use a unique &amp; secure password</li>
+                  <li><ShieldCheck size={14} aria-hidden="true" /> Do not share your password with anyone</li>
+                </ul>
+                <p>Password updates take effect immediately on your next session login.</p>
+              </aside>
+            </div>
           </section>
         )}
 
