@@ -161,7 +161,7 @@ export const MarketingDashboard = () => {
                 <button
                   type="button"
                   key={com.id}
-                  className={`dashboard-feedback-card ${com.isRead ? '' : 'is-unread'}`}
+                  className={`dashboard-feedback-card kw-glass-card ${com.isRead ? '' : 'is-unread'}`}
                   onClick={() => goTo('director-comments', `?feedbackId=${encodeURIComponent(com.id)}`)}
                   style={{
                     padding: '14px 16px',
