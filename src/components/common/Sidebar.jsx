@@ -152,10 +152,10 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
           </div>
 
           <button
-            className="icon-btn"
+            className="sidebar-logout-btn icon-btn"
             onClick={logout}
             title="Logout"
-            style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.1)', color: '#fff' }}
+            aria-label="Logout"
           >
             <LogOut size={16} />
           </button>

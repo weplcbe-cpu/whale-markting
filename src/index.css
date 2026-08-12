@@ -7950,3 +7950,382 @@ html:not([data-theme="dark"]) :is(.user-modal__footer, .ds-modal__footer, .modal
   border-bottom-left-radius: 20px !important;
   border-bottom-right-radius: 20px !important;
 }
+
+/* 10. Circular Control Buttons (Header & Sidebar) */
+html[data-theme="light"] .icon-btn,
+html[data-theme="light"] .icon-btn-wrapper .icon-btn,
+html:not([data-theme="dark"]) .icon-btn,
+html:not([data-theme="dark"]) .icon-btn-wrapper .icon-btn {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #475467 !important;
+  border: 1px solid rgba(36, 85, 232, 0.18) !important;
+  border-radius: 50% !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(23, 105, 232, 0.05) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+html[data-theme="light"] .icon-btn:hover,
+html[data-theme="light"] .icon-btn-wrapper .icon-btn:hover,
+html:not([data-theme="dark"]) .icon-btn:hover,
+html:not([data-theme="dark"]) .icon-btn-wrapper .icon-btn:hover {
+  background: rgba(235, 242, 255, 0.95) !important;
+  color: #2455E8 !important;
+  border-color: rgba(36, 85, 232, 0.35) !important;
+}
+
+html[data-theme="light"] .icon-btn svg,
+html:not([data-theme="dark"]) .icon-btn svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Sidebar Bottom Logout Control */
+html[data-theme="light"] .sidebar-logout-btn,
+html:not([data-theme="dark"]) .sidebar-logout-btn {
+  background: rgba(235, 242, 255, 0.9) !important;
+  color: #2455E8 !important;
+  border: 1px solid rgba(36, 85, 232, 0.2) !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all var(--transition-fast) !important;
+}
+
+html[data-theme="light"] .sidebar-logout-btn:hover,
+html:not([data-theme="dark"]) .sidebar-logout-btn:hover {
+  background: rgba(36, 85, 232, 0.14) !important;
+  color: #173DB8 !important;
+  border-color: rgba(36, 85, 232, 0.35) !important;
+}
+
+html[data-theme="dark"] .sidebar-logout-btn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 11. Profile Shell & 2-Column Responsive Layout */
+.mp-profile-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+html[data-theme="light"] .mp-profile-hero,
+html:not([data-theme="dark"]) .mp-profile-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(244, 248, 252, 0.75) 100%) !important;
+  border: 1px solid rgba(36, 85, 232, 0.16) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border-radius: 20px !important;
+  padding: 24px 28px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px rgba(23, 105, 232, 0.06) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 20px !important;
+}
+
+.mp-profile-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mp-profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3977FF 0%, #2455E8 100%);
+  color: #FFFFFF;
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(36, 85, 232, 0.35);
+  flex-shrink: 0;
+}
+
+.mp-profile-identity h1 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #14213D !important;
+  margin: 0 0 4px 0 !important;
+}
+
+.mp-profile-identity p {
+  font-size: 0.92rem !important;
+  color: #667085 !important;
+  margin: 0 0 10px 0 !important;
+}
+
+.mp-profile-meta-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+html[data-theme="light"] .mp-profile-meta-row span,
+html:not([data-theme="dark"]) .mp-profile-meta-row span {
+  background: rgba(36, 85, 232, 0.08) !important;
+  color: #173DB8 !important;
+  border: 1px solid rgba(36, 85, 232, 0.16) !important;
+  padding: 4px 10px !important;
+  border-radius: 12px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+}
+
+.mp-profile-hero-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+html[data-theme="light"] .mp-status-badge,
+html:not([data-theme="dark"]) .mp-status-badge {
+  background: rgba(16, 117, 105, 0.12) !important;
+  color: #0F766E !important;
+  border: 1px solid rgba(16, 117, 105, 0.28) !important;
+  padding: 5px 14px !important;
+  border-radius: 20px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.mp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0F766E;
+}
+
+.mp-profile-info-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .mp-profile-info-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-theme="light"] .mp-profile-card,
+html:not([data-theme="dark"]) .mp-profile-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(244, 248, 252, 0.68) 100%) !important;
+  border: 1px solid rgba(36, 85, 232, 0.14) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 20px !important;
+  padding: 24px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px rgba(23, 105, 232, 0.05) !important;
+}
+
+.mp-card-header {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(36, 85, 232, 0.1);
+}
+
+html[data-theme="light"] .mp-card-header h2,
+html:not([data-theme="dark"]) .mp-card-header h2 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #14213D !important;
+  margin: 0 0 4px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html[data-theme="light"] .mp-card-header p,
+html:not([data-theme="dark"]) .mp-card-header p {
+  font-size: 0.85rem !important;
+  color: #667085 !important;
+  margin: 0 !important;
+}
+
+.mp-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 540px) {
+  .mp-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mp-detail-item,
+.mp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(36, 85, 232, 0.1);
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+html[data-theme="light"] .mp-detail-label,
+html:not([data-theme="dark"]) .mp-detail-label {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  color: #667085 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 2px !important;
+}
+
+html[data-theme="light"] .mp-detail-value,
+html:not([data-theme="dark"]) .mp-detail-value {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #14213D !important;
+  overflow-wrap: anywhere !important;
+}
+
+.mp-chip {
+  display: none !important;
+}
+
+/* Password Form Fields & Inputs */
+.mp-security-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 540px;
+}
+
+.mp-password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+html[data-theme="light"] .mp-password-field label,
+html:not([data-theme="dark"]) .mp-password-field label {
+  color: #475467 !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+}
+
+.mp-password-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+html[data-theme="light"] .mp-password-input-wrap input,
+html:not([data-theme="dark"]) .mp-password-input-wrap input {
+  width: 100% !important;
+  height: 44px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: #14213D !important;
+  border: 1px solid rgba(36, 85, 232, 0.2) !important;
+  border-radius: 10px !important;
+  padding: 0 44px 0 14px !important;
+  font-size: 0.95rem !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+html[data-theme="light"] .mp-password-input-wrap input:focus,
+html:not([data-theme="dark"]) .mp-password-input-wrap input:focus {
+  border-color: #2455E8 !important;
+  box-shadow: 0 0 0 3px rgba(36, 85, 232, 0.18) !important;
+  outline: none !important;
+}
+
+.mp-password-toggle {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: transparent !important;
+  border: none !important;
+  color: #667085 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+}
+
+.mp-password-toggle:hover {
+  color: #2455E8 !important;
+}
+
+/* Notification Settings Rows */
+.mp-notification-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mp-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(36, 85, 232, 0.08);
+  flex-wrap: wrap;
+}
+
+.mp-setting-row:last-child {
+  border-bottom: none;
+}
+
+html[data-theme="light"] .mp-setting-row strong,
+html:not([data-theme="dark"]) .mp-setting-row strong {
+  color: #14213D !important;
+  font-size: 0.95rem !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+html[data-theme="light"] .mp-setting-row p,
+html:not([data-theme="dark"]) .mp-setting-row p {
+  color: #667085 !important;
+  font-size: 0.85rem !important;
+  margin: 0 !important;
+}
+
+html[data-theme="light"] .mp-perm-chip,
+html:not([data-theme="dark"]) .mp-perm-chip {
+  background: rgba(36, 85, 232, 0.1) !important;
+  color: #2455E8 !important;
+  padding: 2px 8px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+}
