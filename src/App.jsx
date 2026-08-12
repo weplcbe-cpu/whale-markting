@@ -18,6 +18,7 @@ import { adminRoutes, directorRoutes, marketingRoutes } from './routes';
 // Refresh, a "Cannot convert object to primitive value" crash).
 const lazyComponentCache = new Map();
 function getLazyComponent(route) {
+  if (!route?.component) return () => null;
   if (!lazyComponentCache.has(route)) {
     lazyComponentCache.set(route, lazy(route.component));
   }
