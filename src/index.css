@@ -7441,3 +7441,27 @@ body {
   .pwa-status { align-items: flex-start; flex-wrap: wrap; justify-content: flex-start; }
   .pwa-status__actions { width: 100%; justify-content: flex-end; }
 }
+
+/* Marketing Portal Liquid Glass Enhancements */
+.hero-welcome-card.kw-glass-card {
+  background: var(--kw-bg-card);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  box-shadow: var(--kw-glass-shadow);
+}
+
+.dashboard-visit-card.kw-glass-card,
+.dashboard-feedback-card.kw-glass-card {
+  background: var(--kw-bg-surface);
+  border: 1px solid var(--kw-glass-border);
+  backdrop-filter: var(--kw-glass-blur);
+  -webkit-backdrop-filter: var(--kw-glass-blur);
+  transition: all var(--transition-normal);
+}
+
+.dashboard-visit-card.kw-glass-card:hover,
+.dashboard-feedback-card.kw-glass-card:hover {
+  border-color: var(--kw-glass-border-hover);
+  background: var(--kw-bg-surface-hover);
+}

@@ -97,7 +97,7 @@ export const DailyReportSubmit = () => {
         }
       />
 
-      <div className="card">
+      <div className="card kw-glass-card">
         {/* Date Selector Row */}
         <div className="form-group" style={{ marginBottom: '20px' }}>
           <label className="form-label">Report Date *</label>

@@ -32,8 +32,8 @@ export const MarketingDashboard = () => {
 
   return (
     <div className="marketing-dashboard">
-      {/* Dashboard Hero Section (#27187E → #758BFD) */}
-      <div className="hero-welcome-card">
+      {/* Dashboard Hero Section */}
+      <div className="hero-welcome-card kw-glass-card">
         <div className="hero-text">
           <h2>Good Morning, {empName} 👋</h2>
           <p>📅 {todayStr} &nbsp;•&nbsp; Ready for today's field marketing visits?</p>
@@ -55,7 +55,7 @@ export const MarketingDashboard = () => {
 
       {/* KPI Cards Grid */}
       <div className="stat-grid dashboard-summary-grid">
-        <div className="stat-card" onClick={() => goTo('visits', '?view=today')}>
+        <div className="stat-card kw-glass-card" onClick={() => goTo('visits', '?view=today')}>
           <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myTodayVisits.length}</div>
@@ -66,7 +66,7 @@ export const MarketingDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => goTo('visits', '?view=plans')}>
+        <div className="stat-card kw-glass-card" onClick={() => goTo('visits', '?view=plans')}>
           <div className="stat-icon-wrapper blue"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{mySubmittedPlans}</div>
@@ -77,7 +77,7 @@ export const MarketingDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card" onClick={() => goTo('follow-ups')}>
+        <div className="stat-card kw-glass-card" onClick={() => goTo('follow-ups')}>
           <div className="stat-icon-wrapper orange"><Clock size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myPendingFollowups.length}</div>
@@ -88,7 +88,7 @@ export const MarketingDashboard = () => {
           </div>
         </div>
 
-        <button type="button" className="stat-card" onClick={() => goTo('director-comments')}>
+        <button type="button" className="stat-card kw-glass-card" onClick={() => goTo('director-comments')}>
           <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{myDirectorComments.length}</div>
@@ -104,7 +104,7 @@ export const MarketingDashboard = () => {
       {/* Main Grid: Today's Schedule & Director Feedback */}
       <div className="dashboard-main-grid">
         {/* Today's Schedule */}
-        <div className="card dashboard-schedule-card">
+        <div className="card dashboard-schedule-card kw-glass-card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><Calendar size={20} color="var(--primary-blue)" /> Today's Field Visit Schedule</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => goTo('visits', '?view=today')}>
@@ -119,13 +119,10 @@ export const MarketingDashboard = () => {
               {myTodayVisits.map(v => (
                 <div
                   key={v.id}
-                  className="dashboard-visit-card"
+                  className="dashboard-visit-card kw-glass-card"
                   style={{
                     padding: '18px 22px',
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-lg)',
-                    boxShadow: 'var(--shadow-sm)'
+                    borderRadius: 'var(--radius-lg)'
                   }}
                 >
                   <div className="dashboard-visit-card__header">
@@ -150,7 +147,7 @@ export const MarketingDashboard = () => {
         </div>
 
         {/* Director Feedback Side Card */}
-        <div className="card dashboard-feedback-panel">
+        <div className="card dashboard-feedback-panel kw-glass-card">
           <div className="card-header-clean">
             <h3 className="card-title-clean"><MessageSquare size={20} color="var(--action-orange)" /> Director Feedback</h3>
             <button className="btn btn-secondary btn-sm" onClick={() => goTo('director-comments')}>View All</button>
@@ -168,8 +165,6 @@ export const MarketingDashboard = () => {
                   onClick={() => goTo('director-comments', `?feedbackId=${encodeURIComponent(com.id)}`)}
                   style={{
                     padding: '14px 16px',
-                    background: 'rgba(255, 134, 0, 0.08)',
-                    border: '1.5px solid rgba(255, 134, 0, 0.3)',
                     borderRadius: 'var(--radius-md)'
                   }}
                 >

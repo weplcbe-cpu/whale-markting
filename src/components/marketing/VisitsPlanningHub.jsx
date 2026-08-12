@@ -26,17 +26,23 @@ export const VisitsPlanningHub = () => {
     <div className="visits-planning-hub">
       {/* Sub-navigation Header Tabs */}
       <div className="toolbar-bar">
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="kw-segmented-glass" role="tablist" aria-label="Visits sub-navigation">
           <button
-            className={`btn ${activeSubTab === 'today' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
+            className={`kw-segmented-glass__item ${activeSubTab === 'today' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('today')}
+            role="tab"
+            aria-selected={activeSubTab === 'today'}
           >
             <Clock size={16} /> Today's Field Visits
           </button>
 
           <button
-            className={`btn ${activeSubTab === 'plans' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
+            className={`kw-segmented-glass__item ${activeSubTab === 'plans' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('plans')}
+            role="tab"
+            aria-selected={activeSubTab === 'plans'}
           >
             <Calendar size={16} /> My Visit Plans
           </button>
