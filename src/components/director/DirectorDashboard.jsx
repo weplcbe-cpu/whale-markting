@@ -1,28 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Calendar,
   Clock,
   FileText,
-  MessageSquare,
-  TrendingUp,
-  User,
   Users,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatSafeDate, formatUpdateDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
+import { formatSafeDate, getLocalDateKey, normalizeDateKey } from '../../utils/dateUtils';
 import { filterActiveNotifications } from '../../utils/notificationUtils';
 import { getPendingDailyReports, getPendingFollowUps, getPendingVisitReports } from '../../utils/reportSelectors';
-import { formatVisitTimer, getVisitExecutionState } from '../../utils/visitLifecycle';
 
 export const DirectorDashboard = () => {
   const navigate = useNavigate();
-  const [timerNow, setTimerNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setTimerNow(Date.now()), 30000);
-    return () => window.clearInterval(timer);
-  }, []);
+
   const {
     currentUser,
     users = [],
@@ -31,7 +25,6 @@ export const DirectorDashboard = () => {
     dailyReports = [],
     followUps = [],
     notifications = [],
-    directorComments = [],
     dataLoading,
     lastUpdated,
   } = useApp();
@@ -49,121 +42,54 @@ export const DirectorDashboard = () => {
     ).length;
   }, [users]);
 
-  // Keep today's KPI and schedule on the live context value. Realtime can update
-  // the contents independently of the other dashboard feeds, so this derived
-  // subset must not be retained behind a memoized array identity.
   const todayScheduledVisits = visitPlans.filter(
     (plan) => normalizeDateKey(plan.visitDate || plan.visit_date) === todayValue
   );
 
   const pendingVisitReportsList = useMemo(() => getPendingVisitReports(visitReports), [visitReports]);
   const pendingDailyReportsList = useMemo(() => getPendingDailyReports(dailyReports), [dailyReports]);
+  const pendingFollowUpsList = useMemo(() => getPendingFollowUps(followUps), [followUps]);
+  const completedVisits = todayScheduledVisits.filter(p => p.status === 'Completed').length;
 
-  const pendingFollowUpsList = useMemo(
-    () => getPendingFollowUps(followUps),
-    [followUps]
-  );
-
-  // Normalized & Deduplicated Recent Team Updates (from 5 update sources)
+  // Normalized Recent Team Updates (from notifications, plans, reports)
   const recentUpdatesList = useMemo(() => {
     const list = [];
-
-    // 1. Notifications
     filterActiveNotifications(notifications || []).forEach((n) => {
       list.push({
         id: `notif-${n.id || Math.random()}`,
-        title: n.title || n.type || 'Notification Update',
-        employeeName: n.employeeName || n.senderName || n.userLabel || 'Marketing Rep',
-        organization: n.area || n.district || '',
-        createdAt: n.createdAt || n.created_at || n.timestamp,
-        ...n,
+        action: n.title || n.type || 'Team Notification',
+        userLabel: n.employeeName || n.senderName || 'Marketing Rep',
+        timestamp: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
+        rawTime: n.createdAt ? new Date(n.createdAt).getTime() : 0,
       });
     });
-
-    // 2. Visit Plans
-    (visitPlans || []).forEach((p) => {
+    (visitPlans || []).slice(0, 5).forEach((p) => {
       list.push({
         id: `plan-${p.id}`,
-        title: `Visit Plan: ${p.area || p.customerName || 'Field Visit'}`,
-        employeeName: p.employeeName || 'Marketing Rep',
-        organization: p.customerName || p.area || p.district || '',
-        createdAt: p.submittedAt || p.submitted_at || p.createdAt || p.created_at || p.visitDate || p.visit_date,
-        ...p,
+        action: `Visit Plan: ${p.customerName || p.area || 'Field Visit'} (${p.status || 'Planned'})`,
+        userLabel: p.employeeName || 'Marketing Rep',
+        timestamp: p.visitTime || p.expectedTime || 'Today',
+        rawTime: 100,
       });
     });
-
-    // 3. Daily & Visit Reports
-    [...(dailyReports || []), ...(visitReports || [])].forEach((r) => {
+    [...(dailyReports || []), ...(visitReports || [])].slice(0, 5).forEach((r) => {
       list.push({
         id: `report-${r.id}`,
-        title: `Daily Report Submitted`,
-        employeeName: r.fullName || r.employeeName || 'Marketing Employee',
-        organization: r.area || r.district || '',
-        createdAt: r.submittedAt || r.submitted_at || r.reportDate || r.report_date || r.visitDate || r.createdAt,
-        ...r,
+        action: `Daily Report Submitted`,
+        userLabel: r.fullName || r.employeeName || 'Marketing Employee',
+        timestamp: 'Today',
+        rawTime: 200,
       });
     });
 
-    // 4. Follow-ups
-    (followUps || []).forEach((f) => {
-      list.push({
-        id: `fol-${f.id}`,
-        title: `Follow-up: ${f.customerName || 'Client Follow-up'}`,
-        employeeName: f.employeeName || 'Marketing Rep',
-        organization: f.customerName || f.area || '',
-        createdAt: f.updatedAt || f.updated_at || f.createdAt || f.created_at || f.followUpDate || f.follow_up_date,
-        ...f,
-      });
-    });
-
-    // 5. Director Comments
-    (directorComments || []).forEach((c) => {
-      list.push({
-        id: `comment-${c.id}`,
-        title: `Director Comment: ${c.targetType || 'Feedback'}`,
-        employeeName: c.authorName || c.employeeName || 'Director',
-        organization: c.area || c.comment || '',
-        createdAt: c.createdAt || c.created_at || c.timestamp,
-        ...c,
-      });
-    });
-
-    // Sort descending by timestamp
-    list.sort((a, b) => {
-      const candidateA = a.createdAt || a.created_at || a.submittedAt || a.submitted_at || a.visitDate || a.reportDate || a.followUpDate || a.timestamp;
-      const candidateB = b.createdAt || b.created_at || b.submittedAt || b.submitted_at || b.visitDate || b.reportDate || b.followUpDate || b.timestamp;
-      const timeA = candidateA ? new Date(candidateA).getTime() : 0;
-      const timeB = candidateB ? new Date(candidateB).getTime() : 0;
-      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
-    });
-
-    // Deduplicate and keep the dashboard preview intentionally short.
-    const seen = new Set();
-    const unique = [];
-    for (const item of list) {
-      const key = `${item.title}-${item.employeeName}-${item.createdAt}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(item);
-      }
-      if (unique.length >= 5) break;
-    }
-
-    return unique;
-  }, [notifications, visitPlans, dailyReports, visitReports, followUps, directorComments]);
-
-  const recentUpdatesPreview = useMemo(() => recentUpdatesList.slice(0, 5), [recentUpdatesList]);
-
-  console.log('[Director Dashboard render]', {
-    visitPlansLength: visitPlans.length,
-    todayVisitsLength: todayScheduledVisits.length,
-    latestIds: visitPlans.slice(0, 3).map((item) => item.id),
-  });
+    list.sort((a, b) => b.rawTime - a.rawTime);
+    return list.slice(0, 5);
+  }, [notifications, visitPlans, dailyReports, visitReports]);
 
   if (dataLoading && !lastUpdated) {
     return (
-      <div className="marketing-dashboard director-dashboard">
-        <div className="hero-welcome-card" style={{ opacity: 0.7 }}>
+      <div className="admin-dashboard director-dashboard">
+        <div className="hero-welcome-card kw-glass-card" style={{ opacity: 0.7, padding: '24px' }}>
           <div className="hero-text">
             <h2>Loading Director Portal…</h2>
             <p>Fetching latest field activities</p>
@@ -174,277 +100,145 @@ export const DirectorDashboard = () => {
   }
 
   return (
-    <div className="marketing-dashboard director-dashboard">
-      {/* 1. Simple Welcome Banner */}
-      <div className="hero-welcome-card director-hero kw-glass-card">
+    <div className="admin-dashboard director-dashboard">
+      {/* Hero Welcome Banner */}
+      <div className="hero-welcome-card director-hero kw-glass-card" style={{ marginBottom: '20px', padding: '24px 28px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div className="hero-text">
-          <h2>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
-          <p>📅 {formattedDate} &nbsp;•&nbsp; Monitor your marketing team and field activities.</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 6px 0' }}>{greeting}, {currentUser?.fullName || 'Director'} 👋</h2>
+          <p style={{ margin: 0, fontSize: '0.92rem', opacity: 0.85 }}>📅 {formattedDate} &nbsp;•&nbsp; Executive overview of marketing team performance &amp; field schedules.</p>
+        </div>
+
+        <div className="hero-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button className="btn ds-button ds-button--primary" onClick={() => navigate('/director/today-schedule')}>
+            <Calendar size={16} /> Today's Schedule
+          </button>
+          <button className="btn ds-button ds-button--secondary" onClick={() => navigate('/director/daily-reports')}>
+            <FileText size={16} /> Review Reports
+          </button>
+          <button className="btn ds-button ds-button--secondary" onClick={() => navigate('/director/team')}>
+            <Users size={16} /> Team Roster
+          </button>
         </div>
       </div>
 
-      {/* 2. Compact KPI Stat Cards */}
-      <div className="stat-grid dashboard-summary-grid director-kpi-row">
+      {/* Master KPI Stat Cards Row */}
+      <div className="stat-grid">
         <div className="stat-card kw-glass-card" onClick={() => navigate('/director/team')}>
           <div className="stat-icon-wrapper blue"><Users size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{marketingTeamCount}</div>
-            <div className="stat-label">Total Marketing Team</div>
-          </div>
-          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <TrendingUp size={12} /> Active Reps
+            <div className="stat-label">Marketing Team Members</div>
           </div>
         </div>
 
         <div className="stat-card kw-glass-card" onClick={() => navigate('/director/today-schedule')}>
-          <div className="stat-icon-wrapper orange"><Calendar size={24} /></div>
+          <div className="stat-icon-wrapper amber"><Calendar size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{todayScheduledVisits.length}</div>
-            <div className="stat-label">Today Visits</div>
+            <div className="stat-label">Today Team Visits</div>
           </div>
-          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: 'var(--action-orange)', fontWeight: 700 }}>
-            Scheduled Today
+        </div>
+
+        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/today-schedule')}>
+          <div className="stat-icon-wrapper green"><CheckCircle2 size={24} /></div>
+          <div className="stat-content">
+            <div className="stat-value">{completedVisits}</div>
+            <div className="stat-label">Completed Visits</div>
           </div>
         </div>
 
         <div className="stat-card kw-glass-card" onClick={() => navigate('/director/daily-reports')}>
           <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
           <div className="stat-content">
-            <div className="stat-value">{pendingVisitReportsList.length}</div>
-            <div className="stat-label">Pending Visit Reports</div>
-          </div>
-          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 700 }}>
-            Review Needed
-          </div>
-        </div>
-
-        <div className="stat-card kw-glass-card" onClick={() => navigate('/director/daily-reports')}>
-          <div className="stat-icon-wrapper purple"><FileText size={24} /></div>
-          <div className="stat-content">
-            <div className="stat-value">{pendingDailyReportsList.length}</div>
-            <div className="stat-label">Pending Daily Reports</div>
+            <div className="stat-value">{pendingVisitReportsList.length + pendingDailyReportsList.length}</div>
+            <div className="stat-label">Pending Reports Review</div>
           </div>
         </div>
 
         <div className="stat-card kw-glass-card" onClick={() => navigate('/director/follow-ups')}>
-          <div className="stat-icon-wrapper green"><Clock size={24} /></div>
+          <div className="stat-icon-wrapper rose"><AlertTriangle size={24} /></div>
           <div className="stat-content">
             <div className="stat-value">{pendingFollowUpsList.length}</div>
             <div className="stat-label">Pending Follow-ups</div>
           </div>
-          <div style={{ position: 'absolute', right: '16px', bottom: '16px', fontSize: '0.75rem', color: '#10b981', fontWeight: 700 }}>
-            Action Required
-          </div>
         </div>
       </div>
 
-      {/* 3. All four cards in a single grid */}
-      <div className="director-cards-grid">
-        {/* Today's Team Field Schedule */}
-        <div className="card director-fit-card kw-glass-card">
-          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
-            <h3 className="card-title-clean">
-              <Calendar size={18} color="var(--primary-blue)" /> Today's Team Field Schedule
-            </h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/today-schedule')}>
-              View All <ArrowRight size={14} />
+      {/* Main Grid: Today's Team Schedule & Recent Team Updates */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+        {/* Today's Team Field Schedule Oversight */}
+        <div className="card kw-glass-card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean"><Calendar size={18} color="var(--primary-blue)" /> Today's Team Field Schedule</h3>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/director/today-schedule')}>
+              View All Schedule <ArrowRight size={14} />
             </button>
           </div>
 
           {todayScheduledVisits.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
-              <Calendar size={16} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No team field visits scheduled for today.</span>
-            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0, padding: '16px 0' }}>No team field visits scheduled for today.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {todayScheduledVisits.slice(0, 3).map((plan) => (
+            <div className="table-responsive">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Marketing Rep</th>
+                    <th>Time</th>
+                    <th>Customer / Organization</th>
+                    <th>Purpose / Location</th>
+                    <th>Product</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayScheduledVisits.map(v => (
+                    <tr key={v.id}>
+                      <td><strong>{v.employeeName || 'Rep'}</strong></td>
+                      <td>{v.expectedTime || v.visitTime || '—'}</td>
+                      <td><strong>{v.customerName || v.area || 'Client Visit'}</strong></td>
+                      <td>{v.visitPurpose || v.district || 'Field Visit'}</td>
+                      <td>{Array.isArray(v.products) ? v.products.join(', ') : (v.products || '—')}</td>
+                      <td>
+                        <span className={`badge badge-${(v.status || 'planned').toLowerCase()}`}>{v.status || 'Planned'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Team Updates Stream */}
+        <div className="card kw-glass-card">
+          <div className="card-header-clean">
+            <h3 className="card-title-clean"><Clock size={18} color="var(--action-orange)" /> Recent Team Updates</h3>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/director/notifications')}>Activity</button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {recentUpdatesList.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>No recent team updates.</p>
+            ) : (
+              recentUpdatesList.map(log => (
                 <div
-                  key={plan.id}
+                  key={log.id}
                   style={{
-                    padding: '7px 10px',
-                    borderRadius: 'var(--radius-md)',
+                    padding: '10px 12px',
                     background: 'var(--kw-bg-surface)',
-                    border: '1px solid var(--kw-glass-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <strong style={{ color: 'var(--primary-dark)', fontSize: '0.84rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {plan.customerName || plan.area || 'Client Visit'}
-                    </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <User size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '3px' }} />
-                      {plan.employeeName || 'Rep'} • {plan.visitTime || 'Scheduled'} • {plan.area || plan.district || 'Location'}
-                    </span>
-                  </div>
-                  <span style={{ display: 'grid', justifyItems: 'end', gap: '2px', flexShrink: 0 }}>
-                    <span className={`badge badge-${String(getVisitExecutionState(plan, timerNow)).toLowerCase().replaceAll(' ', '-')}`} style={{ fontSize: '0.68rem' }}>
-                      {getVisitExecutionState(plan, timerNow)}
-                    </span>
-                    {getVisitExecutionState(plan, timerNow) === 'In Progress' || getVisitExecutionState(plan, timerNow) === 'Closure Overdue'
-                      ? <small style={{ color: getVisitExecutionState(plan, timerNow) === 'Closure Overdue' ? 'var(--danger)' : 'var(--text-muted)' }}>{formatVisitTimer(plan, timerNow)}</small>
-                      : null}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Team Updates */}
-        <div className="card director-fit-card kw-glass-card">
-          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
-            <h3 className="card-title-clean">
-              <MessageSquare size={18} color="var(--primary-blue)" /> Recent Team Updates
-            </h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/notifications')}>
-              View All <ArrowRight size={14} />
-            </button>
-          </div>
-
-          {recentUpdatesPreview.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
-              <MessageSquare size={16} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No recent team updates.</span>
-            </div>
-          ) : (
-            <div className="director-update-preview">
-              {recentUpdatesPreview.map((update, idx) => {
-                const formatted = formatUpdateDate(update);
-                let dateDisplay = null;
-                let timeDisplay = null;
-                if (formatted) {
-                  const parts = formatted.split(', ');
-                  dateDisplay = parts[0];
-                  timeDisplay = parts[1] || null;
-                }
-
-                const isLast = idx === recentUpdatesPreview.length - 1;
-
-                return (
-                  <div
-                    key={update.id || idx}
-                    className={`director-update-preview__row${isLast ? ' is-last' : ''}`}
-                  >
-                    <div className="director-update-preview__icon" aria-hidden="true">
-                      <MessageSquare size={11} />
-                    </div>
-
-                    <div className="director-update-preview__content">
-                      <strong>
-                        {update.title || update.type || 'Team Activity Update'}
-                      </strong>
-                      <span>
-                        {update.employeeName || update.senderName || 'Team Member'}
-                        {update.organization ? ` • ${update.organization}` : ''}
-                      </span>
-                    </div>
-
-                    {(dateDisplay || timeDisplay) && (
-                      <div className="director-update-preview__meta">
-                        {dateDisplay && (
-                          <span>
-                            {dateDisplay}
-                          </span>
-                        )}
-                        {timeDisplay && (
-                          <span>
-                            {timeDisplay}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Pending Reports */}
-        <div className="card director-fit-card">
-          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
-            <h3 className="card-title-clean">
-              <FileText size={18} color="var(--primary-blue)" /> Pending Visit Reports
-            </h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/visit-reports')}>
-              View All <ArrowRight size={14} />
-            </button>
-          </div>
-
-          {pendingVisitReportsList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
-              <FileText size={16} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No pending reports for review.</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {pendingVisitReportsList.slice(0, 3).map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    padding: '7px 10px',
                     borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-muted, #f8fafc)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    borderLeft: '3px solid var(--color-primary)'
                   }}
                 >
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                    {r.fullName || r.employeeName || 'Marketing Employee'} • {formatSafeDate(r.reportDate || r.visitDate || r.submittedAt)}
-                  </span>
-                  <span className="badge badge-planned" style={{ fontSize: '0.7rem', flexShrink: 0 }}>Pending Review</span>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{log.action}</div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{log.userLabel}</span>
+                    <span>{log.timestamp}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Follow-ups Due */}
-        <div className="card director-fit-card">
-          <div className="card-header-clean" style={{ marginBottom: '8px' }}>
-            <h3 className="card-title-clean">
-              <Clock size={18} color="var(--primary-blue)" /> Follow-ups Due
-            </h3>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/director/follow-ups')}>
-              View All <ArrowRight size={14} />
-            </button>
+              ))
+            )}
           </div>
-
-          {pendingFollowUpsList.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 8px', color: 'var(--text-muted)' }}>
-              <Clock size={16} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.84rem', fontWeight: 500 }}>No follow-ups due.</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {pendingFollowUpsList.slice(0, 3).map((f) => (
-                <div
-                  key={f.id}
-                  style={{
-                    padding: '7px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-muted, #f8fafc)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
-                    {f.customerName || 'Client Follow-up'} • {formatSafeDate(f.followUpDate || f.dueDate)}
-                  </span>
-                  <span className="badge badge-started" style={{ fontSize: '0.7rem', flexShrink: 0 }}>Action Due</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

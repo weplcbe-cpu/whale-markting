@@ -92,6 +92,17 @@ function AppContent() {
     setIsMobileSidebarOpen(prev => !prev);
   };
 
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileSidebarOpen]);
+
   if (authLoading) {
     return <BrandedLoadingScreen />;
   }

@@ -32,7 +32,7 @@ export const ActivityLogs = () => {
     <div>
       <div className="toolbar-bar">
         <div className="toolbar-filters">
-          <div className="input-with-icon" style={{ minWidth: '240px' }}>
+          <div className="input-with-icon search-input-wrapper">
             <input
               type="text"
               className="form-input"
@@ -43,10 +43,9 @@ export const ActivityLogs = () => {
           </div>
 
           <select
-            className="form-select"
+            className="form-select module-select-wrapper"
             value={moduleFilter}
             onChange={(e) => setModuleFilter(e.target.value)}
-            style={{ width: '200px' }}
           >
             <option value="All">All Modules</option>
             <option value="Authentication">Authentication</option>

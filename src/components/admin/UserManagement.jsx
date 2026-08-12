@@ -312,7 +312,7 @@ export const UserManagement = () => {
       {/* Header & Filter Toolbar */}
       <div className="toolbar-bar">
         <div className="toolbar-filters">
-          <div className="input-with-icon" style={{ minWidth: '240px' }}>
+          <div className="input-with-icon search-input-wrapper">
             <input
               type="text"
               className="form-input"
@@ -323,10 +323,9 @@ export const UserManagement = () => {
           </div>
 
           <select
-            className="form-select"
+            className="form-select role-select-wrapper"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            style={{ width: '160px' }}
           >
             <option value="All">All Roles</option>
             <option value="Admin">Admin</option>

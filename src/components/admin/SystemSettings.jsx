@@ -17,8 +17,8 @@ export const SystemSettings = () => {
   };
 
   return (
-    <div style={{ maxWidth: '750px' }}>
-      <div className="card">
+    <div className="system-settings-container" style={{ width: '100%', maxWidth: '750px' }}>
+      <div className="card kw-glass-card">
         <div className="card-header-clean">
           <h3 className="card-title-clean"><Settings size={18} color="var(--accent-cyan)" /> System Configuration & Rules</h3>
         </div>
@@ -36,11 +36,11 @@ export const SystemSettings = () => {
 
           <div className="form-group">
             <label className="form-label">Marketing Report Edit Time Limit (Hours)</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="time-limit-input-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <input
                 type="number"
-                className="form-input"
-                style={{ width: '120px' }}
+                className="form-input time-limit-input"
+                style={{ width: '120px', minWidth: '100px' }}
                 value={timeLimit}
                 onChange={(e) => setTimeLimit(e.target.value)}
               />
