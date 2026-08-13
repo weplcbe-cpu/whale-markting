@@ -15760,11 +15760,39 @@ html[data-theme="light"] .follow-up-details dd { color: #15233c; }
   max-width: 860px !important;
 }
 .ds-modal--entity-details .entity-details-section {
-  gap: 16px !important;
+  gap: 14px !important;
+  padding: 18px !important;
+  border: 1px solid #d8e2f0 !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .05) !important;
 }
 .ds-modal--entity-details .entity-details-section > h3 {
   line-height: 1.25;
-  padding: 0 1px;
+  padding: 0 !important;
+}
+
+.ds-modal--entity-details .entity-details-grid {
+  gap: 10px !important;
+}
+
+.ds-modal--entity-details .entity-detail-item {
+  background: #f8faff !important;
+  border-color: #dfe7f2 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .ds-modal--entity-details .entity-details-section,
+.app-theme-dark .ds-modal--entity-details .entity-details-section {
+  background: #111b30 !important;
+  border-color: #334155 !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .18) !important;
+}
+
+[data-theme="dark"] .ds-modal--entity-details .entity-detail-item,
+.app-theme-dark .ds-modal--entity-details .entity-detail-item {
+  background: #162238 !important;
+  border-color: #334155 !important;
 }
 
 @media (max-width: 600px) {
@@ -15777,4 +15805,5 @@ html[data-theme="light"] .follow-up-details dd { color: #15233c; }
     height: calc(100dvh - 16px) !important;
     max-height: calc(100dvh - 16px) !important;
   }
+  .ds-modal--entity-details .entity-details-section { padding: 14px !important; }
 }
