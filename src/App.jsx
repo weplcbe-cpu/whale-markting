@@ -8,6 +8,7 @@ import { RealtimeNotificationToasts } from './components/common/RealtimeNotifica
 import { PwaStatus } from './components/common/PwaStatus';
 import { AppShell } from './components/ui';
 import { LoginPage } from './components/auth/LoginPage';
+import { PrivacyPolicy } from './components/public/PrivacyPolicy';
 import { BrandedLoadingScreen, CompanyLogo } from './components/common/CompanyLogo';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { adminRoutes, directorRoutes, marketingRoutes } from './routes';
@@ -73,20 +74,22 @@ function AppContent() {
   const navigate = useNavigate();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  const isPublicRoute = ['/privacy-policy', '/privacy-policy/'].includes(location.pathname);
+
   // Whenever the logged-in user (or their role) changes — fresh login, logout
   // + different account, or a role change — reset to that role's default
   // dashboard tab instead of keeping a stale activeTab from a previous session.
   useEffect(() => {
     if (authLoading) return;
     if (!currentUser) {
-      if (location.pathname !== '/login') navigate('/login', { replace: true });
+      if (location.pathname !== '/login' && !isPublicRoute) navigate('/login', { replace: true });
       return;
     }
     if (location.pathname === '/' || location.pathname === '/login') {
       const dashboardPath = currentRole === 'Director' ? '/director' : currentRole === 'Marketing Team' ? '/marketing' : '/admin';
       navigate(dashboardPath, { replace: true });
     }
-  }, [authLoading, currentRole, currentUser, location.pathname, navigate]);
+  }, [authLoading, currentRole, currentUser, location.pathname, navigate, isPublicRoute]);
 
   const toggleSidebar = () => {
     setIsMobileSidebarOpen(prev => !prev);
@@ -122,6 +125,14 @@ function AppContent() {
   }
 
   if (!currentUser) {
+    if (isPublicRoute) {
+      return (
+        <Routes>
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="*" element={<Navigate to="/privacy-policy" replace />} />
+        </Routes>
+      );
+    }
     return <LoginPage />;
   }
 
@@ -177,21 +188,30 @@ function AppContent() {
 
   return (
     <>
-      <AppShell
-        sidebar={<Sidebar activeTab={currentTab} setActiveTab={selectAdminTab} isMobileOpen={isMobileSidebarOpen} toggleSidebar={toggleSidebar} />}
-        navbar={<Navbar activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />}
-      >
-        {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
-        {dataLoading && <div className="portal-refresh-progress" role="status" aria-live="polite" aria-label="Refreshing portal data" />}
-        <ErrorBoundary key={location.pathname}>
-          {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
-        </ErrorBoundary>
-      </AppShell>
+      {isPublicRoute ? (
+        <Routes>
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="*" element={<Navigate to="/privacy-policy" replace />} />
+        </Routes>
+      ) : (
+        <>
+          <AppShell
+            sidebar={<Sidebar activeTab={currentTab} setActiveTab={selectAdminTab} isMobileOpen={isMobileSidebarOpen} toggleSidebar={toggleSidebar} />}
+            navbar={<Navbar activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />}
+          >
+            {dataError && <div className="ds-error" role="alert"><span>{dataError}</span><button type="button" className="btn btn-secondary btn-sm" onClick={refreshAllData}>Retry</button></div>}
+            {dataLoading && <div className="portal-refresh-progress" role="status" aria-live="polite" aria-label="Refreshing portal data" />}
+            <ErrorBoundary key={location.pathname}>
+              {isMarketingUser ? renderMarketingRoutes() : isDirectorUser ? renderDirectorRoutes() : isAdminUser ? renderAdminRoutes() : <Navigate to="/login" replace />}
+            </ErrorBoundary>
+          </AppShell>
 
-      {/* Mobile Native 1-Thumb Bottom Navigation */}
-      <MobileBottomNav activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />
-      <ToastContainer />
-      <RealtimeNotificationToasts />
+          {/* Mobile Native 1-Thumb Bottom Navigation */}
+          <MobileBottomNav activeTab={currentTab} setActiveTab={selectAdminTab} toggleSidebar={toggleSidebar} />
+          <ToastContainer />
+          <RealtimeNotificationToasts />
+        </>
+      )}
     </>
   );
 }

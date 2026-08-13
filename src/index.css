@@ -15807,3 +15807,113 @@ html[data-theme="light"] .follow-up-details dd { color: #15233c; }
   }
   .ds-modal--entity-details .entity-details-section { padding: 14px !important; }
 }
+
+/* ===================================================================
+   PUBLIC PAGES (Privacy Policy, etc.)
+   =================================================================== */
+
+.public-page {
+  background-color: var(--kw-bg-app, #f7f9fc);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--kw-text-primary, #14213d);
+  font-family: var(--font-body);
+}
+
+.public-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.public-header {
+  background: var(--kw-bg-header, #ffffff);
+  padding: 20px 0;
+  border-bottom: 1px solid var(--kw-glass-border, rgba(36, 85, 232, 0.12));
+  box-shadow: var(--shadow-sm);
+}
+
+.public-logo {
+  height: 50px;
+  width: auto;
+}
+
+.public-content {
+  flex: 1;
+  padding: 60px 0;
+}
+
+.public-content h1 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: var(--primary-blue, #2455e8);
+}
+
+.public-content .last-updated {
+  color: var(--kw-text-muted, #98a2b3);
+  font-size: 0.9rem;
+  margin-bottom: 40px;
+}
+
+.public-content section {
+  margin-bottom: 40px;
+}
+
+.public-content h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: var(--primary-dark, #14213d);
+  border-left: 4px solid var(--primary-blue, #2455e8);
+  padding-left: 15px;
+}
+
+.public-content p {
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.public-content ul {
+  padding-left: 20px;
+  margin-bottom: 15px;
+}
+
+.public-content li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.public-content strong {
+  font-weight: 700;
+}
+
+.public-link {
+  color: var(--primary-blue, #2455e8);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.public-link:hover {
+  text-decoration: underline;
+}
+
+.public-footer {
+  background: var(--primary-dark, #14213d);
+  color: #fff;
+  padding: 30px 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .public-content {
+    padding: 40px 0;
+  }
+
+  .public-content h1 {
+    font-size: 2rem;
+  }
+}
