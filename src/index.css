@@ -10729,110 +10729,828 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
   background: var(--primary);
 }
 
-.ds-modal--visit-plan .ds-modal__footer {
-  flex: 0 0 auto;
-  position: relative;
-  bottom: auto;
-  z-index: 20;
-  min-height: 84px;
-  background: var(--surface-2);
-  border-top: 1px solid var(--border-subtle);
+/* ==========================================================================
+   KAISER WHALE — CREATE VISIT PLAN MODAL (LIQUID GLASS PREMIUM POLISH)
+   ========================================================================== */
+
+/* 1. MAIN MODAL SURFACE */
+.ds-modal--visit-plan {
+  width: min(920px, calc(100vw - 48px)) !important;
+  max-height: calc(100dvh - 32px) !important;
+  border-radius: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+
+  /* Soft white / light blue translucent surface (Light Theme default) */
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94) 0%, rgba(240, 246, 255, 0.88) 100%) !important;
+  backdrop-filter: blur(12px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+  border: 1px solid rgba(219, 234, 254, 0.8) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 24px 64px -12px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.7) !important;
+
+  /* Restrained entrance animation */
+  animation: ds-visit-modal-pop 220ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.ds-modal--visit-plan .ds-field>label,
-.ds-modal--visit-plan .visit-toggle-field legend,
-.ds-modal--visit-plan .visit-products-field legend {
-  color: var(--text-secondary);
-}
-
-.ds-modal--visit-plan .ds-field input::placeholder,
-.ds-modal--visit-plan .ds-field textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.ds-modal--visit-plan .visit-toggle-group button,
-.ds-modal--visit-plan .visit-product-grid button {
-  background: var(--surface-2);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-}
-
-.ds-modal--visit-plan .visit-toggle-group button:hover:not(:disabled),
-.ds-modal--visit-plan .visit-product-grid button:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--primary);
-  color: var(--text-primary);
-}
-
-.ds-modal--visit-plan .visit-toggle-group button.selected {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: #FFFFFF;
-  box-shadow: 0 0 0 2px rgba(91, 124, 255, .16);
-}
-
-.ds-modal--visit-plan .visit-product-grid button.selected {
-  background: linear-gradient(135deg, rgba(91, 124, 255, .24), rgba(109, 92, 255, .20));
-  border-color: var(--primary);
-  color: #FFFFFF;
-  box-shadow: none;
-}
-
-.ds-modal--visit-plan .visit-toggle-group button:disabled,
-.ds-modal--visit-plan .visit-product-grid button:disabled,
-.ds-modal--visit-plan .visit-toggle-group button.selected:disabled,
-.ds-modal--visit-plan .visit-product-grid button.selected:disabled {
-  background: var(--surface-1);
-  border-color: var(--border-default);
-  color: var(--text-disabled);
-  box-shadow: none;
-  opacity: .65;
-}
-
-.ds-modal--visit-plan .visit-products-field {
-  margin: 0 0 24px;
-  padding: 18px 14px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  background: transparent;
-}
-
-.ds-modal--visit-plan .visit-products-field legend {
-  padding: 0 8px;
-  background: var(--surface-1);
-}
-
-.ds-modal--visit-plan .visit-product-grid button {
-  min-width: 0;
-}
-
-.ds-modal--visit-plan .visit-product-grid button span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.visit-plan-form-end-spacer {
-  grid-column: 1 / -1;
-  height: 24px;
-}
-
-@media (max-width: 575px) {
-  .ds-modal--visit-plan .ds-modal__footer {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-  }
-}
-
-@keyframes dsStepIn {
-  from {
+@keyframes ds-visit-modal-pop {
+  0% {
     opacity: 0;
-    transform: translateX(8px);
+    transform: scale(0.98) translateY(6px);
   }
-
-  to {
+  100% {
     opacity: 1;
-    transform: none;
+    transform: scale(1) translateY(0);
   }
 }
+
+/* 2. HEADER POLISH */
+.ds-modal--visit-plan .ds-modal__header {
+  flex: 0 0 auto !important;
+  padding: 22px 28px 18px !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.65) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.ds-modal--visit-plan .ds-modal__header h2 {
+  margin: 0 !important;
+  font-family: var(--font-primary) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+}
+
+.ds-modal--visit-plan .ds-modal__header p {
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+/* Close button with soft glass circle & hover state */
+.ds-modal--visit-plan .ds-modal__header .entity-modal-close,
+.ds-modal--visit-plan .ds-modal__header .ds-icon-button {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  background: rgba(241, 245, 249, 0.75) !important;
+  border: 1px solid rgba(203, 213, 225, 0.6) !important;
+  color: #475467 !important;
+  display: grid !important;
+  place-items: center !important;
+  cursor: pointer !important;
+  transition: all 180ms ease !important;
+}
+
+.ds-modal--visit-plan .ds-modal__header .entity-modal-close:hover,
+.ds-modal--visit-plan .ds-modal__header .ds-icon-button:hover {
+  background: rgba(219, 234, 254, 0.8) !important;
+  border-color: rgba(147, 197, 253, 0.8) !important;
+  color: #1d4ed8 !important;
+  transform: scale(1.04) !important;
+}
+
+.ds-modal--visit-plan .ds-modal__header .entity-modal-close:active,
+.ds-modal--visit-plan .ds-modal__header .ds-icon-button:active {
+  transform: scale(0.95) !important;
+}
+
+/* 3. STEPPER POLISH */
+.visit-plan-wizard {
+  display: grid !important;
+  gap: 20px !important;
+  padding: 22px 28px 28px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.visit-plan-stepper {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  margin: 0 0 4px !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.visit-plan-stepper-item {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+
+.visit-plan-stepper-trigger {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  transition: opacity 180ms ease !important;
+}
+
+.visit-plan-stepper-dot {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(203, 213, 225, 0.7) !important;
+  display: grid !important;
+  place-items: center !important;
+  font: 700 12px var(--font-primary) !important;
+  color: #64748b !important;
+  background: rgba(241, 245, 249, 0.85) !important;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  flex-shrink: 0 !important;
+}
+
+.visit-plan-stepper-label {
+  font: 600 12px var(--font-primary) !important;
+  color: #64748b !important;
+  transition: color 200ms ease !important;
+}
+
+.visit-plan-stepper-item.is-active .visit-plan-stepper-dot {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28) !important;
+  transform: scale(1.05) !important;
+}
+
+.visit-plan-stepper-item.is-active .visit-plan-stepper-label {
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+}
+
+.visit-plan-stepper-item.is-complete .visit-plan-stepper-dot {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+.visit-plan-stepper-item.is-complete .visit-plan-stepper-label {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+.visit-plan-stepper-connector {
+  height: 2px !important;
+  width: calc(100% - 32px) !important;
+  margin-left: 6px !important;
+  background: rgba(226, 232, 240, 0.8) !important;
+  border-radius: 1px !important;
+  transition: background 200ms ease !important;
+}
+
+.visit-plan-stepper-item.is-complete .visit-plan-stepper-connector {
+  background: linear-gradient(90deg, #10b981 0%, #2563eb 100%) !important;
+}
+
+/* 4. CONTENT SECTION & STEP PANELS */
+.visit-plan-step-panel {
+  display: grid !important;
+  gap: 18px !important;
+  animation: ds-visit-step-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes ds-visit-step-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.visit-plan-sheet {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(248, 250, 252, 0.5) 100%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.7) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 16px -4px rgba(148, 163, 184, 0.08) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* 5. INPUTS & FORM FIELDS SYSTEM (LIGHT MODE) */
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input:not([type="checkbox"]):not([type="radio"]),
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field select,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-date-trigger,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-time-button,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="light"] .ds-modal--visit-plan .ds-field select,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea,
+html[data-theme="light"] .ds-modal--visit-plan .visit-date-trigger,
+html[data-theme="light"] .ds-modal--visit-plan .visit-time-button {
+  width: 100% !important;
+  min-height: 46px !important;
+  padding: 0 14px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  border-radius: 12px !important;
+  color: #0f172a !important;
+  font: 600 14px var(--font-primary) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+  box-sizing: border-box !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea {
+  padding: 10px 14px !important;
+  min-height: 100px !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input::placeholder,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea::placeholder,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input::placeholder,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input:hover:not(:disabled),
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field select:hover:not(:disabled),
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea:hover:not(:disabled),
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-date-trigger:hover:not(:disabled),
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-time-button:hover:not(:disabled),
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input:hover:not(:disabled),
+html[data-theme="light"] .ds-modal--visit-plan .ds-field select:hover:not(:disabled),
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea:hover:not(:disabled),
+html[data-theme="light"] .ds-modal--visit-plan .visit-date-trigger:hover:not(:disabled),
+html[data-theme="light"] .ds-modal--visit-plan .visit-time-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.9) !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input:focus,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input:focus-visible,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field select:focus,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field select:focus-visible,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea:focus,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea:focus-visible,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-date-trigger:focus-visible,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-time-button:focus-visible,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input:focus,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input:focus-visible,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field select:focus,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field select:focus-visible,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea:focus,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea:focus-visible,
+html[data-theme="light"] .ds-modal--visit-plan .visit-date-trigger:focus-visible,
+html[data-theme="light"] .ds-modal--visit-plan .visit-time-button:focus-visible {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field input:disabled,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field select:disabled,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .ds-field textarea:disabled,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-date-trigger:disabled,
+html:not([data-theme="dark"]) .ds-modal--visit-plan .visit-time-button:disabled,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field input:disabled,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field select:disabled,
+html[data-theme="light"] .ds-modal--visit-plan .ds-field textarea:disabled,
+html[data-theme="light"] .ds-modal--visit-plan .visit-date-trigger:disabled,
+html[data-theme="light"] .ds-modal--visit-plan .visit-time-button:disabled {
+  background: rgba(241, 245, 249, 0.6) !important;
+  border-color: rgba(226, 232, 240, 0.8) !important;
+  color: #64748b !important;
+  opacity: 0.75 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* 6. DATE / TIME CONTROLS VISUAL PARITY */
+.ds-modal--visit-plan .visit-date-trigger,
+.ds-modal--visit-plan .visit-time-button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.ds-modal--visit-plan .visit-date-trigger svg,
+.ds-modal--visit-plan .visit-time-button svg {
+  flex: 0 0 auto !important;
+  width: 19px !important;
+  height: 19px !important;
+  color: #2563eb !important;
+}
+
+/* 7. SELECT DROPDOWN */
+html:not([data-theme="dark"]) .ds-modal--visit-plan select,
+html[data-theme="light"] .ds-modal--visit-plan select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px !important;
+  padding-right: 38px !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan select option,
+html[data-theme="light"] .ds-modal--visit-plan select option {
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .ds-modal--visit-plan select optgroup,
+html[data-theme="light"] .ds-modal--visit-plan select optgroup {
+  color: #475467 !important;
+  background: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+/* 8. FOOTER & BUTTONS POLISH */
+.ds-modal--visit-plan .ds-modal__footer {
+  flex: 0 0 auto !important;
+  min-height: 76px !important;
+  padding: 16px 28px !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-top: 1px solid rgba(226, 232, 240, 0.65) !important;
+}
+
+.visit-plan-footer-shell {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.visit-plan-footer-actions {
+  display: inline-flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+.visit-plan-footer-actions .ds-button--secondary {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border: 1px solid rgba(203, 213, 225, 0.7) !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  transition: all 180ms ease !important;
+}
+
+.visit-plan-footer-actions .ds-button--secondary:hover:not(:disabled) {
+  background: rgba(226, 232, 240, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.8) !important;
+  color: #0f172a !important;
+  transform: translateY(-1px) !important;
+}
+
+.visit-plan-footer-actions .ds-button--secondary:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+.visit-plan-footer-actions .ds-button--ghost {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+  padding: 0 14px !important;
+  transition: all 180ms ease !important;
+}
+
+.visit-plan-footer-actions .ds-button--ghost:hover:not(:disabled) {
+  background: rgba(241, 245, 249, 0.7) !important;
+  color: #334155 !important;
+}
+
+.visit-plan-footer-actions .ds-button--ghost:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+.visit-plan-footer-actions .ds-button--primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  min-height: 42px !important;
+  padding: 0 20px !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
+  transition: all 180ms ease !important;
+}
+
+.visit-plan-footer-actions .ds-button--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.visit-plan-footer-actions .ds-button--primary:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+/* 9. DRAFT SAVED STATE */
+.ds-draft-status {
+  color: #059669 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.ds-draft-status svg {
+  color: #10b981 !important;
+}
+
+/* Priority Segmented Buttons Polish (Light Mode) */
+html:not([data-theme="dark"]) .visit-priority-segmented button {
+  min-height: 44px !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #475467 !important;
+  font: 700 13px var(--font-primary) !important;
+  transition: all 180ms ease !important;
+}
+
+html:not([data-theme="dark"]) .visit-priority-segmented button:hover:not(.selected) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.9) !important;
+  color: #0f172a !important;
+}
+
+html:not([data-theme="dark"]) .visit-priority-segmented button.selected {
+  border-color: #2563eb !important;
+  background: rgba(219, 234, 254, 0.85) !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 0 0 1px #2563eb !important;
+}
+
+html:not([data-theme="dark"]) .visit-priority-segmented button.selected.urgent {
+  border-color: #e11d48 !important;
+  background: rgba(255, 228, 230, 0.85) !important;
+  color: #be123c !important;
+  box-shadow: 0 0 0 1px #e11d48 !important;
+}
+
+/* Products Grid & Chips Polish (Light Mode) */
+html:not([data-theme="dark"]) .visit-product-chips span {
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(147, 197, 253, 0.8) !important;
+  background: rgba(219, 234, 254, 0.75) !important;
+  color: #1d4ed8 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+html:not([data-theme="dark"]) .visit-product-grid button {
+  min-height: 50px !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  transition: all 180ms ease !important;
+}
+
+html:not([data-theme="dark"]) .visit-product-grid button:hover:not(.selected) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(148, 163, 184, 0.9) !important;
+  color: #0f172a !important;
+}
+
+html:not([data-theme="dark"]) .visit-product-grid button.selected {
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.9) 0%, rgba(191, 219, 254, 0.8) 100%) !important;
+  border-color: #2563eb !important;
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15) !important;
+}
+
+html:not([data-theme="dark"]) .visit-org-quick-picks button {
+  background: rgba(241, 245, 249, 0.8) !important;
+  border: 1px solid rgba(203, 213, 225, 0.7) !important;
+  color: #334155 !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  transition: all 180ms ease !important;
+}
+
+html:not([data-theme="dark"]) .visit-org-quick-picks button:hover {
+  background: rgba(219, 234, 254, 0.8) !important;
+  border-color: rgba(147, 197, 253, 0.8) !important;
+  color: #1d4ed8 !important;
+}
+
+/* 11. DARK THEME OVERRIDES */
+[data-theme="dark"] .ds-modal--visit-plan,
+.app-theme-dark .ds-modal--visit-plan {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.96) 0%, rgba(26, 38, 66, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header {
+  background: rgba(15, 23, 42, 0.65) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header h2,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header h2 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header p,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header p {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header .entity-modal-close,
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header .ds-icon-button,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header .entity-modal-close,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header .ds-icon-button {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header .entity-modal-close:hover,
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__header .ds-icon-button:hover,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header .entity-modal-close:hover,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__header .ds-icon-button:hover {
+  background: rgba(91, 124, 255, 0.2) !important;
+  border-color: rgba(91, 124, 255, 0.4) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-dot,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-dot {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-label,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-label {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-item.is-active .visit-plan-stepper-dot,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-item.is-active .visit-plan-stepper-dot {
+  background: linear-gradient(135deg, #5b7cff 0%, #4062e6 100%) !important;
+  border-color: #5b7cff !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(91, 124, 255, 0.35) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-item.is-active .visit-plan-stepper-label,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-item.is-active .visit-plan-stepper-label {
+  color: #818cf8 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-dot,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-dot {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
+  border-color: #34d399 !important;
+  color: #022c22 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-label,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-connector,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-connector {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-connector,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-stepper-item.is-complete .visit-plan-stepper-connector {
+  background: linear-gradient(90deg, #34d399 0%, #5b7cff 100%) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-plan-sheet,
+.app-theme-dark .ds-modal--visit-plan .visit-plan-sheet {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.4) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 16px -4px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-field input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] .ds-modal--visit-plan .ds-field select,
+[data-theme="dark"] .ds-modal--visit-plan .ds-field textarea,
+[data-theme="dark"] .ds-modal--visit-plan .visit-date-trigger,
+[data-theme="dark"] .ds-modal--visit-plan .visit-time-button,
+.app-theme-dark .ds-modal--visit-plan .ds-field input:not([type="checkbox"]):not([type="radio"]),
+.app-theme-dark .ds-modal--visit-plan .ds-field select,
+.app-theme-dark .ds-modal--visit-plan .ds-field textarea,
+.app-theme-dark .ds-modal--visit-plan .visit-date-trigger,
+.app-theme-dark .ds-modal--visit-plan .visit-time-button {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .visit-date-trigger svg,
+[data-theme="dark"] .ds-modal--visit-plan .visit-time-button svg,
+.app-theme-dark .ds-modal--visit-plan .visit-date-trigger svg,
+.app-theme-dark .ds-modal--visit-plan .visit-time-button svg {
+  color: #5b7cff !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan select option,
+.app-theme-dark .ds-modal--visit-plan select option {
+  color: #f8fafc !important;
+  background: #0f172a !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan select optgroup,
+.app-theme-dark .ds-modal--visit-plan select optgroup {
+  color: #94a3b8 !important;
+  background: #1e293b !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-field input:hover:not(:disabled),
+[data-theme="dark"] .ds-modal--visit-plan .ds-field select:hover:not(:disabled),
+[data-theme="dark"] .ds-modal--visit-plan .ds-field textarea:hover:not(:disabled),
+[data-theme="dark"] .ds-modal--visit-plan .visit-date-trigger:hover:not(:disabled),
+[data-theme="dark"] .ds-modal--visit-plan .visit-time-button:hover:not(:disabled),
+.app-theme-dark .ds-modal--visit-plan .ds-field input:hover:not(:disabled),
+.app-theme-dark .ds-modal--visit-plan .ds-field select:hover:not(:disabled),
+.app-theme-dark .ds-modal--visit-plan .ds-field textarea:hover:not(:disabled),
+.app-theme-dark .ds-modal--visit-plan .visit-date-trigger:hover:not(:disabled),
+.app-theme-dark .ds-modal--visit-plan .visit-time-button:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(91, 124, 255, 0.5) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-field input:focus-visible,
+[data-theme="dark"] .ds-modal--visit-plan .ds-field select:focus-visible,
+[data-theme="dark"] .ds-modal--visit-plan .ds-field textarea:focus-visible,
+[data-theme="dark"] .ds-modal--visit-plan .visit-date-trigger:focus-visible,
+[data-theme="dark"] .ds-modal--visit-plan .visit-time-button:focus-visible,
+.app-theme-dark .ds-modal--visit-plan .ds-field input:focus-visible,
+.app-theme-dark .ds-modal--visit-plan .ds-field select:focus-visible,
+.app-theme-dark .ds-modal--visit-plan .ds-field textarea:focus-visible,
+.app-theme-dark .ds-modal--visit-plan .visit-date-trigger:focus-visible,
+.app-theme-dark .ds-modal--visit-plan .visit-time-button:focus-visible {
+  border-color: #5b7cff !important;
+  box-shadow: 0 0 0 3px rgba(91, 124, 255, 0.22) !important;
+}
+
+[data-theme="dark"] .ds-modal--visit-plan .ds-modal__footer,
+.app-theme-dark .ds-modal--visit-plan .ds-modal__footer {
+  background: rgba(15, 23, 42, 0.65) !important;
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .visit-plan-footer-actions .ds-button--secondary,
+.app-theme-dark .visit-plan-footer-actions .ds-button--secondary {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .visit-plan-footer-actions .ds-button--secondary:hover:not(:disabled),
+.app-theme-dark .visit-plan-footer-actions .ds-button--secondary:hover:not(:disabled) {
+  background: rgba(51, 65, 85, 0.85) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .visit-plan-footer-actions .ds-button--ghost,
+.app-theme-dark .visit-plan-footer-actions .ds-button--ghost {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .visit-plan-footer-actions .ds-button--ghost:hover:not(:disabled),
+.app-theme-dark .visit-plan-footer-actions .ds-button--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .visit-plan-footer-actions .ds-button--primary,
+.app-theme-dark .visit-plan-footer-actions .ds-button--primary {
+  background: linear-gradient(135deg, #5b7cff 0%, #4062e6 100%) !important;
+  border-color: #5b7cff !important;
+  box-shadow: 0 4px 14px rgba(91, 124, 255, 0.35) !important;
+}
+
+[data-theme="dark"] .ds-draft-status,
+.app-theme-dark .ds-draft-status {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .ds-draft-status svg,
+.app-theme-dark .ds-draft-status svg {
+  color: #34d399 !important;
+}
+
+/* 10. PREFERS REDUCED MOTION ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  .ds-modal--visit-plan,
+  .visit-plan-step-panel,
+  .visit-plan-stepper-dot,
+  .visit-plan-stepper-label,
+  .visit-plan-stepper-connector,
+  .visit-plan-footer-actions .ds-button {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* 12. RESPONSIVE BREAKPOINTS (390px / 360px) */
+@media (max-width: 576px) {
+  .ds-modal--visit-plan {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    border-radius: 18px !important;
+  }
+
+  .ds-modal--visit-plan .ds-modal__header {
+    padding: 16px 18px 12px !important;
+  }
+
+  .ds-modal--visit-plan .ds-modal__header h2 {
+    font-size: 18px !important;
+  }
+
+  .visit-plan-wizard {
+    padding: 16px 16px 20px !important;
+    gap: 16px !important;
+  }
+
+  .visit-plan-sheet {
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .ds-modal--visit-plan .ds-modal__footer {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom)) 16px !important;
+    min-height: auto !important;
+  }
+
+  .visit-plan-footer-shell {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .visit-plan-footer-actions {
+    width: 100% !important;
+  }
+
+  .visit-plan-footer-actions .ds-button {
+    flex: 1 1 auto !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .visit-plan-stepper-label--full {
+    display: none !important;
+  }
+
+  .visit-plan-stepper-label--short {
+    display: inline !important;
+  }
+
+  .visit-priority-segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .visit-product-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 
 /* ==========================================
    DIRECTOR DASHBOARD REDESIGN STYLES
