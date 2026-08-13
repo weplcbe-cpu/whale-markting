@@ -519,9 +519,10 @@ export const TodaySchedule = () => {
       {/* Start Visit Modal */}
       {startVisitModal && (
         <ModalPortal onClose={() => setStartVisitModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+          <div className="modal-content visit-action-modal visit-action-modal--confirm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Start Field Visit</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setStartVisitModal(null)} aria-label="Close start visit dialog"><X size={20} /></button>
             </div>
             <div className="modal-body">
               <p>Confirm starting visit for <strong>{startVisitModal.customerName}</strong>?</p>
@@ -537,9 +538,10 @@ export const TodaySchedule = () => {
       {/* Cancel Visit Modal */}
       {cancelModal && (
         <ModalPortal onClose={() => setCancelModal(null)} closeOnBackdrop={false}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+          <div className="modal-content visit-action-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Cancel Visit - {cancelModal.customerName}</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setCancelModal(null)} aria-label="Close cancellation dialog"><X size={20} /></button>
             </div>
             <form onSubmit={handleConfirmCancel}>
               <div className="modal-body">
@@ -567,9 +569,10 @@ export const TodaySchedule = () => {
       {/* Reschedule Visit Modal */}
       {rescheduleModal && (
         <ModalPortal onClose={() => setRescheduleModal(null)} closeOnBackdrop={false}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+          <div className="modal-content visit-action-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Reschedule Visit</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setRescheduleModal(null)} aria-label="Close reschedule dialog"><X size={20} /></button>
             </div>
             <form onSubmit={handleConfirmReschedule}>
               <div className="modal-body">

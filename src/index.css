@@ -15656,3 +15656,125 @@ html[data-theme="light"] .follow-up-details dd { color: #15233c; }
     padding: 13px 14px;
   }
 }
+
+/* Login is intentionally dark regardless of the saved authenticated-app theme. */
+.kw-login-page .kw-login-left-heading {
+  color: #ffffff !important;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .18);
+}
+.kw-login-page .kw-login-left-system-text { color: rgba(235, 242, 255, .86) !important; }
+.kw-login-page .kw-login-left-tagline { color: rgba(219, 230, 255, .76) !important; }
+.kw-login-page .kw-login-feature-item { color: #f2f6ff !important; }
+.kw-login-page .kw-login-feature-icon {
+  color: #b7cbff !important;
+  background: rgba(255, 255, 255, .12) !important;
+  border-color: rgba(255, 255, 255, .24) !important;
+}
+
+.kw-login-page .kw-login-card-title { color: #ffffff !important; }
+.kw-login-page .kw-login-card-subtitle { color: #b8c3d9 !important; }
+.kw-login-page .kw-form-label { color: #d6deed !important; }
+.kw-login-page .kw-checkbox-label { color: #c5cee0 !important; }
+.kw-login-page .kw-forgot-link { color: #c7d4ff !important; }
+.kw-login-page .kw-login-footer { color: #8f9bb2 !important; }
+
+.kw-login-page .kw-input-wrap .kw-input {
+  background: #f4f7fc !important;
+  border-color: #d6e0ee !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+.kw-login-page .kw-input-wrap .kw-input::placeholder {
+  color: #6b778c !important;
+  opacity: 1;
+}
+.kw-login-page .kw-input-icon { color: #334155 !important; }
+.kw-login-page .kw-input-eye-btn { color: #7c8ba1 !important; }
+.kw-login-page .kw-login-submit-btn {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #3972f6, #2854df) !important;
+}
+.kw-login-page .kw-login-card {
+  background: rgba(23, 31, 54, .96) !important;
+  border-color: rgba(148, 163, 184, .28) !important;
+}
+
+/* Visit workflow dialogs: size to their content instead of the global 960px modal. */
+.modal-overlay {
+  background: rgba(15, 23, 42, .56) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+.modal-content.visit-action-modal {
+  width: min(520px, calc(100vw - 32px)) !important;
+  max-width: 520px !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.modal-content.visit-action-modal--confirm {
+  width: min(440px, calc(100vw - 32px)) !important;
+  max-width: 440px !important;
+}
+
+.visit-action-modal .modal-header {
+  min-height: 68px;
+  padding: 18px 22px !important;
+}
+.visit-action-modal .modal-header h3 { margin: 0; }
+.visit-action-modal .modal-body { padding: 22px !important; }
+.visit-action-modal .modal-footer {
+  min-height: 0;
+  padding: 14px 22px 18px !important;
+}
+.visit-action-modal .form-group { margin-bottom: 16px; }
+.visit-action-modal .form-group:last-child { margin-bottom: 0; }
+.visit-action-modal :is(.form-input, .form-textarea) { width: 100%; }
+
+.visit-action-modal .modal-close-btn,
+.complete-visit-modal .modal-close-btn {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #cfdaea;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+}
+
+.modal-content.complete-visit-modal {
+  width: min(800px, calc(100vw - 32px)) !important;
+  max-width: 800px !important;
+  height: min(88dvh, 820px) !important;
+  max-height: min(88dvh, 820px) !important;
+}
+.complete-visit-modal .modal-header { padding: 20px 26px !important; }
+.complete-visit-modal .complete-visit-body { padding: 18px 26px 24px !important; }
+
+.ds-modal--entity-details {
+  width: min(860px, calc(100vw - 32px)) !important;
+  max-width: 860px !important;
+}
+.ds-modal--entity-details .entity-details-section {
+  gap: 16px !important;
+}
+.ds-modal--entity-details .entity-details-section > h3 {
+  line-height: 1.25;
+  padding: 0 1px;
+}
+
+@media (max-width: 600px) {
+  .visit-action-modal .modal-header,
+  .visit-action-modal .modal-body,
+  .visit-action-modal .modal-footer { padding-left: 18px !important; padding-right: 18px !important; }
+  .visit-action-modal .modal-footer .btn { flex: 1 1 0; }
+  .modal-content.complete-visit-modal {
+    width: calc(100vw - 16px) !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+}
