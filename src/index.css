@@ -1844,7 +1844,13 @@ h6,
   padding: 4px 12px;
   border-radius: 20px;
   border: 1px solid rgba(59, 130, 246, 0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
+
+.plan-date-chip__separator { opacity: .65; }
 
 .plan-customer-title {
   font-family: var(--font-display);
@@ -1959,6 +1965,41 @@ h6,
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
 }
+
+/* Keep scheduled-plan content readable against the application's light surface. */
+html:not([data-theme="dark"]) .my-visit-plans-container .animated-plan-card,
+html[data-theme="light"] .my-visit-plans-container .animated-plan-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f5f8ff 100%);
+  border-color: #cbdcfb;
+  border-top-color: var(--primary-blue);
+  box-shadow: 0 8px 24px -8px rgba(30, 64, 175, .18);
+}
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-customer-title,
+html[data-theme="light"] .my-visit-plans-container .plan-customer-title { color: #13213a; }
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-purpose-tag,
+html[data-theme="light"] .my-visit-plans-container .plan-purpose-tag { color: #52637a; }
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-purpose-tag strong,
+html[data-theme="light"] .my-visit-plans-container .plan-purpose-tag strong { color: #17243b; }
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-date-chip,
+html[data-theme="light"] .my-visit-plans-container .plan-date-chip {
+  color: #1d4ed8;
+  background: #eaf2ff;
+  border-color: #bfd4ff;
+}
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-product-chip,
+html[data-theme="light"] .my-visit-plans-container .plan-product-chip {
+  color: #6d28d9;
+  background: #f2eaff;
+  border-color: #dcc7ff;
+}
+
+html:not([data-theme="dark"]) .my-visit-plans-container .plan-card-footer,
+html[data-theme="light"] .my-visit-plans-container .plan-card-footer { border-top-color: #d9e2f0; }
 
 .ds-empty-plans {
   grid-column: 1 / -1;
@@ -15410,5 +15451,45 @@ body,
   div[style*="maxWidth: '750px'"] {
     max-width: 100% !important;
     width: 100% !important;
+  }
+}
+
+/* Final visit-plan overrides: legacy modal blocks above intentionally remain supported. */
+.ds-modal--visit-plan .ds-modal__header > div {
+  min-width: 0;
+  padding-right: 20px;
+}
+
+.ds-modal--visit-plan .ds-modal__header .entity-modal-close {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  color: #334155 !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08) !important;
+}
+
+.ds-modal--visit-plan .visit-plan-step-header {
+  position: relative;
+  z-index: 1;
+  padding: 0 2px;
+}
+
+.ds-modal--visit-plan .visit-plan-step-header h3,
+.ds-modal--visit-plan .visit-plan-step-header p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ds-modal--visit-plan .visit-plan-step-panel { gap: 16px !important; }
+
+@media (max-width: 575px) {
+  .ds-modal--visit-plan .ds-modal__header > div { padding-right: 10px; }
+  .ds-modal--visit-plan .ds-modal__header .entity-modal-close {
+    flex-basis: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 }

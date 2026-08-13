@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { Calendar, List, Eye, Target, X, Building2, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, Clock, List, Eye, Target, X, Building2, Pencil, Trash2 } from 'lucide-react';
 import { ModalPortal } from '../ui';
 import { EntityDetailsModal } from '../common/details';
 import { AddVisitPlan } from './AddVisitPlan';
@@ -98,7 +98,13 @@ export const MyPlans = () => {
               return (
                 <div key={p.id} className="animated-plan-card">
                   <div className="plan-card-header">
-                    <span className="plan-date-chip">📅 {p.visitDate} &nbsp;•&nbsp; 🕒 {p.expectedTime || '10:00 AM'}</span>
+                    <span className="plan-date-chip">
+                      <Calendar size={14} aria-hidden="true" />
+                      <span>{p.visitDate}</span>
+                      <span className="plan-date-chip__separator" aria-hidden="true">•</span>
+                      <Clock size={14} aria-hidden="true" />
+                      <span>{p.expectedTime || '10:00 AM'}</span>
+                    </span>
                     <span className={`badge badge-${p.status ? p.status.toLowerCase().replace(/\s+/g, '-') : 'scheduled'}`}>{p.status}</span>
                   </div>
 
