@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Calendar, Clock, List, Eye, Target, X, Building2, Pencil, Trash2 } from 'lucide-react';
-import { ModalPortal } from '../ui';
+import { Button, Modal, ModalPortal } from '../ui';
 import { EntityDetailsModal } from '../common/details';
 import { AddVisitPlan } from './AddVisitPlan';
 
@@ -257,62 +257,34 @@ export const MyPlans = () => {
 
       {/* Compact Delete Confirmation Modal */}
       {deletingPlan && (
-        <ModalPortal onClose={() => !deleting && setDeletingPlan(null)}>
-          <div className="modal-overlay" onClick={() => !deleting && setDeletingPlan(null)}>
-            <div className="modal-content delete-confirm-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', width: '90%' }}>
-              <div className="modal-header">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontSize: '1.1rem', margin: 0 }}>
-                  <Trash2 size={20} /> Delete Visit Plan?
-                </h3>
-                <button
-                  type="button"
-                  disabled={deleting}
-                  onClick={() => setDeletingPlan(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <X size={20} />
-                </button>
+        <Modal
+          open
+          size="compact-delete"
+          className="visit-plan-delete-dialog"
+          title={<span className="visit-plan-delete-title"><Trash2 size={20} aria-hidden="true" /> Delete Visit Plan?</span>}
+          closeLabel="Close delete confirmation"
+          onClose={() => !deleting && setDeletingPlan(null)}
+          footer={<>
+            <Button variant="secondary" disabled={deleting} onClick={() => setDeletingPlan(null)}>Cancel</Button>
+            <Button variant="danger" loading={deleting} onClick={handleConfirmDelete}>
+              {deleting ? 'Deleting…' : 'Delete Visit Plan'}
+            </Button>
+          </>}
+        >
+          <div className="visit-plan-delete-content">
+            <p>This action permanently deletes the visit plan. Are you sure you want to continue?</p>
+            <dl className="visit-plan-delete-summary">
+              <div>
+                <dt>Customer / organization</dt>
+                <dd>{deletingPlan.customerName || deletingPlan.organizationName || deletingPlan.area || 'Not specified'}</dd>
               </div>
-
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <p style={{ margin: 0, fontSize: '0.92rem', color: '#e2e8f0' }}>
-                  Are you sure you want to delete this visit plan?
-                </p>
-
-                <div className="delete-metadata-box" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '12px 16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>CUSTOMER / ORGANIZATION</div>
-                  <div style={{ fontSize: '0.98rem', fontWeight: 700, color: '#ffffff' }}>
-                    {deletingPlan.customerName || deletingPlan.organizationName || deletingPlan.area || 'Not specified'}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '4px' }}>VISIT DATE</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#93c5fd' }}>
-                    📅 {deletingPlan.visitDate} {deletingPlan.expectedTime ? `• ${deletingPlan.expectedTime}` : ''}
-                  </div>
-                </div>
+              <div>
+                <dt>Visit date and time</dt>
+                <dd><Calendar size={15} aria-hidden="true" /> {deletingPlan.visitDate}{deletingPlan.expectedTime ? ` • ${deletingPlan.expectedTime}` : ''}</dd>
               </div>
-
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={deleting}
-                  onClick={() => setDeletingPlan(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  disabled={deleting}
-                  onClick={handleConfirmDelete}
-                  style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#ffffff' }}
-                >
-                  {deleting ? 'Deleting…' : 'Delete Visit Plan'}
-                </button>
-              </div>
-            </div>
+            </dl>
           </div>
-        </ModalPortal>
+        </Modal>
       )}
 
       {/* Plan Details Modal */}
