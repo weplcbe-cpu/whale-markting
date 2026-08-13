@@ -7371,7 +7371,7 @@ textarea:focus {
   color: var(--text-muted);
 }
 
-[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger, .ds-combobox, .ds-multi-select, .ds-project-select__control) {
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger, .visit-time-button, .ds-combobox, .ds-multi-select, .ds-project-select__control) {
   background: #0D1427 !important;
   color: var(--text-primary) !important;
   border-color: var(--border-default) !important;
@@ -7386,7 +7386,7 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger):focus {
+[data-theme="dark"] :is(.form-input, .form-select, .form-textarea, .ds-field input, .ds-field select, .ds-field textarea, .visit-date-trigger, .visit-time-button):focus {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 3px rgba(91, 124, 255, .18) !important;
 }
@@ -7415,7 +7415,7 @@ textarea:focus {
   background: var(--surface-hover);
 }
 
-[data-theme="dark"] :is(.ds-modal, .modal-content, .user-modal) {
+[data-theme="dark"] :is(.ds-modal, .modal-content, .user-modal, .visit-time-dialog) {
   background: var(--surface-1) !important;
   color: var(--text-primary);
   border-color: var(--border-default);
@@ -9121,8 +9121,12 @@ textarea:focus {
   border-radius: 10px;
   border: 1px solid rgba(251, 113, 133, .35);
   background: rgba(251, 113, 133, .09);
-  color: #fecdd3;
+  color: #e11d48;
   font-size: 13px;
+}
+
+[data-theme="dark"] .visit-place-warning {
+  color: #fecdd3;
 }
 
 .visit-org-quick-picks {
@@ -9175,13 +9179,27 @@ textarea:focus {
 
 .visit-priority-segmented button.selected {
   border-color: var(--primary);
-  background: rgba(91, 124, 255, .17);
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+[data-theme="dark"] .visit-priority-segmented button.selected {
   color: #fff;
+  background: rgba(91, 124, 255, .17);
+  box-shadow: none;
 }
 
 .visit-priority-segmented button.selected.urgent {
+  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.12);
+  color: #e11d48;
+}
+
+[data-theme="dark"] .visit-priority-segmented button.selected.urgent {
   border-color: rgba(251, 113, 133, .65);
   background: rgba(251, 113, 133, .18);
+  color: #fff;
 }
 
 .visit-products-field {
@@ -9209,9 +9227,13 @@ textarea:focus {
   border-radius: 999px;
   border: 1px solid rgba(91, 124, 255, .45);
   background: rgba(91, 124, 255, .16);
-  color: #dbe4ff;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 700;
+}
+
+[data-theme="dark"] .visit-product-chips span {
+  color: #dbe4ff;
 }
 
 .visit-product-chips button {
@@ -10372,7 +10394,7 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
 }
 
 .ds-modal--visit-plan input[type="time"] {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 .visit-time-button {
@@ -10384,7 +10406,7 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
   padding: 0 14px;
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  background: #0D1427;
+  background: var(--surface-1);
   color: var(--text-primary);
   font: 600 14px var(--font-primary);
   text-align: left;
@@ -10425,6 +10447,11 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
   display: grid;
   place-items: center;
   padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] .visit-time-dialog-layer {
   background: rgba(2, 6, 23, .72);
 }
 
@@ -10441,10 +10468,10 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
   overflow-x: hidden;
   padding: 18px;
   padding-bottom: max(18px, env(safe-area-inset-bottom));
-  border: 1px solid rgba(148, 163, 184, .2);
+  border: 1px solid var(--border-default);
   border-radius: 20px;
-  background: #10182C;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, .5);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
   color: var(--text-primary);
   box-sizing: border-box;
 }
@@ -10613,7 +10640,7 @@ html:not([data-theme="dark"]) :is(.location-master, .location-picker),
   margin-top: auto;
   padding-top: 2px;
   padding-bottom: max(2px, env(safe-area-inset-bottom));
-  background: #10182C;
+  background: transparent;
 }
 
 .visit-time-dialog-actions button {
@@ -13196,6 +13223,18 @@ html:not([data-theme="dark"]) {
   --kw-text-secondary: #475467;
   --kw-text-muted: #667085;
   --kw-glass-border: rgba(36, 85, 232, 0.14);
+
+  --surface-1: #FFFFFF;
+  --surface-2: #F8F9FC;
+  --surface-3: #F1F4F9;
+  --surface-hover: rgba(36, 85, 232, 0.04);
+  --border-subtle: rgba(36, 85, 232, 0.1);
+  --border-default: rgba(36, 85, 232, 0.18);
+  --text-primary: #14213D;
+  --text-secondary: #475467;
+  --text-muted: #667085;
+  --primary: #2455E8;
+  --primary-soft: rgba(36, 85, 232, 0.08);
 }
 
 /* 2. Base Page Atmosphere & Main View Wrapper */
@@ -13247,8 +13286,8 @@ html:not([data-theme="dark"]) :is(.card, .kw-glass-card, .stat-card, .ds-section
 }
 
 /* Level 2 — Interactive Elements, Toolbar, Floating Controls, Search, Inputs */
-html[data-theme="light"] :is(.toolbar-bar, .global-search-input, .kw-theme-switcher, .notification-bell-btn, .user-profile-btn, .visit-date-trigger),
-html:not([data-theme="dark"]) :is(.toolbar-bar, .global-search-input, .kw-theme-switcher, .notification-bell-btn, .user-profile-btn, .visit-date-trigger) {
+html[data-theme="light"] :is(.toolbar-bar, .global-search-input, .kw-theme-switcher, .notification-bell-btn, .user-profile-btn, .visit-date-trigger, .visit-time-button),
+html:not([data-theme="dark"]) :is(.toolbar-bar, .global-search-input, .kw-theme-switcher, .notification-bell-btn, .user-profile-btn, .visit-date-trigger, .visit-time-button) {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(239, 245, 255, 0.8) 100%) !important;
   border: 1px solid rgba(36, 85, 232, 0.18) !important;
   backdrop-filter: blur(18px) !important;
@@ -13388,6 +13427,12 @@ html:not([data-theme="dark"]) :is(.ds-button--primary, button[type="submit"]:not
   opacity: 0.6 !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
+}
+
+html[data-theme="light"] :is(.ds-modal__footer, .modal-footer, .user-modal__footer),
+html:not([data-theme="dark"]) :is(.ds-modal__footer, .modal-footer, .user-modal__footer) {
+  background: #f8faff !important;
+  border-top: 1px solid rgba(36, 85, 232, 0.1) !important;
 }
 
 /* 6. High-Contrast Table Styling */
