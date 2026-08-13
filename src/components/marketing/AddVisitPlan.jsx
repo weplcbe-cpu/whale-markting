@@ -572,7 +572,7 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
               </header>
 
               <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
-                <div className="ds-field">
+                <div>
                   <FormField
                     label="Customer / Organization Name"
                     placeholder="e.g. Acme Health Corp"
