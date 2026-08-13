@@ -138,6 +138,30 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
               </button>
             );
           })}
+
+          {isMobileOpen && (
+            <button
+              type="button"
+              className="nav-item mobile-logout-nav"
+              onClick={logout}
+              style={{
+                marginTop: '12px',
+                padding: '12px',
+                color: '#ef4444',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                borderRadius: '12px',
+                width: '100%',
+                textAlign: 'left'
+              }}
+            >
+              <LogOut size={20} />
+              <span style={{ fontWeight: 600 }}>Logout</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -156,6 +180,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isMobileOpen, toggleSidebar }
             onClick={logout}
             title="Logout"
             aria-label="Logout"
+            style={{ display: isMobileOpen ? 'none' : 'flex' }}
           >
             <LogOut size={16} />
           </button>

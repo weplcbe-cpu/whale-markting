@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BellRing, BriefcaseBusiness, Eye, EyeOff, IdCard, Mail, Phone, Save, ShieldCheck, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { BellRing, BriefcaseBusiness, Eye, EyeOff, IdCard, LogOut, Mail, Phone, Save, ShieldCheck, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -18,6 +18,7 @@ export const ProfilePage = () => {
     notificationSoundEnabled,
     setNotificationSoundEnabled,
     testNotificationExperience,
+    logout,
   } = useApp();
   const isAdmin = currentRole === 'Admin';
   const [form, setForm] = useState({ current: '', next: '', confirm: '' });
@@ -384,6 +385,27 @@ export const ProfilePage = () => {
               </Button>
             </div>
           </div>
+        </section>
+
+        <section className="mp-profile-card mp-logout-section" style={{ marginTop: '20px', padding: '0', border: 'none', background: 'transparent' }}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={logout}
+            className="mp-logout-full-btn"
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+              gap: '10px',
+              height: '50px',
+              color: '#ef4444',
+              borderColor: 'rgba(239, 68, 68, 0.2)',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            <LogOut size={20} /> Logout
+          </Button>
         </section>
       </div>
     </div>
