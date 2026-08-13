@@ -483,12 +483,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
         <section className="visit-plan-step-panel" key={currentStep}>
           {currentStep === 1 && (
             <>
-              <header className="visit-plan-step-header">
-                <h3>Visit Schedule</h3>
-                <p>Choose when and where the customer visit will take place.</p>
-              </header>
-
               <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <header className="visit-plan-step-header">
+                  <h3>Visit Schedule</h3>
+                  <p>Choose when and where the customer visit will take place.</p>
+                </header>
                 <div className="ds-field">
                   <label>Visit Date <span className="ds-required">*</span></label>
                   <VisitDatePicker value={formData.visitDate} min={todayIso()} error={errors.visitDate} onChange={(visitDate) => update('visitDate', visitDate)} />
@@ -566,12 +565,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
           {currentStep === 2 && (
             <>
-              <header className="visit-plan-step-header">
-                <h3>Customer Details</h3>
-                <p>Add the customer and contact information for this visit.</p>
-              </header>
-
               <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <header className="visit-plan-step-header">
+                  <h3>Customer Details</h3>
+                  <p>Add the customer and contact information for this visit.</p>
+                </header>
                 <div>
                   <FormField
                     label="Customer / Organization Name"
@@ -635,12 +633,11 @@ export const AddVisitPlan = ({ open = true, onClose = () => {}, plan = null }) =
 
           {currentStep === 3 && (
             <>
-              <header className="visit-plan-step-header">
-                <h3>Visit Details</h3>
-                <p>Define the purpose, priority and products for this visit.</p>
-              </header>
-
               <div className="ds-form-grid visit-plan-sheet visit-plan-step-grid">
+                <header className="visit-plan-step-header">
+                  <h3>Visit Details</h3>
+                  <p>Define the purpose, priority and products for this visit.</p>
+                </header>
                 <SelectField
                   className="ds-field--full"
                   id="visit-purpose"

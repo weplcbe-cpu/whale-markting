@@ -15474,7 +15474,10 @@ body,
 .ds-modal--visit-plan .visit-plan-step-header {
   position: relative;
   z-index: 1;
-  padding: 0 2px;
+  grid-column: 1 / -1;
+  padding: 0 0 16px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(203, 213, 225, .7);
 }
 
 .ds-modal--visit-plan .visit-plan-step-header h3,
