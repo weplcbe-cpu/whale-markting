@@ -15658,23 +15658,27 @@ html[data-theme="light"] .follow-up-details dd { color: #15233c; }
 }
 
 /* Login is intentionally dark regardless of the saved authenticated-app theme. */
-.kw-login-page .kw-login-left-heading {
+html .kw-login-page .kw-login-left-heading {
   color: #ffffff !important;
   text-shadow: 0 2px 18px rgba(0, 0, 0, .18);
 }
 .kw-login-page .kw-login-left-system-text { color: rgba(235, 242, 255, .86) !important; }
 .kw-login-page .kw-login-left-tagline { color: rgba(219, 230, 255, .76) !important; }
-.kw-login-page .kw-login-feature-item { color: #f2f6ff !important; }
+html .kw-login-page .kw-login-feature-item,
+html .kw-login-page .kw-login-feature-item > span:last-child {
+  color: #f2f6ff !important;
+}
 .kw-login-page .kw-login-feature-icon {
   color: #b7cbff !important;
   background: rgba(255, 255, 255, .12) !important;
   border-color: rgba(255, 255, 255, .24) !important;
 }
 
-.kw-login-page .kw-login-card-title { color: #ffffff !important; }
+html .kw-login-page .kw-login-card-title { color: #ffffff !important; }
 .kw-login-page .kw-login-card-subtitle { color: #b8c3d9 !important; }
 .kw-login-page .kw-form-label { color: #d6deed !important; }
-.kw-login-page .kw-checkbox-label { color: #c5cee0 !important; }
+.kw-login-page .kw-checkbox-label,
+.kw-login-page .kw-checkbox-label > span { color: #c5cee0 !important; }
 .kw-login-page .kw-forgot-link { color: #c7d4ff !important; }
 .kw-login-page .kw-login-footer { color: #8f9bb2 !important; }
 
